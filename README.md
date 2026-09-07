@@ -103,10 +103,45 @@ the project's settings enable stays uninstalled until each person runs the `clau
 line above. Claude Code reports it as not installed and prints that command, so the gap is visible
 rather than silent.
 
-The plugin declares no `version`, so installs track the resolved git commit SHA and a collaborator
-picks up guideline changes without anyone bumping a number. The condition that would retire this
-choice is wanting a guideline change to land for some projects before others; at that point, add a
-`version` to `.claude-plugin/plugin.json` and bump it per release.
+### Pinned versions
+
+`.claude-plugin/plugin.json` declares an explicit `version`, and a plugin with one is pinned to
+that string: an install stays on the version it has until the string changes *and* someone runs
+the update below. Nothing arrives on its own. Do not turn on auto-update for the marketplace —
+the version pin is what makes a guideline change land deliberately rather than mid-task.
+
+Because the pin is the version string, **a release that does not bump it reaches nobody**.
+Claude Code sees the same version and keeps the cached copy, with no error. Use `claude plugin
+tag` rather than tagging by hand, since it refuses to create a tag that already exists and so
+turns a forgotten bump into a failure instead of silence.
+
+### Releasing
+
+From a clean working tree on `main`, with `version` already bumped in
+`.claude-plugin/plugin.json`:
+
+```bash
+claude plugin validate .
+claude plugin tag --push -m "Release %s"
+```
+
+That creates and pushes `iglootools--v<version>`, after checking that `plugin.json` and the
+marketplace entry agree. `--dry-run` shows the tag without creating it. The marketplace entry
+deliberately carries no `version` of its own: when both are set, `plugin.json` wins silently and
+the entry becomes a place for a stale number to hide.
+
+### Updating a project
+
+```bash
+claude plugin marketplace update iglootools-plugins
+claude plugin update iglootools@iglootools-plugins --scope project
+```
+
+Then restart Claude Code, or run `/reload-plugins`, to apply it.
+
+Both arguments matter. The bare plugin name is looked up at user scope and reports
+`Plugin "iglootools" not found`. And the install is recorded per project, so updating one
+repository leaves every other repository on the version it was installed at — run it in each.
 
 ### The ones that load in every session
 
