@@ -130,7 +130,7 @@ marketplace entry agree. `--dry-run` shows the tag without creating it. The mark
 deliberately carries no `version` of its own: when both are set, `plugin.json` wins silently and
 the entry becomes a place for a stale number to hide.
 
-### Updating a project
+### Updating
 
 ```bash
 claude plugin marketplace update iglootools-plugins
@@ -138,6 +138,25 @@ claude plugin update iglootools@iglootools-plugins --scope project
 ```
 
 Then restart Claude Code, or run `/reload-plugins`, to apply it.
+
+The download is shared: every project points at one
+`~/.claude/plugins/cache/iglootools-plugins/iglootools/<version>`, and a version is fetched once
+per machine. What is per project is the *pointer* to it, which is the pin doing its job — one
+repository can sit on an older version while another moves ahead. Updating them together is a
+loop, not a global switch:
+
+```bash
+claude plugin marketplace update iglootools-plugins
+for repo in ~/Workspace/iglootools/*/; do
+  grep -qs 'iglootools@iglootools-plugins' "$repo/.claude/settings.json" || continue
+  (cd "$repo" && claude plugin update iglootools@iglootools-plugins --scope project)
+done
+```
+
+The `grep` guard skips repositories that do not enable the plugin, so the loop can point at a
+whole workspace. A `--scope user` install would update everywhere at once, but it also enables
+the skills in every repository on the machine, which is what
+[installing per project](#install-it-per-project-not-per-user) exists to avoid.
 
 Both arguments matter. The bare plugin name is looked up at user scope and reports
 `Plugin "iglootools" not found`. And the install is recorded per project, so updating one
