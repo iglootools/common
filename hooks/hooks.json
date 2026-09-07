@@ -1,0 +1,16 @@
+{
+  "description": "Loads the always-on iglootools guidelines into every session.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/load-always-on-guidelines.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
