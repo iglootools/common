@@ -1,0 +1,15 @@
+{
+  "name": "iglootools-plugins",
+  "owner": {
+    "name": "iglootools",
+    "url": "https://github.com/iglootools"
+  },
+  "description": "Plugins shared across iglootools projects.",
+  "plugins": [
+    {
+      "name": "iglootools",
+      "source": "./",
+      "description": "Loads the shared iglootools guidelines when a change reaches the files they govern."
+    }
+  ]
+}

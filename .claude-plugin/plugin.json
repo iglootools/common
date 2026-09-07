@@ -1,0 +1,10 @@
+{
+  "name": "iglootools",
+  "description": "Routes Claude Code to the iglootools shared guidelines at the moment they apply, and to the procedure for documenting a deviation from one.",
+  "author": {
+    "name": "iglootools"
+  },
+  "homepage": "https://github.com/iglootools/common-guidelines",
+  "repository": "https://github.com/iglootools/common-guidelines",
+  "license": "Apache-2.0"
+}

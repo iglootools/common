@@ -10,6 +10,11 @@ Shared coding guidelines for [iglootools](https://github.com/iglootools) project
 - [project-setup.md](project-setup.md) — GitHub Workflows, dependency automation, new-project setup
 - [python-tooling.md](python-tooling.md) — uv, mise, hatchling, and the mise task set
 - [ide.md](ide.md) — pyright resolution, VSCode, and Claude Code configuration
+- [skills/](skills/) — the Claude Code skill that routes an agent to whichever file above governs
+  the edit it is about to make. It restates no guidance of its own; see
+  [Usage with Claude Code](#usage-with-claude-code).
+- [hooks/](hooks/) — the `SessionStart` hook that loads the always-on guidelines into every
+  session.
 - [scripts/](scripts/) — reference implementations to copy into a project, for the few cases where
   a guideline is easier to ship as working code than to describe. The guideline that motivates each
   one links to it, and explains why every line is there.
@@ -33,34 +38,106 @@ the bar a rationale has to meet.
 
 ## Usage with Claude Code
 
-Add `@` imports in your project's `CLAUDE.md` (requires this repo cloned as a sibling directory):
+Everything here is delivered by a single plugin. **No clone of this repository is required**, and
+no project needs to sit in a sibling directory.
 
-```markdown
-@../common-guidelines/coding.md
-@../common-guidelines/python.md
+The guidelines split into two kinds, and the plugin delivers each by the mechanism that fits.
+`coding.md` and `python.md` govern every edit, so a `SessionStart` hook puts them in context from
+the start. The other three are triggered by a specific file, so a skill reads them only when a
+change reaches the files they govern.
+
+### The plugin
+
+This repository is also a Claude Code plugin. It ships one skill, `guidelines`, which restates
+no guideline: its body says which file to read and when, so the guidelines stay in one place,
+readable by humans and agents alike. It does three things — dispatches to the guideline file a
+change reaches, carries the pass to make before calling the change done, and walks the procedure
+for recording a documented exception where a rule does not fit.
+
+Guideline files are read on demand where possible: the skill reads only the one a change
+actually reaches, and an ordinary code change reads none of them.
+
+It also enforces the philosophy the guidelines rest on: check the work against them before
+calling it done, and document a deviation rather than drift from a rule silently. See
+[Applying These Guidelines](philosophy.md#applying-these-guidelines).
+
+### Install it per project, not per user
+
+These rules are for iglootools projects. Installing the plugin at **user scope** would surface
+them in every repository on the machine, including ones this repository has no business
+governing. Install at **project scope** instead, so a repository opts in by committing the
+decision:
+
+```bash
+claude plugin marketplace add iglootools/common-guidelines
+claude plugin install iglootools@iglootools-plugins --scope project
 ```
 
-**Import the two that govern every edit; point at the rest.** An `@` import is loaded into every
-session whether or not the task needs it, so it should be reserved for guidelines that apply to any
-change. `project-setup.md`, `python-tooling.md` and `ide.md` do not: they are triggered by a
-specific file, and a session that never touches that file pays for them anyway. Follow the imports
-with a table naming the trigger, so the agent can tell when to go read one:
+The install writes `enabledPlugins` into the project's `.claude/settings.json`. The
+`marketplace add` step registers the marketplace in *your user* settings, not the project's, so
+add `extraKnownMarketplaces` alongside it by hand — that is what lets a collaborator resolve the
+plugin without adding the marketplace themselves. Committing both is what actually scopes the
+skills to this repository: membership in the `iglootools` GitHub org is not something Claude Code
+can check, so the opt-in is explicit and committed.
 
-```markdown
-| Read | Before touching |
-|---|---|
-| ../common-guidelines/project-setup.md | `.github/workflows/`, `renovate.json`, `dependabot.yml`, `.gitignore` |
-| ../common-guidelines/python-tooling.md | `pyproject.toml`, `mise.toml`, `uv.lock` — or adding a dependency or mise task |
-| ../common-guidelines/ide.md | `.vscode/`, `.claude/settings.json`, `*.code-workspace`, `[tool.pyright]` |
+```json
+{
+  "extraKnownMarketplaces": {
+    "iglootools-plugins": {
+      "source": { "source": "github", "repo": "iglootools/common-guidelines" }
+    }
+  },
+  "enabledPlugins": {
+    "iglootools@iglootools-plugins": true
+  }
+}
 ```
 
-Make the trigger a **path**, not a topic. "When working on packaging" requires the agent to have
-already understood the task as a packaging task; "before touching `pyproject.toml`" is checkable
-against the edit it is about to make. Drop rows for files a project does not have, and drop
-`@python.md` from a non-Python project.
+Committing those keys is enough to register the marketplace for a collaborator who trusts the
+folder, but it does not install the plugin for them: a plugin from an external source that only
+the project's settings enable stays uninstalled until each person runs the `claude plugin install`
+line above. Claude Code reports it as not installed and prints that command, so the gap is visible
+rather than silent.
 
-`coding.md` carries the "defaults, not dogma" clause, so importing it is enough for the exception
-rule to reach the agent. Add `@../common-guidelines/philosophy.md` too if you want the full reasoning
-in context — it is considerably longer than all the others combined.
+The plugin declares no `version`, so installs track the resolved git commit SHA and a collaborator
+picks up guideline changes without anyone bumping a number. The condition that would retire this
+choice is wanting a guideline change to land for some projects before others; at that point, add a
+`version` to `.claude-plugin/plugin.json` and bump it per release.
 
-Or add this repository as an additional working directory in Claude Code settings.
+### The ones that load in every session
+
+Some guidelines govern every edit rather than one kind of file — `coding.md` and `python.md`
+today. Those are not skills: a skill is model-invoked, which is right for a guideline triggered
+by a file and wrong for one that applies to everything. They are delivered instead by
+[hooks/load-always-on-guidelines.sh](hooks/load-always-on-guidelines.sh), which runs on
+`SessionStart` and whose stdout becomes context the agent sees. Another such guideline is added
+to that script.
+
+The hook fires on `startup`, `clear` and `compact`, and deliberately not on `resume` or `fork`: a
+resumed or forked session still carries the earlier injection in its transcript, while a compacted
+one may have had it summarized away.
+
+Emission can be conditional: `python.md` goes out only when the project has a `pyproject.toml`,
+so a project with no Python does not pay for it. If a file cannot be read, the hook says so in
+the injected text rather than emitting nothing, because a guideline that failed to load must not
+be indistinguishable from one that does not apply.
+
+### Working on the guidelines themselves
+
+This repository does not consume its own plugin: `${CLAUDE_PLUGIN_ROOT}` would resolve to the
+installed copy rather than the file being edited. Its [CLAUDE.md](CLAUDE.md) imports
+`coding.md` and `python.md` directly instead, which needs no plugin at all.
+
+To work on the plugin, load it from the working tree without installing it, which is what makes
+`${CLAUDE_PLUGIN_ROOT}` resolve here:
+
+```bash
+claude --plugin-dir .
+```
+
+Edits to a `SKILL.md` take effect immediately; changes to `.claude-plugin/` need
+`/reload-plugins`. Validate the manifests with:
+
+```bash
+claude plugin validate .
+```
