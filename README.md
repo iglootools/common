@@ -130,7 +130,7 @@ marketplace entry agree. `--dry-run` shows the tag without creating it. The mark
 deliberately carries no `version` of its own: when both are set, `plugin.json` wins silently and
 the entry becomes a place for a stale number to hide.
 
-### Updating
+### Updating one project
 
 ```bash
 claude plugin marketplace update iglootools-plugins
@@ -139,11 +139,18 @@ claude plugin update iglootools@iglootools-plugins --scope project
 
 Then restart Claude Code, or run `/reload-plugins`, to apply it.
 
+Both arguments matter. The bare plugin name is looked up at user scope and reports
+`Plugin "iglootools" not found`.
+
+### Updating every project
+
 The download is shared: every project points at one
 `~/.claude/plugins/cache/iglootools-plugins/iglootools/<version>`, and a version is fetched once
 per machine. What is per project is the *pointer* to it, which is the pin doing its job — one
-repository can sit on an older version while another moves ahead. Updating them together is a
-loop, not a global switch:
+repository can sit on an older version while another moves ahead.
+
+There is no global switch, so moving them together is a loop. Point it at wherever the iglootools
+repositories are checked out:
 
 ```bash
 claude plugin marketplace update iglootools-plugins
@@ -153,14 +160,15 @@ for repo in ~/Workspace/iglootools/*/; do
 done
 ```
 
-The `grep` guard skips repositories that do not enable the plugin, so the loop can point at a
-whole workspace. A `--scope user` install would update everywhere at once, but it also enables
-the skills in every repository on the machine, which is what
-[installing per project](#install-it-per-project-not-per-user) exists to avoid.
+The `grep` guard reads each repository's committed `.claude/settings.json`, so the loop skips
+checkouts that do not enable the plugin and can be pointed at a whole workspace. Every repository
+it does touch prints either `updated from <old> to <new>` or `already at the latest version`, so
+the run is its own check that nothing was left behind — the silent case, a repository quietly
+left on an old version, is the one this loop exists to remove.
 
-Both arguments matter. The bare plugin name is looked up at user scope and reports
-`Plugin "iglootools" not found`. And the install is recorded per project, so updating one
-repository leaves every other repository on the version it was installed at — run it in each.
+A `--scope user` install would update everywhere at once, but it also enables the skills in every
+repository on the machine, which is what
+[installing per project](#install-it-per-project-not-per-user) exists to avoid.
 
 ### The ones that load in every session
 
