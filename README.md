@@ -73,12 +73,16 @@ claude plugin marketplace add iglootools/common-guidelines
 claude plugin install iglootools@iglootools-plugins --scope project
 ```
 
-The install writes `enabledPlugins` into the project's `.claude/settings.json`. The
-`marketplace add` step registers the marketplace in *your user* settings, not the project's, so
-add `extraKnownMarketplaces` alongside it by hand — that is what lets a collaborator resolve the
-plugin without adding the marketplace themselves. Committing both is what actually scopes the
-skills to this repository: membership in the `iglootools` GitHub org is not something Claude Code
-can check, so the opt-in is explicit and committed.
+Both commands are needed on each machine. `marketplace add` registers the catalog in *your user*
+settings, and the install writes `enabledPlugins` into the project's `.claude/settings.json`. A
+project that declares the marketplace in `extraKnownMarketplaces` does not spare a collaborator
+the `marketplace add`: without it the install fails with `Plugin "iglootools" not found in
+marketplace "iglootools-plugins"`.
+
+Commit `extraKnownMarketplaces` alongside `enabledPlugins` anyway, so the marketplace is declared
+by the repository rather than only by whoever installed it first. Committing both is what scopes
+the skills to this repository: membership in the `iglootools` GitHub org is not something Claude
+Code can check, so the opt-in is explicit and committed.
 
 ```json
 {
