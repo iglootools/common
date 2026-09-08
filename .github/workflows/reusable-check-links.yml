@@ -1,0 +1,106 @@
+name: reusable-check-links
+
+# The shared link checker for iglootools projects. A consuming repository keeps only its
+# triggers, its concurrency group, the `issues: write` grant and a pinned `uses:` ref; the
+# lychee invocation, the report classification and the issue filing all live here, so a fix
+# reaches every project through one version bump instead of a copy-paste per repository.
+#
+# Two things resolve to the *caller*, which is what makes this work:
+#
+#   - `actions/checkout` below takes no `repository:` input, and the `github` context inside a
+#     called workflow is the caller's. It therefore checks out the calling repository at the
+#     ref that triggered it — so each project's own markdown and its own `.lycheeignore` are
+#     what get checked. `.lycheeignore` is the intended per-repository knob: hosts that reject
+#     GitHub-hosted runners differ per project, and lychee reads the file from the working
+#     directory with no flag needed.
+#   - `permissions` is a ceiling, not a grant. Declaring `issues: write` here cannot raise what
+#     the caller allowed, so a caller that omits it makes the issue step fail with a 403 — and
+#     only on the run where links are actually broken, which is the worst time to discover it.
+#     Every caller must declare it too.
+
+on:
+  workflow_call:
+    inputs:
+      paths:
+        description: File glob to check, passed to lychee as its input argument.
+        type: string
+        default: "./**/*.md"
+      issue-title:
+        description: Title of the issue filed when links are broken.
+        type: string
+        default: Link Checker Report
+      issue-labels:
+        description: Comma-separated labels applied to that issue.
+        type: string
+        default: report, automated issue
+
+jobs:
+  linkChecker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write # required for peter-evans/create-issue-from-file, and capped by the caller
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Link Checker
+        id: lychee
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
+        with:
+          # Accept 3xx so redirects are not flagged (lychee accepts 100..=103,200..=299 by
+          # default). --accept only understands `[start]..[[=]end]|code` ranges: the
+          # shorthand `2xx,3xx` used here previously is not valid syntax, so lychee aborted
+          # during argument parsing and never checked a single link.
+          #
+          # The input glob has to be repeated: setting `args` replaces the action's default
+          # value, which is where the paths would otherwise come from.
+          #
+          # --timeout/--max-retries: kept above the 20s default as a margin for genuinely slow
+          # hosts. Hosts that answer fine from a normal connection but never from a runner are
+          # not slow, they are blocked — those belong in the caller's `.lycheeignore`, because
+          # raising the timeout for them only buys a longer wait before the same failure.
+          args: >-
+            --accept '200..=299,300..=399' --insecure --no-progress
+            --timeout 30 --max-retries 3 '${{ inputs.paths }}'
+          fail: false
+
+      # Decide from the report body, not the exit code. lychee exits 2 both for genuine link
+      # failures and for a usage error (clap's convention), so exit code alone cannot tell
+      # "links are broken" from "lychee never ran" — which is how an argument error ended up
+      # being filed as an empty issue every week.
+      #
+      # lychee writes "# Summary" whenever it completes a run, and a "## Errors per input"
+      # section only when at least one link actually failed. Timeouts get their own section
+      # and deliberately do not raise an issue on their own — they are usually transient, and
+      # a weekly issue for a slow host is the noise this workflow is meant to avoid.
+      - name: Classify link checker result
+        id: report
+        run: |
+          if [ -f ./lychee/out.md ] && grep -q '^# Summary' ./lychee/out.md; then
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -f ./lychee/out.md ] && grep -q '^## Errors per input' ./lychee/out.md; then
+            echo "broken_links=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "broken_links=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Surface a malfunctioning link checker as a red workflow instead of a silent stream of
+      # empty issues. Without this, a broken invocation looks the same as "nothing to report".
+      - name: Fail if the link checker never ran
+        if: steps.report.outputs.ran != 'true'
+        run: |
+          echo "::error::lychee exited ${{ steps.lychee.outputs.exit_code }} without producing a report — check the arguments in reusable-check-links.yml."
+          echo "--- ./lychee/out.md ---"
+          cat ./lychee/out.md 2>/dev/null || echo "(no output file)"
+          exit 1
+
+      - name: Create Issue From File
+        if: steps.report.outputs.broken_links == 'true'
+        uses: peter-evans/create-issue-from-file@fca9117c27cdc29c6c4db3b86c48e4115a786710 # v6
+        with:
+          title: ${{ inputs.issue-title }}
+          content-filepath: ./lychee/out.md
+          labels: ${{ inputs.issue-labels }}

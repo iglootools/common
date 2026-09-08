@@ -182,7 +182,8 @@ This is a natural consequence of append-only, event-driven, idempotent design â€
 For a deeper treatment of these ideas â€” stream processing, derived data, and logs as the fundamental abstraction:
 - [Designing Data-Intensive Applications](https://dataintensive.net/) by Martin Kleppmann
 - [I Heart Logs](https://www.oreilly.com/library/view/i-heart-logs/9781491909379/) by Jay Kreps
-- [The Log: What every software engineer should know about real-time data's unifying abstraction](https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying) by Jay Kreps
+- [The Log: What every software engineer should know about real-time data's unifying abstraction](https://web.archive.org/web/20260612105408/https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying) by Jay Kreps
+  (LinkedIn retired the original URL; this is the Wayback snapshot of it)
 - [Domain-Driven Design](https://www.domainlanguage.com/ddd/) by Eric Evans
 - [Implementing Domain-Driven Design](https://www.oreilly.com/library/view/implementing-domain-driven-design/9780133039900/) by Vaughn Vernon
 - [Release It!](https://pragprog.com/titles/mnee2/release-it-second-edition/) by Michael Nygaard
