@@ -190,10 +190,6 @@ than as a file each repository keeps its own copy of:
 iglootools/common-guidelines/.github/workflows/reusable-check-links.yml
 ```
 
-It was copied per repository first, and the copies drifted the way copies do — one carried an
-argument fix the other did not, one had a `.lycheeignore` and the other had none. Nothing
-announced the divergence, because two workflows that differ have no diff to review.
-
 A consuming repository keeps only what is genuinely its own:
 
 ```yaml
@@ -228,12 +224,9 @@ Four things about that stub are load-bearing:
   gh api repos/iglootools/common-guidelines/commits/v<version> --jq .sha
   ```
 
-  Use that rather than `git ls-remote refs/tags/v<version>`, which for an **annotated** tag
-  returns the SHA of the tag *object* and not of the commit it points at. Both are 40-hex and
-  neither looks wrong, but Actions resolves a `uses:` ref to a commit, so the tag-object SHA
-  fails at resolution time with nothing to suggest the number itself was the mistake.
-  `git ls-remote` can dereference — `'refs/tags/v<version>^{}'`, quoted against the shell — but
-  the API call above needs no such care.
+  Not `git ls-remote refs/tags/v<version>`: for an annotated tag that returns the tag *object's*
+  SHA, which is also 40-hex and also looks right, but Actions resolves a `uses:` ref to a
+  commit. Dereference it as `'refs/tags/v<version>^{}'` or use the API call above.
 
   Releases carry two tags at the same commit: `iglootools--v<version>` for the plugin, and a
   plain `v<version>` for git refs like this one. The plain tag exists because Renovate resolves
@@ -258,9 +251,6 @@ Four things about that stub are load-bearing:
   runner. Those are blocked, not slow: raising `--timeout` for them only buys a longer wait
   before the same failure, and each one pads every report so a genuine 404 arrives buried in
   known-good noise.
-
-This repository calls the workflow on itself with a local path ref rather than a pinned SHA, so
-a change to it is exercised as changed instead of as last released.
 
 ## All Projects
 
