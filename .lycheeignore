@@ -1,0 +1,10 @@
+# Hosts that reject GitHub-hosted runners rather than being genuinely broken.
+# Verified by hand: each returns 200 from a normal client but fails from CI, so
+# checking them produces a weekly false-positive report instead of signal.
+# Re-test before removing an entry — these are environment quirks, not permanent truths.
+
+# oreilly.com serves 403 to every non-interactive client, including a request carrying a
+# browser User-Agent, so this is not a runner-IP problem that a retry or a header would fix.
+# The two entries in philosophy.md's further-reading list are book landing pages that resolve
+# normally in a browser.
+https://www\.oreilly\.com/.*

@@ -181,6 +181,80 @@ for uv, mise and packaging, and [ide.md](ide.md) for editor and Claude Code conf
 
 - Set `timeout-minutes` on every job. Without it, a hung step (a stalled `apt-get`, a network call that never returns) runs until GitHub's 6-hour default before the job is killed, wasting CI minutes and delaying feedback. A tight job-level guard (e.g. `timeout-minutes: 10`, sized to the job) fails fast and legibly. Prefer a single job-level timeout over per-step timeouts: one guard covers the whole job with no per-step bookkeeping.
 
+### Call the shared link checker instead of copying it
+
+Link checking is identical in every project, so it lives here as a reusable workflow rather
+than as a file each repository keeps its own copy of:
+
+```
+iglootools/common-guidelines/.github/workflows/reusable-check-links.yml
+```
+
+It was copied per repository first, and the copies drifted the way copies do — one carried an
+argument fix the other did not, one had a `.lycheeignore` and the other had none. Nothing
+announced the divergence, because two workflows that differ have no diff to review.
+
+A consuming repository keeps only what is genuinely its own:
+
+```yaml
+name: check-links
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+  schedule:
+    - cron: "00 18 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.event.workflow_run.head_sha || github.sha) || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-links:
+    permissions:
+      issues: write
+    uses: iglootools/common-guidelines/.github/workflows/reusable-check-links.yml@<sha> # v1.1.0
+```
+
+Four things about that stub are load-bearing:
+
+- **Pin the `uses:` ref to a full commit SHA, with the version in a trailing comment**, for the
+  same reason [actions are pinned](#github-workflows) — a tag or branch ref can be repointed
+  under you, and here it would change what CI does in every project at once with no diff
+  anywhere to review. The trailing comment is what Renovate reads to raise the update PR, so
+  the pin stays updatable rather than frozen. Resolve the SHA for a release with:
+
+  ```bash
+  git ls-remote https://github.com/iglootools/common-guidelines refs/tags/v1.1.0
+  ```
+
+  Releases carry two tags at the same commit: `iglootools--v<version>` for the plugin, and a
+  plain `v<version>` for git refs like this one. The plain tag exists because Renovate resolves
+  ordinary version tags and not the prefixed spelling.
+
+- **`permissions: issues: write` has to be in the caller.** A called workflow's `permissions`
+  is a ceiling on what the caller granted, never a grant of its own, so declaring it only in
+  the reusable workflow leaves the token without it. The failure waits for the first run that
+  actually finds a broken link and then 403s while filing the issue — a red workflow at the
+  exact moment you wanted the report.
+
+- **`concurrency` stays in the caller**, even though it is the same expression everywhere.
+  Concurrency governs the run the *triggers* create, and the triggers are the caller's; a group
+  defined in the called workflow would depend on how GitHub resolves `github.workflow` across
+  the call boundary, and getting that wrong groups unrelated workflows together and cancels
+  them — silently, which is the failure the concurrency rules above exist to prevent.
+
+- **`.lycheeignore` stays in the caller too**, and is the intended per-repository knob. The
+  reusable workflow checks out the *calling* repository, because the `github` context inside a
+  called workflow is the caller's, so lychee reads that repository's ignore file with no flag
+  needed. Use it for hosts that answer normally from a browser but never from a GitHub-hosted
+  runner. Those are blocked, not slow: raising `--timeout` for them only buys a longer wait
+  before the same failure, and each one pads every report so a genuine 404 arrives buried in
+  known-good noise.
+
+This repository calls the workflow on itself with a local path ref rather than a pinned SHA, so
+a change to it is exercised as changed instead of as last released.
+
 ## All Projects
 
 - `renovate.json`: group all dependency updates into a single PR, delay

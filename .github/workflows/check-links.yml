@@ -1,0 +1,29 @@
+name: check-links
+
+on:
+  # Manually trigger the workflow using
+  # gh workflow run check-links.yml # --ref <branch>
+  # gh run list --workflow check-links.yml # --branch <branch>
+  workflow_dispatch:
+  repository_dispatch:
+  schedule:
+    - cron: "00 18 * * 1"
+
+concurrency:
+  # A link check only reads and reports, so a run in flight can be abandoned and redone. See
+  # the concurrency section of project-setup.md for why main carries the commit sha and every
+  # other ref does not.
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.event.workflow_run.head_sha || github.sha) || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-links:
+    permissions:
+      # Must be granted here. `permissions` in the called workflow is a ceiling on what the
+      # caller allowed, not a grant of its own, so omitting this 403s the issue step on the
+      # first run that finds a broken link.
+      issues: write
+    # This repository is the one place the ref is a path rather than a pinned SHA: a local ref
+    # always resolves to the commit being tested, so the workflow is exercised as changed
+    # rather than as last released. Consuming projects pin — see project-setup.md.
+    uses: ./.github/workflows/reusable-check-links.yml
