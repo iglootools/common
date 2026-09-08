@@ -267,6 +267,26 @@ Four things about that stub are load-bearing:
 - Github build/test/release workflows
 - `git config user.email "<email>"` and `git config user.name "<name>"` in the project.
 
+### Keep project documentation at the conventional paths
+
+Three paths are fixed across iglootools projects, because the `guidelines` skill reads them by
+convention rather than by being pointed at them:
+
+| Path | Holds |
+|---|---|
+| `docs/guidelines.md` | deviations from the shared guidelines, which shared sections are out of scope, and rules of the project's own |
+| `docs/implementation-checklists.md` | project-specific checks with no counterpart in the shared set |
+| `docs/setup-development-environment.md` | how to get the project running, including installing the plugin |
+
+Renaming one does not produce an error: the skill finds nothing, concludes the project documented
+nothing project-specific, and applies the shared guidelines as written. A project's deviations
+then stop being consulted with nothing to say so, which is the failure this repository exists to
+prevent. Adding a file later needs no announcement — put it at the path and it is read.
+
+Because these are conventions, a project's `CLAUDE.md` should not restate them, nor restate any
+guidance the plugin already delivers. What belongs there is what only that project knows: its
+architecture, its domain concepts, its build and release entry points.
+
 ### Split Renovate and Dependabot by job, not by ecosystem
 
 The 14-day delay above is a supply-chain measure: it protects you from a release that turns out
