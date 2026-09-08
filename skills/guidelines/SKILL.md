@@ -102,4 +102,4 @@ because nobody is left who remembers what it was working around. The shape to co
 Python version policy in `${CLAUDE_PLUGIN_ROOT}/python.md`: it records the constraint, what it
 costs, and the specific event that would retire it.
 
-Full reasoning: `${CLAUDE_PLUGIN_ROOT}/philosophy.md#applying-these-guidelines`
+Full reasoning: `${CLAUDE_PLUGIN_ROOT}/README.md#applying-these-guidelines`
