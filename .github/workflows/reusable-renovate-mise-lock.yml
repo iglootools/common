@@ -1,0 +1,72 @@
+name: reusable-renovate-mise-lock
+
+# Renovate's hosted runner has no `mise` binary, so it can bump tool versions in mise.toml but
+# cannot regenerate mise.lock — the per-platform checksum and attestation lockfile. That leaves
+# the renovate/artifacts check red on every tool bump. This workflow runs mise on Renovate
+# branches to regenerate the lock and commit it back if it changed.
+#
+# The caller keeps what is genuinely its own: the push trigger, the concurrency group, the
+# `contents: write` grant and the mise version. `permissions` in a called workflow is a ceiling
+# on what the caller granted rather than a grant of its own, so a caller that omits
+# `contents: write` gets a job that regenerates the lock and then cannot push it.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: >-
+          mise version for jdx/mise-action, pinned by the caller because project-setup.md
+          requires it to match the version the project's mise.lock was generated with.
+          Deliberately named `version` rather than `mise-version`: the Renovate custom manager
+          that keeps the pin current matches a `# renovate:` marker followed by whitespace and a
+          literal `version:` line, so any other name yields a pin nothing updates.
+        type: string
+        required: true
+
+jobs:
+  mise-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # committing the regenerated mise.lock back to the Renovate branch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Install the mise binary only. We must NOT let mise-action run its default
+      # `mise install`: when a mise.lock is present it auto-adds `--locked`, which *fails* on a
+      # tool version that is in mise.toml but not yet in the lock — exactly the case this
+      # workflow exists to fix. So we regenerate explicitly.
+      #
+      # `env: false` follows from that and is not optional. mise-action exports mise's [env]
+      # into the job after setup, and any [env] entry resolving a tool path — the
+      # `UV_PYTHON = "{{ tools.python.path }}"` pin python-tooling.md requires, or any other
+      # `{{ tools.* }}` template — fails with "Field `<tool>` is not defined" when nothing is
+      # installed, which is precisely the state `install: false` leaves behind, taking the whole
+      # setup step down with it. A project with no such template survives without `env: false`,
+      # which is how the pairing gets dropped from a copy and stays latent until someone adds an
+      # [env] entry. The export buys nothing here regardless: the only step after this one is
+      # `mise lock`, which needs the binary and the config, not a tool environment.
+      - name: Setup mise
+        uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4
+        with:
+          version: ${{ inputs.version }}
+          install: false
+          env: false
+
+      # `mise lock` regenerates checksums and URLs for all platforms in the lockfile, picking up
+      # any tool versions Renovate bumped in mise.toml.
+      - name: Regenerate mise.lock
+        run: mise lock
+
+      - name: Commit mise.lock if changed
+        run: |
+          if git diff --quiet -- mise.lock; then
+            echo "mise.lock is up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mise.lock
+          git commit -m "chore(deps): regenerate mise.lock"
+          git push
