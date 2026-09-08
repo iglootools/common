@@ -32,11 +32,11 @@ printf 'govern every edit. Where the project documents a deviation in its own do
 printf 'the project wins; undocumented divergence is drift, not an override.\n\n'
 printf 'These files live in %s, where the relative links inside them resolve.\n\n' "$plugin_root"
 
-emit "$plugin_root/coding.md"
+emit "$plugin_root/guidelines/coding.md"
 
 # python.md is dead weight in a project with no Python, and two of the iglootools projects
 # have none. The presence of pyproject.toml is a check the session can make before it has
 # understood anything about the task.
 if [[ -f "$project_dir/pyproject.toml" ]]; then
-  emit "$plugin_root/python.md"
+  emit "$plugin_root/guidelines/python.md"
 fi

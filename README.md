@@ -4,15 +4,28 @@ Shared coding guidelines for [iglootools](https://github.com/iglootools) project
 
 ## Contents
 
+The rules themselves live in [**`guidelines/`**](guidelines/), one file per area a change can
+reach. They split by how they are delivered rather than by subject — two govern every edit and
+are in context from the start of a session, the other three are read only when a change reaches
+the files they govern:
+
+| Always on | |
+|---|---|
+| [`coding.md`](guidelines/coding.md) | language-agnostic coding principles |
+| [`python.md`](guidelines/python.md) | Python-specific coding guidelines, wherever the project has a `pyproject.toml` |
+
+| Read when a change reaches it | |
+|---|---|
+| [`project-setup.md`](guidelines/project-setup.md) | GitHub Workflows, dependency automation, new-project setup |
+| [`python-tooling.md`](guidelines/python-tooling.md) | uv, mise, hatchling, and the mise task set |
+| [`ide.md`](guidelines/ide.md) | pyright resolution, VSCode, and Claude Code configuration |
+
+[Usage with Claude Code](#usage-with-claude-code) covers the two mechanisms that make that split
+work. The rest of the repository supports the guidelines rather than stating any:
+
 - [philosophy.md](philosophy.md) — the reasoning behind the guidelines
-- [coding.md](coding.md) — language-agnostic coding principles
-- [python.md](python.md) — Python-specific coding guidelines
-- [project-setup.md](project-setup.md) — GitHub Workflows, dependency automation, new-project setup
-- [python-tooling.md](python-tooling.md) — uv, mise, hatchling, and the mise task set
-- [ide.md](ide.md) — pyright resolution, VSCode, and Claude Code configuration
-- [skills/](skills/) — the Claude Code skill that routes an agent to whichever file above governs
-  the edit it is about to make. It restates no guidance of its own; see
-  [Usage with Claude Code](#usage-with-claude-code).
+- [skills/](skills/) — the Claude Code skill that routes an agent to whichever guideline governs
+  the edit it is about to make. It restates no guidance of its own.
 - [hooks/](hooks/) — the `SessionStart` hook that loads the always-on guidelines into every
   session.
 - [scripts/](scripts/) — reference implementations to copy into a project, for the few cases where
@@ -42,7 +55,7 @@ So where the exception depends on a condition, **name the condition that would m
 unnecessary**, not just the reason it exists today. "Revisit when X supports Y" or "drop this
 once we no longer support Z" gives the exception an expiry criterion someone can actually check,
 instead of leaving a future reader to guess whether the justification still holds. The
-[Python version policy](python.md#python-version-policy) is the shape to copy: it records the
+[Python version policy](guidelines/python.md#python-version-policy) is the shape to copy: it records the
 constraint, what it costs, and the specific event that would retire it.
 
 **Where to document an exception** — put it where a reader will hit it, not in a separate log:
@@ -168,7 +181,7 @@ silently and the entry becomes a place for a stale number to hide.
 
 **Both tags, or the release is half-published.** The plugin is installed by version and needs
 only the prefixed tag, but the other iglootools repositories pin
-[the shared link checker](project-setup.md#call-the-shared-link-checker-instead-of-copying-it)
+[the shared link checker](guidelines/project-setup.md#call-the-shared-link-checker-instead-of-copying-it)
 by commit SHA and read the plain `v<version>` tag to find it — Renovate resolves ordinary
 version tags and not the prefixed spelling. Skipping the mirror does not break anything that is
 already running, which is the problem: consumers simply never learn a new version exists, and

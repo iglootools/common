@@ -1,7 +1,7 @@
 # Python Tooling Guidelines
 
-See [philosophy.md](philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](README.md#applying-these-guidelines) for how to deviate from them —
+See [philosophy.md](../philosophy.md) for the reasoning behind these guidelines, and
+[Applying these guidelines](../README.md#applying-these-guidelines) for how to deviate from them —
 these are defaults, and a documented, justified exception is always allowed.
 
 This file covers the toolchain: how a Python project is built, how its environment is created, and
@@ -177,7 +177,7 @@ CI asks whether a sync would *change* it.
 
 `mise.lock` has no `--check` equivalent, so that one has to regenerate and compare — and it
 should do so **in a scratch copy, never in place**. Copy
-[`scripts/lock-check.sh`](scripts/lock-check.sh) into the project and reduce the task to
+[`scripts/lock-check.sh`](../scripts/lock-check.sh) into the project and reduce the task to
 `run = "./scripts/lock-check.sh"`.
 
 Keep it as a script rather than inlining it as a TOML string. Anything that needs

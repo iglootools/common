@@ -1,7 +1,7 @@
 # Project Setup Guidelines
 
-See [philosophy.md](philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](README.md#applying-these-guidelines) for how to deviate from them —
+See [philosophy.md](../philosophy.md) for the reasoning behind these guidelines, and
+[Applying these guidelines](../README.md#applying-these-guidelines) for how to deviate from them —
 these are defaults, and a documented, justified exception is always allowed.
 
 Language- and tool-specific setup lives alongside this file: [python-tooling.md](python-tooling.md)
