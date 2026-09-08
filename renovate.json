@@ -1,0 +1,29 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "description": [
+        "This repository's only dependencies are the actions inside the two reusable workflows every other iglootools project calls — actions/checkout, lycheeverse/lychee-action, peter-evans/create-issue-from-file and jdx/mise-action. They were pinned to commit SHAs with nothing whatsoever updating them until this file existed, which is the 'pin nothing updates' failure coding.md names, sitting in the shared workflows every project depends on.",
+        "helpers:pinGitHubActionDigests keeps the digest pinning in .github/workflows self-enforcing. Every `uses:` there is pinned to a commit SHA with the tag kept in a trailing comment; without this preset a newly added action written as `@v1` would silently stay unpinned and the sweep would decay one workflow at a time. It ships in config:best-practices rather than config:recommended, so it has to be listed here.",
+        "minimumReleaseAgeBehaviour: timestamp-optional is what stops those digest pins from freezing. minimumReleaseAge applies to digest updates too, and when Renovate cannot date one it treats it as pending forever under the default timestamp-required. That covers the `pin` updates this config invites: pinning a newly added `@v1` ref carries no release timestamp of its own, so under the default it would stay pending indefinitely and the pin would never land.",
+        "No customManagers, unlike the other iglootools projects, and the omission is deliberate rather than forgotten. There is no pyproject.toml here to hold [tool.uv] build-constraint-dependencies. And the jdx/mise-action `version:` in reusable-renovate-mise-lock.yml is `${{ inputs.version }}` — a passthrough each caller pins in its own repository, where its own custom manager updates it. Add the mise manager from project-setup.md if a literal version pin ever appears in this repository."
+    ],
+    "extends": [
+        "config:recommended",
+        "helpers:pinGitHubActionDigests"
+    ],
+    "minimumReleaseAge": "14 days",
+    "minimumReleaseAgeBehaviour": "timestamp-optional",
+    "separateMajorMinor": false,
+    "packageRules": [
+        {
+            "groupName": "all dependencies",
+            "matchManagers": [
+                "*"
+            ],
+            "schedule": [
+                "at any time"
+            ],
+            "automerge": false
+        }
+    ],
+    "dependencyDashboard": true
+}

@@ -328,6 +328,32 @@ Because these are conventions, a project's `CLAUDE.md` should not restate them, 
 guidance the plugin already delivers. What belongs there is what only that project knows: its
 architecture, its domain concepts, its build and release entry points.
 
+### Committing `renovate.json` does not turn Renovate on
+
+The config is inert until the Renovate GitHub App is granted access to the repository, and
+nothing in the repository can tell you whether that happened. There is no error, no failed check
+and no log — the pins simply never move, which looks exactly like having nothing to update.
+
+**The tell is the Dependency Dashboard issue.** With `dependencyDashboard: true`, Renovate opens
+one on its first run, so its absence means it has never run:
+
+```bash
+gh issue list --repo <owner>/<repo> --state all --search "Dependency Dashboard in:title"
+gh pr list --repo <owner>/<repo> --state all --author app/renovate --json number -q length
+```
+
+Check both after adding the config, not months later. A repository can carry a fully documented
+`renovate.json`, a complete set of SHA-pinned actions and a pile of open Dependabot alerts while
+Renovate has never looked at it once.
+
+Validate the config itself with Renovate's own validator, and **pin the validator to a current
+version** — `npx` resolves `renovate` to a very old release, which reports valid modern options
+as errors and invites you to "fix" a working config:
+
+```bash
+npx --yes --package renovate@<current> -- renovate-config-validator
+```
+
 ### Split Renovate and Dependabot by job, not by ecosystem
 
 The 14-day delay above is a supply-chain measure: it protects you from a release that turns out
