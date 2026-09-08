@@ -1,7 +1,7 @@
 {
   "name": "iglootools",
   "description": "Routes Claude Code to the iglootools shared guidelines at the moment they apply, and to the procedure for documenting a deviation from one.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": {
     "name": "iglootools"
   },

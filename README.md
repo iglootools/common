@@ -123,12 +123,26 @@ From a clean working tree on `main`, with `version` already bumped in
 ```bash
 claude plugin validate .
 claude plugin tag --push -m "Release %s"
+
+# Mirror it as a plain version tag, for the reusable workflow's consumers.
+version="$(python3 -c 'import json;print(json.load(open(".claude-plugin/plugin.json"))["version"])')"
+git tag -a "v${version}" -m "Release ${version} (git ref tag mirroring iglootools--v${version})"
+git push origin "refs/tags/v${version}"
 ```
 
-That creates and pushes `iglootools--v<version>`, after checking that `plugin.json` and the
-marketplace entry agree. `--dry-run` shows the tag without creating it. The marketplace entry
-deliberately carries no `version` of its own: when both are set, `plugin.json` wins silently and
-the entry becomes a place for a stale number to hide.
+The first command creates and pushes `iglootools--v<version>`, after checking that `plugin.json`
+and the marketplace entry agree. `--dry-run` shows the tag without creating it. The marketplace
+entry deliberately carries no `version` of its own: when both are set, `plugin.json` wins
+silently and the entry becomes a place for a stale number to hide.
+
+**Both tags, or the release is half-published.** The plugin is installed by version and needs
+only the prefixed tag, but the other iglootools repositories pin
+[the shared link checker](project-setup.md#call-the-shared-link-checker-instead-of-copying-it)
+by commit SHA and read the plain `v<version>` tag to find it — Renovate resolves ordinary
+version tags and not the prefixed spelling. Skipping the mirror does not break anything that is
+already running, which is the problem: consumers simply never learn a new version exists, and
+nothing fails to say so. The two tags must land on the same commit, so create them together
+rather than remembering the second one later.
 
 ### Updating one project
 
