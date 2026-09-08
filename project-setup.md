@@ -213,7 +213,7 @@ jobs:
   check-links:
     permissions:
       issues: write
-    uses: iglootools/common-guidelines/.github/workflows/reusable-check-links.yml@<sha> # v1.1.0
+    uses: iglootools/common-guidelines/.github/workflows/reusable-check-links.yml@<sha> # v<version>
 ```
 
 Four things about that stub are load-bearing:
@@ -225,8 +225,15 @@ Four things about that stub are load-bearing:
   the pin stays updatable rather than frozen. Resolve the SHA for a release with:
 
   ```bash
-  git ls-remote https://github.com/iglootools/common-guidelines refs/tags/v1.1.0
+  gh api repos/iglootools/common-guidelines/commits/v<version> --jq .sha
   ```
+
+  Use that rather than `git ls-remote refs/tags/v<version>`, which for an **annotated** tag
+  returns the SHA of the tag *object* and not of the commit it points at. Both are 40-hex and
+  neither looks wrong, but Actions resolves a `uses:` ref to a commit, so the tag-object SHA
+  fails at resolution time with nothing to suggest the number itself was the mistake.
+  `git ls-remote` can dereference — `'refs/tags/v<version>^{}'`, quoted against the shell — but
+  the API call above needs no such care.
 
   Releases carry two tags at the same commit: `iglootools--v<version>` for the plugin, and a
   plain `v<version>` for git refs like this one. The plain tag exists because Renovate resolves
