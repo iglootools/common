@@ -1,7 +1,7 @@
 # IDE Guidelines
 
-See [philosophy.md](philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](README.md#applying-these-guidelines) for how to deviate from them —
+See [philosophy.md](../philosophy.md) for the reasoning behind these guidelines, and
+[Applying these guidelines](../README.md#applying-these-guidelines) for how to deviate from them —
 these are defaults, and a documented, justified exception is always allowed.
 
 This file covers editor and agent configuration. For the toolchain those editors point at, see

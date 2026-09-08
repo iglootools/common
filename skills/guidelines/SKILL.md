@@ -27,7 +27,7 @@ Apply them at write time, not as a post-hoc review.
 
 If a file you need is not in context, because the project has no `pyproject.toml`, a compaction
 dropped it, or the hook reported that it could not read it, read
-`${CLAUDE_PLUGIN_ROOT}/coding.md` or `${CLAUDE_PLUGIN_ROOT}/python.md` before continuing.
+`${CLAUDE_PLUGIN_ROOT}/guidelines/coding.md` or `${CLAUDE_PLUGIN_ROOT}/guidelines/python.md` before continuing.
 
 ## Read the file the change reaches
 
@@ -38,9 +38,9 @@ silent, so the part that looks skippable is usually the part that names the fail
 
 | Read | When the change touches |
 |---|---|
-| `${CLAUDE_PLUGIN_ROOT}/python-tooling.md` | Building, packaging, dependencies, lock files, or the mise task set. Adding a dependency and adding a mise task count wherever the edit lands. |
-| `${CLAUDE_PLUGIN_ROOT}/project-setup.md` | GitHub Actions workflows, Renovate or Dependabot, the committed `.gitignore`, or setting up a new repository. |
-| `${CLAUDE_PLUGIN_ROOT}/ide.md` | `.vscode/`, `.claude/settings.json`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/python-tooling.md` | Building, packaging, dependencies, lock files, or the mise task set. Adding a dependency and adding a mise task count wherever the edit lands. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup.md` | GitHub Actions workflows, Renovate or Dependabot, the committed `.gitignore`, or setting up a new repository. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/ide.md` | `.vscode/`, `.claude/settings.json`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
 
 `pyproject.toml` appears in two rows: `[tool.pyright]` belongs to `ide.md`, and everything
 about building, packaging and dependencies belongs to `python-tooling.md`.
@@ -99,7 +99,7 @@ time, and those conditions expire. Where the exception depends on one, name the 
 would make it unnecessary — "revisit when X supports Y", "drop this once we no longer support
 Z" — not just the reason it exists today. An undocumented exception silently becomes permanent,
 because nobody is left who remembers what it was working around. The shape to copy is the
-Python version policy in `${CLAUDE_PLUGIN_ROOT}/python.md`: it records the constraint, what it
+Python version policy in `${CLAUDE_PLUGIN_ROOT}/guidelines/python.md`: it records the constraint, what it
 costs, and the specific event that would retire it.
 
 Full reasoning: `${CLAUDE_PLUGIN_ROOT}/README.md#applying-these-guidelines`
