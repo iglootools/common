@@ -267,6 +267,47 @@ Four things about that stub are load-bearing:
 - Github build/test/release workflows
 - `git config user.email "<email>"` and `git config user.name "<name>"` in the project.
 
+### Call the shared mise.lock regenerator too
+
+The other workflow that is identical everywhere, for the same reason and with the same shape:
+
+```
+iglootools/common-guidelines/.github/workflows/reusable-renovate-mise-lock.yml
+```
+
+```yaml
+name: renovate-mise-lock
+
+on:
+  push:
+    branches:
+      - 'renovate/**'
+
+concurrency:
+  group: renovate-mise-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mise-lock:
+    permissions:
+      contents: write
+    uses: iglootools/common-guidelines/.github/workflows/reusable-renovate-mise-lock.yml@<sha> # v<version>
+    with:
+      # renovate: datasource=github-releases depName=jdx/mise
+      version: <the version mise.lock was generated with>
+```
+
+The mise version stays in the caller rather than becoming a constant in the shared workflow, for
+two reasons that both point the same way. The rule above requires it to match the version the
+project locked with locally, which is a per-project fact. And the pin is kept current by the
+Renovate custom manager in the project's own `renovate.json` — this repository runs no Renovate,
+so a version moved here would be exactly the pin nothing updates that
+[coding.md](coding.md) warns about.
+
+That is also why the input is named `version` and not `mise-version`: the custom manager matches
+a `# renovate:` marker followed by whitespace and a literal `version:` line, so a more
+descriptive name would silently stop matching and freeze the pin.
+
 ### Keep project documentation at the conventional paths
 
 Three paths are fixed across iglootools projects, because the `guidelines` skill reads them by
