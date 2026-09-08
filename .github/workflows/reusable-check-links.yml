@@ -13,10 +13,11 @@ name: reusable-check-links
 #     what get checked. `.lycheeignore` is the intended per-repository knob: hosts that reject
 #     GitHub-hosted runners differ per project, and lychee reads the file from the working
 #     directory with no flag needed.
-#   - `permissions` is a ceiling, not a grant. Declaring `issues: write` here cannot raise what
-#     the caller allowed, so a caller that omits it makes the issue step fail with a 403 — and
-#     only on the run where links are actually broken, which is the worst time to discover it.
-#     Every caller must declare it too.
+#   - `permissions` is a ceiling, not a grant. What is declared here cannot raise what the
+#     caller allowed, so every caller has to declare the same two permissions. Omitting
+#     `issues: write` fails with a 403 only on the run where links are actually broken, which is
+#     the worst time to discover it; omitting `contents: read` fails the clone outright, but
+#     only in a private repository.
 
 on:
   workflow_call:
@@ -39,7 +40,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      issues: write # required for peter-evans/create-issue-from-file, and capped by the caller
+      # Declaring any permission zeroes every one that is not listed, so both are required and
+      # neither is optional. `contents: read` is what actions/checkout needs; without it the
+      # clone fails with "Repository not found" in a private repository, while a public one
+      # keeps working because checkout falls back to an anonymous clone. That asymmetry means
+      # the mistake cannot be caught by a public caller.
+      contents: read
+      issues: write # required for peter-evans/create-issue-from-file
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 

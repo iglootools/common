@@ -19,10 +19,11 @@ concurrency:
 jobs:
   check-links:
     permissions:
-      # Must be granted here. `permissions` in the called workflow is a ceiling on what the
-      # caller allowed, not a grant of its own, so omitting this 403s the issue step on the
-      # first run that finds a broken link.
-      issues: write
+      # Both must be granted here. `permissions` in the called workflow is a ceiling on what the
+      # caller allowed, not a grant of its own, and declaring any permission zeroes the ones
+      # left out — so dropping either breaks the shared job rather than tightening it.
+      contents: read # actions/checkout; a private repository cannot clone without it
+      issues: write # filing the report issue
     # This repository is the one place the ref is a path rather than a pinned SHA: a local ref
     # always resolves to the commit being tested, so the workflow is exercised as changed
     # rather than as last released. Consuming projects pin — see project-setup.md.
