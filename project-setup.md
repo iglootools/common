@@ -208,6 +208,7 @@ concurrency:
 jobs:
   check-links:
     permissions:
+      contents: read
       issues: write
     uses: iglootools/common-guidelines/.github/workflows/reusable-check-links.yml@<sha> # v<version>
 ```
@@ -232,11 +233,17 @@ Four things about that stub are load-bearing:
   plain `v<version>` for git refs like this one. The plain tag exists because Renovate resolves
   ordinary version tags and not the prefixed spelling.
 
-- **`permissions: issues: write` has to be in the caller.** A called workflow's `permissions`
-  is a ceiling on what the caller granted, never a grant of its own, so declaring it only in
-  the reusable workflow leaves the token without it. The failure waits for the first run that
-  actually finds a broken link and then 403s while filing the issue — a red workflow at the
-  exact moment you wanted the report.
+- **Both permissions have to be in the caller.** A called workflow's `permissions` is a
+  ceiling on what the caller granted, never a grant of its own, so declaring them only in the
+  reusable workflow leaves the token without them. Note also that declaring *any* permission
+  zeroes every one left out, so this block is not a place to list only what looks relevant:
+
+  - Without `issues: write`, the run 403s while filing the issue — and only on a run that found
+    a broken link, which is the moment you most wanted the report.
+  - Without `contents: read`, `actions/checkout` cannot clone. **In a private repository only**:
+    a public one keeps working, because checkout falls back to an anonymous clone. A stub
+    verified against public repositories will therefore pass and still be wrong, which is how
+    this reached a private caller as `fatal: repository not found`.
 
 - **`concurrency` stays in the caller**, even though it is the same expression everywhere.
   Concurrency governs the run the *triggers* create, and the triggers are the caller's; a group
