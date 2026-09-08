@@ -4,7 +4,7 @@ Shared coding guidelines for [iglootools](https://github.com/iglootools) project
 
 ## Contents
 
-- [philosophy.md](philosophy.md) — the reasoning behind the guidelines, and [how to deviate from them](philosophy.md#applying-these-guidelines)
+- [philosophy.md](philosophy.md) — the reasoning behind the guidelines
 - [coding.md](coding.md) — language-agnostic coding principles
 - [python.md](python.md) — Python-specific coding guidelines
 - [project-setup.md](project-setup.md) — GitHub Workflows, dependency automation, new-project setup
@@ -19,22 +19,53 @@ Shared coding guidelines for [iglootools](https://github.com/iglootools) project
   a guideline is easier to ship as working code than to describe. The guideline that motivates each
   one links to it, and explains why every line is there.
 
-## These are defaults, not dogma
+## Applying these guidelines
 
-Every rule here is a default recommendation. A project is free to deviate, or to add rules of its
-own, **provided the deviation and the reasoning behind it are documented** — project-wide ones in the
+These are defaults, not dogma. A project or module is free to deviate from any rule here, or to
+add rules of its own, where there is good reason to — a performance constraint, an ecosystem
+convention, a third-party library limitation, a platform or version still supported —
+**provided the deviation and the reasoning behind it are documented**: project-wide ones in the
 project's `docs/guidelines.md`, local ones in a comment at the point of deviation.
 
 Divergence for a good, documented reason is fine. Drift without one is not.
 
-A major reason to insist on the written rationale is that it makes the exception **re-evaluatable**.
-Most exceptions answer a condition that is true at the time — a library gap, a performance constraint, a
-version we still support — and those conditions expire. Where one does, name the condition that would
-retire the exception ("drop this once we no longer support Z"), so a future reader can check whether the
-justification still holds instead of guessing. Undocumented exceptions become permanent by default.
+**A major reason to write the rationale down is so the exception can be re-evaluated later.**
+Almost every exception answers a condition that is true at the time: a library that lacks a
+feature, a performance constraint, an ecosystem convention, a platform or version still
+supported. Those conditions expire. When the library ships the feature, the bottleneck moves, or
+the version is dropped, a documented exception can be revisited and removed — an undocumented
+one silently becomes permanent, because nobody is left who remembers what it was working
+around. Undocumented exceptions are how a codebase accumulates rules that everyone follows and
+no one can explain.
 
-See [Applying These Guidelines](philosophy.md#applying-these-guidelines) for where exceptions belong and
-the bar a rationale has to meet.
+So where the exception depends on a condition, **name the condition that would make it
+unnecessary**, not just the reason it exists today. "Revisit when X supports Y" or "drop this
+once we no longer support Z" gives the exception an expiry criterion someone can actually check,
+instead of leaving a future reader to guess whether the justification still holds. The
+[Python version policy](python.md#python-version-policy) is the shape to copy: it records the
+constraint, what it costs, and the specific event that would retire it.
+
+**Where to document an exception** — put it where a reader will hit it, not in a separate log:
+
+- **Project-wide deviations** go in the project's `docs/guidelines.md`, stated against the rule
+  they override.
+- **Local or config-level deviations** go in a comment at the point of deviation — a
+  `[tool.ruff.lint] ignore` entry paired with the design decision that motivates it, a `# noqa`
+  with its reason beside it, a comment above the constraint in `pyproject.toml`.
+
+**The bar is a rationale a reviewer would accept**, not merely a note that the deviation exists.
+"We ignore this rule" is drift. "We ignore this rule because X, and here is what we do instead"
+is an exception. If the reason is "we have not gotten around to it", that is debt to track, not
+an exception to document.
+
+This applies to [philosophy.md](philosophy.md) as much as to the concrete rules, and is easier
+to neglect there: nothing fails when a principle is quietly dropped, whereas a rule at least has
+a file to be missing from. A project may reach a different conclusion about layering, error
+handling or event sourcing than the one argued there — the same standard covers it.
+
+The same standard applies between projects: two iglootools projects may legitimately differ, but
+the difference should be traceable to a decision someone made, not to one of them having quietly
+fallen behind.
 
 ## Usage with Claude Code
 
@@ -59,7 +90,7 @@ actually reaches, and an ordinary code change reads none of them.
 
 It also enforces the philosophy the guidelines rest on: check the work against them before
 calling it done, and document a deviation rather than drift from a rule silently. See
-[Applying These Guidelines](philosophy.md#applying-these-guidelines).
+[Applying these guidelines](#applying-these-guidelines).
 
 ### Install it per project, not per user
 
