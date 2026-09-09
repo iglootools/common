@@ -1,6 +1,6 @@
 # Philosophy
 
-This document describes the general philosophy that underpins the [coding guidelines](guidelines/coding.md).
+This document describes the general philosophy that underpins the [coding guidelines](guidelines/coding/).
 The guidelines are meant to be practical and actionable; this is the reasoning behind them.
 
 ## Applying this document

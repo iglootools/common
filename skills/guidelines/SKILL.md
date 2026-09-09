@@ -26,13 +26,14 @@ paths:
 
 ## Writing code
 
-`coding.md` is already in this session — the plugin's `SessionStart` hook emits it at startup
-and again after a compaction, along with `python.md` when the project has a `pyproject.toml`.
+`coding/general.md` is already in this session — the plugin's `SessionStart` hook emits it at startup
+and again after a compaction, along with `coding/python.md` when the project has a `pyproject.toml`.
 Apply them at write time, not as a post-hoc review.
 
 If a file you need is not in context, because the project has no `pyproject.toml`, a compaction
 dropped it, or the hook reported that it could not read it, read
-`${CLAUDE_PLUGIN_ROOT}/guidelines/coding.md` or `${CLAUDE_PLUGIN_ROOT}/guidelines/python.md` before continuing.
+`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/general.md` or
+`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md` before continuing.
 
 ## Finding code
 
@@ -91,7 +92,7 @@ Walk the diff against the guidelines rather than trusting that you applied them 
 
 1. The project's `docs/implementation-checklists.md`, if it has one. Those items are
    project-specific and are not repeated anywhere in this plugin.
-2. `coding.md`, then `python.md` for a Python change, rule by rule against what the diff
+2. `coding/general.md`, then `coding/python.md` for a Python change, rule by rule against what the diff
    actually does.
 3. Whichever file from the table above you read for this change.
 
@@ -138,7 +139,7 @@ time, and those conditions expire. Where the exception depends on one, name the 
 would make it unnecessary — "revisit when X supports Y", "drop this once we no longer support
 Z" — not just the reason it exists today. An undocumented exception silently becomes permanent,
 because nobody is left who remembers what it was working around. The shape to copy is the
-Python version policy in `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md`: it records the constraint, what it
+Python version policy in `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md`: it records the constraint, what it
 costs, and the specific event that would retire it.
 
 Full reasoning: `${CLAUDE_PLUGIN_ROOT}/README.md#applying-these-guidelines`

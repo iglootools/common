@@ -119,7 +119,7 @@ to match the version the
 project locked with locally, which is a per-project fact. And the pin is kept current by the
 Renovate custom manager in the project's own `renovate.json` — this repository runs no Renovate,
 so a version moved here would be exactly the pin nothing updates that
-[coding.md](../coding.md) warns about.
+[coding.md](../coding/general.md) warns about.
 
 That is also why the input is named `version` and not `mise-version`: the custom manager matches
 a `# renovate:` marker followed by whitespace and a literal `version:` line, so a more

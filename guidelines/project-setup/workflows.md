@@ -52,7 +52,7 @@ Renovate and Dependabot.
 
   The marker comment is not decoration — it is the pin's updater. Renovate's `github-actions`
   manager rewrites `uses:` refs and reads no action *inputs*, so a bare `version:` is exactly the
-  pin nothing updates that [coding.md](../coding.md) warns about. Pair it with a `customManagers`
+  pin nothing updates that [coding.md](../coding/general.md) warns about. Pair it with a `customManagers`
   entry keyed on the marker rather than on the `version:` line alone, which would also match
   every other action that happens to take a `version:` input:
 
