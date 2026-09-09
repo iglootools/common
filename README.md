@@ -4,15 +4,17 @@ Shared coding guidelines for [iglootools](https://github.com/iglootools) project
 
 ## Contents
 
-The rules themselves live in [**`guidelines/`**](guidelines/), one file per area a change can
-reach. They split by how they are delivered rather than by subject — two govern every edit and
+The rules themselves live in [**`guidelines/`**](guidelines/), split into
+[`coding/`](guidelines/coding/) for how code is written and
+[`project-setup/`](guidelines/project-setup/) for how a repository is configured. Each has its
+own index. They divide by how they are delivered rather than by subject: They split by how they are delivered rather than by subject — two govern every edit and
 are in context from the start of a session, the rest are read only when a change reaches the
 files they govern:
 
 | Always on | |
 |---|---|
-| [`coding.md`](guidelines/coding.md) | language-agnostic coding principles |
-| [`python.md`](guidelines/python.md) | Python-specific coding guidelines, wherever the project has a `pyproject.toml` |
+| [`coding/general.md`](guidelines/coding/general.md) | language-agnostic coding principles |
+| [`coding/python.md`](guidelines/coding/python.md) | the Python layer, wherever the project has a `pyproject.toml` |
 
 | Read when a change reaches it | Triggered by |
 |---|---|
@@ -68,7 +70,7 @@ So where the exception depends on a condition, **name the condition that would m
 unnecessary**, not just the reason it exists today. "Revisit when X supports Y" or "drop this
 once we no longer support Z" gives the exception an expiry criterion someone can actually check,
 instead of leaving a future reader to guess whether the justification still holds. The
-[Python version policy](guidelines/project-setup/python-tooling.md#python-version-policy) is the shape to copy: it records the
+[Python version policy](guidelines/coding/python.md#python-version-policy) is the shape to copy: it records the
 constraint, what it costs, and the specific event that would retire it.
 
 **Where to document an exception** — put it where a reader will hit it, not in a separate log:
@@ -99,7 +101,7 @@ Everything here is delivered by a single plugin. **No clone of this repository i
 no project needs to sit in a sibling directory.
 
 The guidelines split into two kinds, and the plugin delivers each by the mechanism that fits.
-`coding.md` and `python.md` govern every edit, so a `SessionStart` hook puts them in context from
+`coding/general.md` and `coding/python.md` govern every edit, so a `SessionStart` hook puts them in context from
 the start. The other three are triggered by a specific file, so a skill reads them only when a
 change reaches the files they govern.
 
@@ -243,7 +245,7 @@ repository on the machine, which is what
 
 ### The ones that load in every session
 
-Some guidelines govern every edit rather than one kind of file — `coding.md` and `python.md`
+Some guidelines govern every edit rather than one kind of file — `coding/general.md` and `coding/python.md`
 today. Those are not skills: a skill is model-invoked, which is right for a guideline triggered
 by a file and wrong for one that applies to everything. They are delivered instead by
 [hooks/load-always-on-guidelines.sh](hooks/load-always-on-guidelines.sh), which runs on
@@ -254,7 +256,7 @@ The hook fires on `startup`, `clear` and `compact`, and deliberately not on `res
 resumed or forked session still carries the earlier injection in its transcript, while a compacted
 one may have had it summarized away.
 
-Emission can be conditional: `python.md` goes out only when the project has a `pyproject.toml`,
+Emission can be conditional: `coding/python.md` goes out only when the project has a `pyproject.toml`,
 so a project with no Python does not pay for it. If a file cannot be read, the hook says so in
 the injected text rather than emitting nothing, because a guideline that failed to load must not
 be indistinguishable from one that does not apply.
@@ -263,7 +265,7 @@ be indistinguishable from one that does not apply.
 
 This repository does not consume its own plugin: `${CLAUDE_PLUGIN_ROOT}` would resolve to the
 installed copy rather than the file being edited. Its [CLAUDE.md](CLAUDE.md) imports
-`coding.md` and `python.md` directly instead, which needs no plugin at all.
+`coding/general.md` and `coding/python.md` directly instead, which needs no plugin at all.
 
 To work on the plugin, load it from the working tree without installing it, which is what makes
 `${CLAUDE_PLUGIN_ROOT}` resolve here:

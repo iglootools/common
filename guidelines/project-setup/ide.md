@@ -27,7 +27,7 @@ that default for the consumers that cannot discover it.
 Both keys are needed: `venv` is a directory *name* looked up inside `venvPath`, not a path.
 `pythonVersion` is a separate concern — it is the language level to check against, deliberately
 independent of the interpreter in `.venv` (see the
-[Python Version Policy](python-tooling.md#python-version-policy)); a project can develop on a newer
+[Python Version Policy](../coding/python.md#python-version-policy)); a project can develop on a newer
 interpreter while checking against its supported floor.
 
 Verify it the way a language server sees it, with the venv deliberately off `PATH`. An activated

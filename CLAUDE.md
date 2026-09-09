@@ -5,11 +5,11 @@ Shared coding guidelines for iglootools projects. This repository is the source:
 root supports them — `philosophy.md` for the reasoning, `skills/` and `hooks/` for delivery,
 `scripts/` for the guidelines that ship as working code.
 
-@guidelines/coding.md
-@guidelines/python.md
+@guidelines/coding/general.md
+@guidelines/coding/python.md
 
 These two govern every edit, including edits to the guidelines themselves, so they are imported.
-`coding.md` carries the "defaults, not dogma" clause, so the exception rule arrives with it.
+`coding/general.md` carries the "defaults, not dogma" clause, so the exception rule arrives with it.
 
 `guidelines/project-setup/python-tooling.md`, `guidelines/project-setup/ide.md` and
 `guidelines/project-setup/claude-code.md` are triggered by files this repository does not have —
@@ -48,7 +48,7 @@ trigger it, or adding a new one leaves `skills/guidelines/SKILL.md` or
 `hooks/load-always-on-guidelines.sh` pointing at something that is no longer there — and a
 dispatch table that fails to fire fails silently, which is the failure mode this repository
 exists to prevent. Both spell the paths out from the plugin root
-(`${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md`, `$plugin_root/guidelines/coding.md`),
+(`${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md`, `$plugin_root/guidelines/coding/general.md`),
 so no amount
 of moving files is picked up for you. The hook is runnable, which is the cheapest check:
 

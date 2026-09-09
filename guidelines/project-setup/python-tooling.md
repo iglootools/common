@@ -2,58 +2,8 @@
 
 The toolchain: how a Python project is built, how its environment is created, and what tasks it
 exposes. For the language itself — what to write, rather than what builds it — see
-[python.md](../python.md). Editor configuration is in [ide.md](ide.md), and what every repository
+[python.md](../coding/python.md). Editor configuration is in [ide.md](ide.md), and what every repository
 carries regardless of language is in [repository.md](repository.md).
-
-## Python Version Policy
-
-Projects target **two** Python versions at once:
-
-| Role | Version | Why |
-|---|---|---|
-| **Floor** (minimum supported) | **3.12** | Default `python3` on Ubuntu 24.04 LTS |
-| **Local development** | **3.14** | Latest stable; also the default on Ubuntu 26.04 LTS |
-
-### Why 3.12 is the floor
-
-Ubuntu 24.04 LTS ships Python 3.12 as its system `python3`. Keeping the floor there
-means users on the previous LTS can `uv tool install` (or `pipx install`) a tool without
-adding a PPA, building Python from source, or upgrading the distro. Nothing in the code
-may use a feature newer than 3.12, even though development happens on 3.14.
-
-> **Considering moving the floor to 3.14 soon.** Ubuntu 26.04 LTS ships Python 3.14
-> (upgraded directly from 3.12 — 26.04 skips 3.13). Once we no longer need to support
-> 24.04, raising the floor to 3.14 lets us drop the compatibility constraint entirely,
-> since it would then match the local development version. Deliberately not done yet:
-> 24.04 is in standard support until 2029, so dropping it now would strand users still
-> on it.
-
-### How compatibility with both is maintained
-
-Five knobs enforce the floor. All of them must move together when the floor changes:
-
-| Knob | Where | Value |
-|---|---|---|
-| `requires-python` | `pyproject.toml` | `>=3.12,<3.15` |
-| ruff `target-version` | `pyproject.toml` | `py312` |
-| pyright `pythonVersion` | `pyproject.toml` | `3.12` |
-| `vermin --target` | `mise.toml` (`compat-check` task) | `3.12-` |
-| CI matrix | `.github/workflows/test.yml` | `3.12.x` |
-
-`vermin` is what actually catches accidental use of newer syntax and stdlib APIs —
-ruff's and pyright's targets catch some cases but not all, so `compat-check` is not
-redundant. The `<3.15` upper bound keeps the package from installing on a Python we
-have never tested; it is raised deliberately, not automatically.
-
-The local toolchain version lives in `mise.toml` (`[tools] python`), separate from all
-of the above. It is intentionally *ahead* of the floor so problems on new Python
-versions surface during development.
-
-### Known gap
-
-**CI only tests the floor.** The matrix entry for 3.14 is commented out to save CI
-minutes, so the newer version is exercised only on developer machines. Uncomment it in
-`.github/workflows/test.yml` if a Python-version-specific bug ever slips through.
 
 ## Build and Packaging
 

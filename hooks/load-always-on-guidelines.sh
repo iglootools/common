@@ -2,7 +2,7 @@
 #
 # SessionStart hook. Its stdout is added to the session as context Claude can see, which is
 # how the always-on guidelines reach a project without a clone of this repository: the
-# `@../common-guidelines/coding.md` import this replaces resolved through a sibling
+# `@../common-guidelines/guidelines/coding/general.md` import this replaces resolved through a sibling
 # directory, and ${CLAUDE_PLUGIN_ROOT} does not.
 #
 # Matched on startup|clear|compact, not resume or fork. A resumed or forked session still
@@ -36,14 +36,14 @@ printf 'the project wins; undocumented divergence is drift, not an override.\n\n
 printf 'The reasoning behind these rules is in %s/philosophy.md, and the terms for departing\n' "$plugin_root"
 printf 'from one are in %s/README.md#applying-these-guidelines.\n\n' "$plugin_root"
 # guidelines/, not the plugin root: these files sit one directory down, and a relative link such
-# as coding.md's ../README.md only resolves if you know that.
-printf 'These files live in %s/guidelines/, where the relative links inside them resolve.\n\n' "$plugin_root"
+# as general.md's ../../README.md only resolves if you know that.
+printf 'These files live in %s/guidelines/coding/, where the relative links inside them resolve.\n\n' "$plugin_root"
 
-emit "$plugin_root/guidelines/coding.md"
+emit "$plugin_root/guidelines/coding/general.md"
 
 # python.md is dead weight in a project with no Python, and two of the iglootools projects
 # have none. The presence of pyproject.toml is a check the session can make before it has
 # understood anything about the task.
 if [[ -f "$project_dir/pyproject.toml" ]]; then
-  emit "$plugin_root/guidelines/python.md"
+  emit "$plugin_root/guidelines/coding/python.md"
 fi
