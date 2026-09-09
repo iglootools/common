@@ -308,6 +308,49 @@ That is also why the input is named `version` and not `mise-version`: the custom
 a `# renovate:` marker followed by whitespace and a literal `version:` line, so a more
 descriptive name would silently stop matching and freeze the pin.
 
+### A uv project must submit its own dependency graph
+
+GitHub's dependency graph does not parse `uv.lock`. A uv project therefore has an **empty**
+graph, and because Dependabot alerts are generated *from* the graph and Dependabot security
+updates are triggered *by* alerts, both are silently off. Migrating from Poetry to uv turns
+vulnerability detection off without a single error: the old `poetry.lock` alerts are left
+orphaned against a file that no longer exists, and no new alert can ever be raised.
+
+Note that `package-ecosystem: "uv"` in `dependabot.yml` does not fix this. That entry is
+supported, but it configures Dependabot *updates*, which read the manifest directly. Paired
+with `open-pull-requests-limit: 0` — version updates off, security updates the only reason
+Dependabot is there — it produces nothing at all, because the security path runs through
+alerts.
+
+Call the shared workflow, which submits the graph from `uv.lock`:
+
+```yaml
+jobs:
+  submit:
+    permissions:
+      contents: write
+    uses: iglootools/common-guidelines/.github/workflows/reusable-uv-dependency-submission.yml@<sha> # v<version>
+```
+
+**It runs third-party code with `contents: write`, and that grant cannot be narrowed.** There is
+no `dependency-graph` permission scope — the complete set is `actions`, `artifact-metadata`,
+`attestations`, `checks`, `contents`, `deployments`, `discussions`, `id-token`, `issues`,
+`models`, `packages`, `pages`, `pull-requests`, `repository-projects`, `security-events`,
+`statuses` — and the snapshot API sits behind `contents: write`, the same permission that pushes
+commits and moves tags.
+
+So the safeguards are structural rather than permission-based, and the shared workflow applies
+them: an immutable commit-SHA pin, `persist-credentials: false` on checkout, and a job that
+contains no other step which could use the grant. Callers should give it a workflow of its own
+rather than adding it to an existing one, so nothing else shares the token.
+
+**Re-inspect the action on every version bump.** A Renovate PR moving that pin is not a routine
+dependency update: it swaps code that holds `contents: write` on the repository. Read the diff of
+the action's own sources between the two commits, and treat a new network call, a file write, an
+added dependency, or a change in how the token is passed as a reason to stop rather than a
+detail. The pin living in this repository rather than in each project is deliberate — it makes
+that review happen once, here, instead of once per consumer.
+
 ### Keep project documentation at the conventional paths
 
 Three paths are fixed across iglootools projects, because the `guidelines` skill reads them by
