@@ -6,19 +6,26 @@ Shared coding guidelines for [iglootools](https://github.com/iglootools) project
 
 The rules themselves live in [**`guidelines/`**](guidelines/), one file per area a change can
 reach. They split by how they are delivered rather than by subject — two govern every edit and
-are in context from the start of a session, the other three are read only when a change reaches
-the files they govern:
+are in context from the start of a session, the rest are read only when a change reaches the
+files they govern:
 
 | Always on | |
 |---|---|
 | [`coding.md`](guidelines/coding.md) | language-agnostic coding principles |
 | [`python.md`](guidelines/python.md) | Python-specific coding guidelines, wherever the project has a `pyproject.toml` |
 
-| Read when a change reaches it | |
+| Read when a change reaches it | Triggered by |
 |---|---|
-| [`project-setup.md`](guidelines/project-setup.md) | GitHub Workflows, dependency automation, new-project setup |
 | [`python-tooling.md`](guidelines/python-tooling.md) | uv, mise, hatchling, and the mise task set |
-| [`ide.md`](guidelines/ide.md) | pyright resolution, VSCode, and Claude Code configuration |
+| [`project-setup/workflows.md`](guidelines/project-setup/workflows.md) | `.github/workflows/**` |
+| [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
+| [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, and the repository settings both depend on |
+| [`project-setup/repository.md`](guidelines/project-setup/repository.md) | `.gitignore`, setting up a new repository |
+| [`project-setup/ide.md`](guidelines/project-setup/ide.md) | `.vscode/**`, `*.code-workspace`, `[tool.pyright]` |
+| [`project-setup/claude-code.md`](guidelines/project-setup/claude-code.md) | `.claude/settings.json` |
+
+`project-setup/` is one file per trigger deliberately: it was a single 501-line file, so a change
+to a workflow pulled the Renovate rules and the editor settings into context along with it.
 
 [Usage with Claude Code](#usage-with-claude-code) covers the two mechanisms that make that split
 work. The rest of the repository supports the guidelines rather than stating any:
@@ -181,7 +188,7 @@ silently and the entry becomes a place for a stale number to hide.
 
 **Both tags, or the release is half-published.** The plugin is installed by version and needs
 only the prefixed tag, but the other iglootools repositories pin
-[the shared link checker](guidelines/project-setup.md#call-the-shared-link-checker-instead-of-copying-it)
+[the shared link checker](guidelines/project-setup/shared-workflows.md#call-the-shared-link-checker-instead-of-copying-it)
 by commit SHA and read the plain `v<version>` tag to find it — Renovate resolves ordinary
 version tags and not the prefixed spelling. Skipping the mirror does not break anything that is
 already running, which is the problem: consumers simply never learn a new version exists, and

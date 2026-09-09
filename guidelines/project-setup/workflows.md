@@ -1,0 +1,182 @@
+# GitHub Workflow Guidelines
+
+See [philosophy.md](../../philosophy.md) for the reasoning behind these guidelines, and
+[Applying these guidelines](../../README.md#applying-these-guidelines) for how to deviate from
+them — these are defaults, and a documented, justified exception is always allowed.
+
+Sibling files: [shared-workflows.md](shared-workflows.md) for the workflows this repository
+hosts and every project calls, and [dependency-automation.md](dependency-automation.md) for
+Renovate and Dependabot.
+
+- Whenever safe (i.e. not affecting production), enable `workflow_dispatch` and `repository_dispatch` to allow manual triggering of workflows from the GitHub UI or CLI, which is useful for testing and debugging.
+- Use OpenID Connect (OIDC) authentication for publishing to PyPI, and set up a separate workflow for testing releases to Test PyPI. This allows testing the release and publish process without affecting the real PyPI index, and provides more detailed logs for debugging.
+  - When the Test PyPI workflow synthesizes a throwaway version, derive it from the **base
+    release** version, not from the full VCS-derived one. Appending `.devYYYYMMDDHHMMSS` to a
+    version that already carries `.dev0` produces two dev segments and is invalid PEP 440 — a bug
+    that stays hidden as long as the workflow is only ever dispatched from a tag. Reading the tag
+    (`git describe --tags --abbrev=0`) avoids it and needs no build tool.
+- **Pin every action to a full commit SHA, with the tag in a trailing comment.** A tag is a
+  mutable pointer: whoever controls the action's repository can repoint `v4` at new code, and
+  every workflow that references it picks that code up on the next run with no diff anywhere in
+  your repository to review. A branch ref such as `pypa/gh-action-pypi-publish@release/v1` is
+  worse still, since moving is what a branch is *for*. A commit SHA is the only ref that cannot
+  be repointed under you.
+
+  ```yaml
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+  ```
+
+  The trailing comment is not a courtesy to the reader — it is what Renovate reads to learn which
+  version the SHA stands for, and therefore what makes the pin updatable rather than frozen. Two
+  configuration knobs have to go with it, and both fail quietly if you skip them:
+
+  - **`helpers:pinGitHubActionDigests` in `extends`.** It sets `pinDigests` for the
+    `github-actions` manager, so an action added later as `@v1` gets a pin PR instead of sitting
+    unpinned. It ships in `config:best-practices`, *not* `config:recommended`, so inheriting the
+    latter does not give it to you. Without it, a one-time sweep decays one new workflow at a time.
+  - **`minimumReleaseAgeBehaviour: "timestamp-optional"`.** `minimumReleaseAge` applies to digest
+    updates too, and when Renovate cannot date one it treats it as pending *forever* under the
+    default `timestamp-required`. That is precisely the case for a ref that is not a version — the
+    `release/v1` branch above — so the delay meant to slow adoption down instead stops it
+    permanently, and the pin you added for supply-chain reasons becomes the stalest thing in the
+    file. `timestamp-optional` keeps the delay wherever a release timestamp exists and lets the
+    undatable updates through.
+
+- **Pin the mise version in every `jdx/mise-action` step.** With no `version:` input the action
+  installs the latest release, so a workflow's toolchain resolver changes underneath it on
+  whatever night mise ships — and `mise.lock` does not cover this, because mise is the thing
+  reading the lock, not an entry in it. Pin it to the version `[tools]` was locked with locally:
+
+  ```yaml
+  - uses: jdx/mise-action@v4
+    with:
+      # renovate: datasource=github-releases depName=jdx/mise
+      version: 2026.8.10
+  ```
+
+  The marker comment is not decoration — it is the pin's updater. Renovate's `github-actions`
+  manager rewrites `uses:` refs and reads no action *inputs*, so a bare `version:` is exactly the
+  pin nothing updates that [coding.md](../coding.md) warns about. Pair it with a `customManagers`
+  entry keyed on the marker rather than on the `version:` line alone, which would also match
+  every other action that happens to take a `version:` input:
+
+  ```json
+  {
+    "customType": "regex",
+    "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+    "matchStrings": [
+      "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+version: (?<currentValue>\\S+)"
+    ],
+    "extractVersionTemplate": "^v?(?<version>.+)$"
+  }
+  ```
+
+  `extractVersionTemplate` is what reconciles the two spellings: mise tags releases `vYYYY.M.PATCH`
+  while the action's input wants the bare version.
+
+- **Prefer tools whose mise backend is lockable.** Check with `mise registry <tool>`: a backend
+  such as `aqua:` records per-platform URLs and checksums in `mise.lock`, while `vfox:` records
+  none, and `mise lock` cannot generate them. An unlockable tool makes `mise install --locked`
+  fail on a fresh runner, which forces `install: false` plus a bare `mise install` into every
+  workflow — quietly giving up checksum and attestation verification for *all* tools to
+  accommodate one. The one legitimate use of `install: false` is a workflow that runs on branches
+  where `mise.toml` is deliberately ahead of `mise.lock`, such as one that regenerates the lock
+  for Renovate branches.
+- **Pair `install: false` with `env: false`.** After setup, `jdx/mise-action` exports mise's
+  `[env]` into the job — and the `UV_PYTHON = "{{ tools.python.path }}"` pin that
+  [python-tooling.md](../python-tooling.md#configuration) requires resolves through the *installed*
+  toolset. With nothing installed, the template fails with ``Field `python` is not defined`` and
+  takes the whole setup step down, before the workflow's own steps ever run. The two inputs are
+  therefore a pair, not independent knobs: skipping the install means skipping the export. Nothing
+  is lost, because a lock-regenerating workflow needs the mise binary and the config, not a tool
+  environment.
+- **Name every workflow after its own file.** `name: test` in `test.yml`, `name:
+  renovate-mise-lock` in `renovate-mise-lock.yml` — the filename's stem, verbatim, kebab-case
+  included. GitHub exposes both identifiers and neither one substitutes for the other: the
+  status-badge URL, the REST `/actions/workflows/{file}` endpoint, and `gh workflow run` address
+  a workflow by filename, while the Actions UI, the `workflows:` list of a `workflow_run`
+  trigger, and `${{ github.workflow }}` address it by name. Letting them diverge means holding
+  a mapping between the two in your head every time you read a badge, a trigger, or a run
+  listing.
+
+  Two failures make this more than tidiness. A workflow with no `name:` at all gets
+  `github.workflow` set to its *path*, so the concurrency group below silently changes shape
+  — matching the filename keeps the group readable whether or not the key is set. And two
+  workflows that share a `name:` share a `github.workflow`, which puts them in the *same*
+  concurrency group: with `cancel-in-progress: true` they cancel each other, for no reason
+  visible in either file. Filenames cannot collide within a directory, so deriving the name
+  from the file makes that collision impossible by construction.
+
+- **Give every workflow a concurrency group, and pick the variant by whether a half-finished
+  run can be abandoned and redone.** There are two. The test is not whether the workflow writes
+  to something outside the repository — plenty of external writes are perfectly safe to
+  cancel — but whether killing it partway leaves state that a later run cannot simply redo from
+  scratch.
+
+  Supersede the run in flight whenever abandoning it costs nothing but the compute already
+  spent. That covers anything that only reads and reports — test, lint, link-check, build — and
+  equally anything that writes somewhere re-writable: a container tag or docs site the next run
+  overwrites wholesale, a preview or dev environment rebuilt from scratch on every deploy. The
+  external write is not the problem; a cancelled run there leaves nothing that re-running does
+  not replace.
+
+  ```yaml
+  concurrency:
+    group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.event.workflow_run.head_sha || github.sha) || github.ref }}
+    cancel-in-progress: true
+  ```
+
+  A per-sha group on main means no push to main is ever cancelled, so every commit gets a
+  complete run; a per-ref group everywhere else means a new push supersedes the run still in
+  flight for that pull request or tag. `cancel-in-progress: true` is what does the cancelling,
+  and making the group unique per commit is what exempts main from it.
+
+  Queue instead when a partial run leaves state the next run cannot repair:
+
+  ```yaml
+  concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: false
+  ```
+
+  Publishing to PyPI is the clearest case: uploaded files are immutable, and a deleted filename
+  cannot be re-uploaded, so a run cancelled between two artifact uploads leaves that version
+  permanently half-populated — the only way out is burning a version number. A deployment
+  cancelled mid-rollout leaves part of the fleet on the new build and the rest on the old, which
+  no re-run reconstructs because it cannot know how far the killed run got. Creating tags or
+  releases is the same shape. What these share is not that the write is external but that it is
+  not replayable: the second attempt cannot start from a clean slate. Waiting is cheap by
+  comparison.
+
+  The key deliberately carries no ref or sha, so two runs cannot overlap even when they carry
+  different ones — a publish workflow reachable by tag push, by `workflow_run`, and by manual
+  dispatch can have more than one trigger aiming at the same version. Note that GitHub keeps at
+  most one run *pending* per group: a third arrival supersedes the pending run, never the
+  running one.
+
+  Two traps to avoid, both of which were live in these repos:
+
+  - **Do not interpolate `github.workflow` inside the `format()` as well as outside it.** The
+    group then comes out as `test-test-main-…`, and if both arms of the conditional also carry
+    a literal `-main-` infix, a pull request's group reads
+    `test-test-main-refs/pull/95/merge`. Harmless but misleading, and it makes the groups hard
+    to recognise in the API.
+  - **Prefer `github.event.workflow_run.head_sha` over `github.sha` for the main arm.** For a
+    `workflow_run` event GitHub sets `GITHUB_REF` to the default branch and `GITHUB_SHA` to the
+    *last commit on the default branch* — not the commit that triggered the run. Keying on
+    `github.sha` therefore drops every `workflow_run`-triggered run into a single group for as
+    long as the default branch head does not move, and `cancel-in-progress` kills the run
+    already going. The term is inert in workflows with no `workflow_run` trigger, so the same
+    expression can be used verbatim everywhere.
+
+  `actionlint` will not catch the second one: it validates expression syntax but treats
+  `github.event.*` as loosely typed, and exits 0 even on
+  `github.event.workflow_run.head_shaa`. Confirm payload property names against the
+  workflow-run object in the REST API instead.
+
+  Two established spellings of the queueing variant are worth recognising rather than
+  "fixing": a GitHub Pages deployment uses the fixed `group: pages`, which is the documented
+  convention for that action, and a lock-regenerating workflow keyed on `github.ref` alone is
+  fine because it only ever runs on branches and one run per branch is the point.
+
+- Set `timeout-minutes` on every job. Without it, a hung step (a stalled `apt-get`, a network call that never returns) runs until GitHub's 6-hour default before the job is killed, wasting CI minutes and delaying feedback. A tight job-level guard (e.g. `timeout-minutes: 10`, sized to the job) fails fast and legibly. Prefer a single job-level timeout over per-step timeouts: one guard covers the whole job with no per-step bookkeeping.

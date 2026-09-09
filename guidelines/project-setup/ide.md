@@ -1,12 +1,12 @@
 # IDE Guidelines
 
-See [philosophy.md](../philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](../README.md#applying-these-guidelines) for how to deviate from them —
-these are defaults, and a documented, justified exception is always allowed.
+See [philosophy.md](../../philosophy.md) for the reasoning behind these guidelines, and
+[Applying these guidelines](../../README.md#applying-these-guidelines) for how to deviate from
+them — these are defaults, and a documented, justified exception is always allowed.
 
-This file covers editor and agent configuration. For the toolchain those editors point at, see
-[python-tooling.md](python-tooling.md); for the setup steps every project shares, see
-[project-setup.md](project-setup.md).
+Editor configuration. For the agent side — the Claude Code plugin set and how it resolves
+symbols — see [claude-code.md](claude-code.md). For the toolchain the editor points at, see
+[python-tooling.md](../python-tooling.md).
 
 ## Pyright environment resolution
 
@@ -31,7 +31,7 @@ that default for the consumers that cannot discover it.
 Both keys are needed: `venv` is a directory *name* looked up inside `venvPath`, not a path.
 `pythonVersion` is a separate concern — it is the language level to check against, deliberately
 independent of the interpreter in `.venv` (see the
-[Python Version Policy](python.md#python-version-policy)); a project can develop on a newer
+[Python Version Policy](../python.md#python-version-policy)); a project can develop on a newer
 interpreter while checking against its supported floor.
 
 Verify it the way a language server sees it, with the venv deliberately off `PATH`. An activated
@@ -151,7 +151,7 @@ that is incorrect. That is the one spelled out below.
 
 Because the symlinks are per-machine, **`.vscode/mise-tools/` must be in the committed
 `.gitignore`** — the extension's documentation makes this a condition of sharing the settings
-file at all. The [All Projects](project-setup.md#all-projects) rule applies unchanged: ignoring it
+file at all. The [All Projects](repository.md) rule applies unchanged: ignoring it
 only in `.git/info/exclude` looks like coverage to whoever set it up and gives none to anyone else.
 
 **Exclude `ms-python.python` from it, and keep the explicit `.venv` pin above.** Generation is
@@ -172,7 +172,7 @@ silently replaces it. Observed as an unexplained working-tree modification to a 
 
 The second is the fallback. When `VIRTUAL_ENV` is absent the extension writes the mise toolchain
 interpreter instead, which is precisely the state of a fresh clone: the first `mise install`
-deliberately does not create `.venv` (see [Mise and uv](python-tooling.md#mise-and-uv)). In that
+deliberately does not create `.venv` (see [Mise and uv](../python-tooling.md#mise-and-uv)). In that
 window, generation commits a python with none of the project's dependencies.
 
 Nothing is lost by excluding it. Generation exists for toolchains with no equivalent of `.venv`;
@@ -229,55 +229,3 @@ Each of those is a folder-level or file-level fact, which is why they survive be
 other projects; the mise extension's settings are window-level, which is why they do not. Adding the
 `configureExtensions*` keys is worth doing for the toolchains that have no equivalent of `.venv` —
 it is not a substitute for any row of that table.
-
-## Claude Code
-
-### Pyright LSP plugin
-
-Install it in every Python project so Claude resolves symbols instead of grepping for them:
-
-```bash
-claude plugin install pyright-lsp@claude-plugins-official --scope project
-```
-
-It provides go-to-definition, find-references, hover types, document and workspace symbol search,
-and call hierarchy, and it pushes diagnostics into Claude's context after each edit. Where the same
-name appears in several modules, this is the difference between an answer grounded in the import
-graph and one inferred from text matches.
-
-### Multi-project workspaces
-
-Opening several projects in one window — or reaching them as additional
-working directories — does not degrade resolution, *provided each project pins its own venv* with
-[`venvPath`/`venv`](#pyright-environment-resolution). This holds even when the session itself is
-rooted somewhere unrelated to any of them:
-
-- **One server can cover several projects.** There is no guarantee of one server per project, and the
-  binary serving them all is whichever project's `.venv` supplied it first.
-- **Imports still resolve per project.** Each file is checked against the venv its own project pins,
-  so one project's dependencies never stand in for another's.
-- **`goToDefinition` and `findReferences` stay correct**, including for a name defined in more than
-  one project — they follow the import graph rather than the name, so a call lands in the definition
-  its own project imports.
-
-### Picking up configuration changes
-
-The plugin's pyright server reads `[tool.pyright]` at startup, so edits to it do not reach a running
-session. Restart the editor window (or the Claude Code session) and let the plugin spawn the server
-itself. Do not kill the server process expecting a respawn: the plugin does not restart it on
-demand, and it then reports `server is running` for a process that no longer exists, failing every
-LSP request until the session is reloaded. Note that this server is distinct from the editor's
-own — VSCode runs Pylance for the squiggles and the plugin runs its own pyright for Claude, so a
-stale diagnostic on one side says nothing about the other.
-
-### Sharing the plugin set with the team
-
-`--scope project` is what makes the install shared: it writes `enabledPlugins` into the repository's
-`.claude/settings.json` instead of your own `~/.claude/settings.json`, so everyone who clones the
-repo gets the same plugins rather than each developer installing them by hand. **Commit that file** —
-only `.claude/settings.local.json` is normally ignored, so it is easy to leave the shared half
-untracked and never notice, since your own user-scope install keeps the plugin working locally.
-
-Plugins declared this way come from the repository rather than from the developer, so they load only
-after the workspace trust dialog is accepted — LSP servers in particular start only once the
-workspace is trusted.

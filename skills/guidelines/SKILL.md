@@ -71,11 +71,19 @@ silent, so the part that looks skippable is usually the part that names the fail
 | Read | When the change touches |
 |---|---|
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/python-tooling.md` | Building, packaging, dependencies, lock files, or the mise task set. Adding a dependency and adding a mise task count wherever the edit lands. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup.md` | GitHub Actions workflows, Renovate or Dependabot, the committed `.gitignore`, or setting up a new repository. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/ide.md` | `.vscode/`, `.claude/settings.json`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, or a question about why a dependency update did or did not appear. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/repository.md` | The committed `.gitignore`, or setting up a new repository. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md` | `.vscode/`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/claude-code.md` | `.claude/settings.json`, or which Claude Code plugins the project enables. |
 
-`pyproject.toml` appears in two rows: `[tool.pyright]` belongs to `ide.md`, and everything
-about building, packaging and dependencies belongs to `python-tooling.md`.
+Two files split what used to be one row each, so check you have the right half.
+`pyproject.toml` appears twice: `[tool.pyright]` belongs to `project-setup/ide.md`, everything
+about building, packaging and dependencies to `python-tooling.md`. And editor configuration is
+`project-setup/ide.md` while Claude Code's own configuration is `project-setup/claude-code.md` —
+VSCode runs Pylance for the squiggles, the plugin runs its own pyright for Claude, so a question
+about one says nothing about the other.
 
 ## Before calling the change done
 

@@ -11,12 +11,14 @@ root supports them — `philosophy.md` for the reasoning, `skills/` and `hooks/`
 These two govern every edit, including edits to the guidelines themselves, so they are imported.
 `coding.md` carries the "defaults, not dogma" clause, so the exception rule arrives with it.
 
-`guidelines/python-tooling.md` and `guidelines/ide.md` are triggered by files this repository
-does not have — no `pyproject.toml`, no `.vscode/`. Read one when you are editing it, and read the whole file:
+`guidelines/python-tooling.md`, `guidelines/project-setup/ide.md` and
+`guidelines/project-setup/claude-code.md` are triggered by files this repository does not have —
+no `pyproject.toml`, no `.vscode/`, no `.claude/settings.json`. Read one when you are editing it, and read the whole file:
 these guidelines are mostly about failures that are silent, so the part you would have skipped
 is usually the part that names the failure.
 
-`guidelines/project-setup.md` is different: this repository *does* have `.github/workflows/`,
+`guidelines/project-setup/workflows.md` and `guidelines/project-setup/shared-workflows.md` are
+different: this repository *does* have `.github/workflows/`,
 so its GitHub Actions rules govern the files here as much as anywhere. Nothing fires that
 trigger automatically, because the skill that would is delivered by a plugin this repository
 does not consume, so read it yourself before editing anything under `.github/workflows/`.
@@ -27,8 +29,8 @@ does not consume, so read it yourself before editing anything under `.github/wor
 consumer project gets all of the above from it without importing or cloning anything.
 
 This repository does not consume its own plugin. `${CLAUDE_PLUGIN_ROOT}` resolves to the
-installed plugin directory, so an agent editing `guidelines/project-setup.md` here would be
-pointed at
+installed plugin directory, so an agent editing `guidelines/project-setup/workflows.md` here
+would be pointed at
 whatever commit was last installed rather than at the file in front of it. The `@` imports above
 have no such problem, because the files are in this directory.
 
@@ -46,7 +48,8 @@ trigger it, or adding a new one leaves `skills/guidelines/SKILL.md` or
 `hooks/load-always-on-guidelines.sh` pointing at something that is no longer there — and a
 dispatch table that fails to fire fails silently, which is the failure mode this repository
 exists to prevent. Both spell the paths out from the plugin root
-(`${CLAUDE_PLUGIN_ROOT}/guidelines/ide.md`, `$plugin_root/guidelines/coding.md`), so no amount
+(`${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md`, `$plugin_root/guidelines/coding.md`),
+so no amount
 of moving files is picked up for you. The hook is runnable, which is the cheapest check:
 
 ```bash
@@ -61,7 +64,8 @@ error count means every always-on path still resolves.
 `.github/workflows/reusable-check-links.yml` is consumed by the other iglootools repositories,
 which pin it by commit SHA. It is therefore an interface: changing its inputs, or what a caller
 has to declare for it to work, breaks every caller that has not been updated. Document the
-consumer side in `guidelines/project-setup.md` in the same change, and remember that consumers do not move
+consumer side in `guidelines/project-setup/shared-workflows.md` in the same change, and remember
+that consumers do not move
 until someone repoints their pin.
 
 `check-links.yml` here calls it through a local path ref, so this repository exercises the

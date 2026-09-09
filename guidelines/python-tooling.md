@@ -6,8 +6,8 @@ these are defaults, and a documented, justified exception is always allowed.
 
 This file covers the toolchain: how a Python project is built, how its environment is created, and
 what tasks it exposes. For the language itself see [python.md](python.md); for the setup steps every
-project shares see [project-setup.md](project-setup.md); for editor configuration see
-[ide.md](ide.md).
+project shares see [project-setup.md](project-setup/workflows.md); for editor configuration see
+[ide.md](project-setup/ide.md).
 
 ## Build and Packaging
 
@@ -74,7 +74,7 @@ Which is more than poetry did:
 |---|---|
 | sdist includes every file not ignored by the VCS | ships `tests/`, `docs/`, `.github/` and the lockfiles unless constrained with `[tool.hatch.build.targets.sdist] only-include` |
 | wheel contents inferred from a `<NAME>/__init__.py` heuristic | when the heuristic misses, the result is a silently *empty* wheel rather than an error — so set `[tool.hatch.build.targets.wheel] packages` explicitly |
-| `.gitignore` is the only ignore file read — not `.git/info/exclude`, not `core.excludesfile` | a file ignored only locally is published. See the `.gitignore` rule under [All Projects](project-setup.md#all-projects) |
+| `.gitignore` is the only ignore file read — not `.git/info/exclude`, not `core.excludesfile` | a file ignored only locally is published. See the `.gitignore` rule under [All Projects](project-setup/repository.md) |
 
 Prove parity rather than assuming it when migrating a build backend: diff the wheel payload and
 sdist file lists against the previous toolchain's at the same tag, and install the wheel and
