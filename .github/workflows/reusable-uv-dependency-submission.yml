@@ -1,0 +1,61 @@
+name: reusable-uv-dependency-submission
+
+# Submits the dependency graph for a uv project, because GitHub does not build one itself:
+# uv.lock is not a manifest its dependency graph parses. Without this, a uv project has an
+# empty graph, and since Dependabot alerts are generated *from* the graph and Dependabot
+# security updates are triggered *by* alerts, both are silently dead. That is what the
+# poetry -> uv migration did to photree and nbkp: 27 alerts left orphaned against a deleted
+# poetry.lock, and no new ones possible.
+#
+# ---------------------------------------------------------------------------------------
+# THIS RUNS THIRD-PARTY CODE WITH `contents: write`. RE-INSPECT IT ON EVERY VERSION BUMP.
+# ---------------------------------------------------------------------------------------
+#
+# rmuir/uv-dependency-submission is a single-maintainer action (23 stars at the time of
+# pinning), and it is not fully trustworthy in the sense that matters here: `contents: write`
+# is the permission that pushes commits, moves tags and cuts releases. That grant cannot be
+# narrowed. GitHub's complete permission set is actions, artifact-metadata, attestations,
+# checks, contents, deployments, discussions, id-token, issues, models, packages, pages,
+# pull-requests, repository-projects, security-events and statuses — there is no
+# dependency-graph scope, and the snapshot API sits behind contents: write.
+#
+# Three ways out are closed by the action's own shape: it is a *composite* action, so it runs
+# inside this job rather than isolated; it declares no inputs, so a narrower fine-grained PAT
+# cannot be substituted for `${{ github.token }}`; and it has no emit-only mode, so the work
+# cannot be split into a read-only job that generates a snapshot and a write job that only
+# POSTs it.
+#
+# What is left is review plus an immutable pin, which is why the version bump is the moment
+# that matters. At v1.1.1 the action is 152 lines of Python that shell out to `git ls-files`
+# for tracked uv.lock files and POST one snapshot to
+# /repos/{repo}/dependency-graph/snapshots, retrying on 500/502. No other network calls, no
+# file writes, and its only transitive dependency is actions/setup-python, GitHub-official
+# and itself SHA-pinned. **A Renovate PR bumping the pin below is not a routine dependency
+# update.** Read the diff of action.py and action.yml between the two commits before merging
+# it, and treat any new network call, any file write, any added dependency, or a change to
+# how the token is passed as a reason to stop and reconsider rather than a detail.
+#
+# The caller keeps its triggers, its concurrency group and the `contents: write` grant —
+# `permissions` in a called workflow is a ceiling on what the caller allowed, not a grant of
+# its own, so a caller that omits it gets a job that builds a snapshot it cannot submit.
+
+on:
+  workflow_call:
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # Irreducible: the snapshot API accepts nothing narrower. Nothing else is granted, and
+      # this job deliberately contains no other step that could make use of it.
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Keep the token out of .git/config, so it is not sitting there for a later step or
+          # for the action to reach with a bare `git push`. It does not remove the grant —
+          # the action still receives `${{ github.token }}` — but it removes the easiest path.
+          persist-credentials: false
+
+      - uses: rmuir/uv-dependency-submission@8c650a3e5e519b93e604e644f7a4a3953144babe # v1.1.1
