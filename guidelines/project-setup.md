@@ -397,6 +397,52 @@ as errors and invites you to "fix" a working config:
 npx --yes --package renovate@<current> -- renovate-config-validator
 ```
 
+### Turn on the dependency graph, alerts and security updates
+
+These are repository settings, not files, so a repository can carry a perfectly good
+`dependabot.yml` and have none of it running. They form a chain, and each link is a
+prerequisite for the next:
+
+```
+dependency graph  ->  Dependabot alerts  ->  Dependabot security updates
+```
+
+The split below hands Dependabot the security half of the workload. That only happens if the
+whole chain is on. Enable it with two calls — the first turns on the dependency graph *and*
+alerts together, which is why there is no separate graph command:
+
+```bash
+gh api --method PUT "repos/<owner>/<repo>/vulnerability-alerts"      # graph + alerts
+gh api --method PUT "repos/<owner>/<repo>/automated-security-fixes"  # security updates
+```
+
+Both answer `204 No Content`, and both are idempotent, so running them against a repository that
+already has the setting changes nothing. Do this when the repository is created, alongside
+`git config user.email`.
+
+A public repository gets the graph switched on and unremovable, which makes this look done when
+it is not: alerts and security updates are still off until the calls above are made. A private
+repository starts with none of the three.
+
+Verify rather than assume, because the two endpoints disagree about how they report state:
+
+```bash
+gh api -i "repos/<owner>/<repo>/vulnerability-alerts" | head -1   # 204 = on, 404 = off
+gh api "repos/<owner>/<repo>/automated-security-fixes"            # read .enabled
+```
+
+`automated-security-fixes` returns **`200` whether the feature is on or off** — the answer is
+`{"enabled": false}` in the body. Checking status codes alone reports every repository as
+healthy. `gh api repos/<owner>/<repo> --jq .security_and_analysis` gives the same answer for
+security updates, plus the secret-scanning settings, and needs admin.
+
+This is the same silent failure as
+[Committing `renovate.json` does not turn Renovate on](#committing-renovatejson-does-not-turn-renovate-on),
+and for a uv project it stacks with
+[a graph that is empty until something submits it](#a-uv-project-must-submit-its-own-dependency-graph):
+three independent switches, none of which reports anything when off, all of which have to be on
+before a published advisory reaches a pull request.
+
 ### Split Renovate and Dependabot by job, not by ecosystem
 
 The 14-day delay above is a supply-chain measure: it protects you from a release that turns out
