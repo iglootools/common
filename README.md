@@ -27,6 +27,12 @@ files they govern:
 `project-setup/` is one file per trigger deliberately: it was a single 501-line file, so a change
 to a workflow pulled the Renovate rules and the editor settings into context along with it.
 
+**Two things hold for every file above, which is why none of them repeats them.** The reasoning
+behind the rules is in [philosophy.md](philosophy.md). And every rule is a default: deviating is
+allowed wherever the deviation and its reasoning are documented, on the terms in
+[Applying these guidelines](#applying-these-guidelines) below — where an exception goes, the bar
+its rationale has to meet, and naming the condition that would retire it.
+
 [Usage with Claude Code](#usage-with-claude-code) covers the two mechanisms that make that split
 work. The rest of the repository supports the guidelines rather than stating any:
 

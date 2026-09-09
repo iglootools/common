@@ -1,13 +1,9 @@
 # Python Tooling Guidelines
 
-See [philosophy.md](../philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](../README.md#applying-these-guidelines) for how to deviate from them —
-these are defaults, and a documented, justified exception is always allowed.
-
 This file covers the toolchain: how a Python project is built, how its environment is created, and
 what tasks it exposes. For the language itself see [python.md](python.md); for the setup steps every
-project shares see [project-setup.md](project-setup/workflows.md); for editor configuration see
-[ide.md](project-setup/ide.md).
+project shares see [project-setup/](project-setup/); for editor configuration see
+[project-setup/ide.md](project-setup/ide.md).
 
 ## Build and Packaging
 

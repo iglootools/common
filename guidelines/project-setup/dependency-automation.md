@@ -1,9 +1,5 @@
 # Dependency Automation Guidelines
 
-See [philosophy.md](../../philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](../../README.md#applying-these-guidelines) for how to deviate from
-them — these are defaults, and a documented, justified exception is always allowed.
-
 How Renovate and Dependabot divide the work, and the repository settings both depend on.
 The workflow that regenerates `mise.lock` on Renovate branches is in
 [shared-workflows.md](shared-workflows.md).
