@@ -11,7 +11,7 @@ Link checking is identical in every project, so it lives here as a reusable work
 than as a file each repository keeps its own copy of:
 
 ```
-iglootools/common-guidelines/.github/workflows/reusable-check-links.yml
+iglootools/common/.github/workflows/reusable-check-links.yml
 ```
 
 A consuming repository keeps only what is genuinely its own:
@@ -34,7 +34,7 @@ jobs:
     permissions:
       contents: read
       issues: write
-    uses: iglootools/common-guidelines/.github/workflows/reusable-check-links.yml@<sha> # v<version>
+    uses: iglootools/common/.github/workflows/reusable-check-links.yml@<sha> # v<version>
 ```
 
 Four things about that stub are load-bearing:
@@ -46,7 +46,7 @@ Four things about that stub are load-bearing:
   the pin stays updatable rather than frozen. Resolve the SHA for a release with:
 
   ```bash
-  gh api repos/iglootools/common-guidelines/commits/v<version> --jq .sha
+  gh api repos/iglootools/common/commits/v<version> --jq .sha
   ```
 
   Not `git ls-remote refs/tags/v<version>`: for an annotated tag that returns the tag *object's*
@@ -88,7 +88,7 @@ Four things about that stub are load-bearing:
 The other workflow that is identical everywhere, for the same reason and with the same shape:
 
 ```
-iglootools/common-guidelines/.github/workflows/reusable-renovate-mise-lock.yml
+iglootools/common/.github/workflows/reusable-renovate-mise-lock.yml
 ```
 
 ```yaml
@@ -107,7 +107,7 @@ jobs:
   mise-lock:
     permissions:
       contents: write
-    uses: iglootools/common-guidelines/.github/workflows/reusable-renovate-mise-lock.yml@<sha> # v<version>
+    uses: iglootools/common/.github/workflows/reusable-renovate-mise-lock.yml@<sha> # v<version>
     with:
       # renovate: datasource=github-releases depName=jdx/mise
       version: <the version mise.lock was generated with>
@@ -146,7 +146,7 @@ jobs:
   submit:
     permissions:
       contents: write
-    uses: iglootools/common-guidelines/.github/workflows/reusable-uv-dependency-submission.yml@<sha> # v<version>
+    uses: iglootools/common/.github/workflows/reusable-uv-dependency-submission.yml@<sha> # v<version>
 ```
 
 **It runs third-party code with `contents: write`, and that grant cannot be narrowed.** There is
