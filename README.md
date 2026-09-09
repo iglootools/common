@@ -1,6 +1,10 @@
-# common-guidelines
+# common
 
-Shared coding guidelines for [iglootools](https://github.com/iglootools) projects.
+What [iglootools](https://github.com/iglootools) projects share: the coding and project-setup
+guidelines, the reusable GitHub workflows every repository calls, the scripts a guideline is
+easier to ship as than to describe, and the Claude Code plugin that delivers all of it.
+
+Renamed from `common-guidelines`, which described only the first of those.
 
 ## Contents
 
@@ -128,7 +132,7 @@ governing. Install at **project scope** instead, so a repository opts in by comm
 decision:
 
 ```bash
-claude plugin marketplace add iglootools/common-guidelines
+claude plugin marketplace add iglootools/common
 claude plugin install iglootools@iglootools-plugins --scope project
 ```
 
@@ -147,7 +151,7 @@ Code can check, so the opt-in is explicit and committed.
 {
   "extraKnownMarketplaces": {
     "iglootools-plugins": {
-      "source": { "source": "github", "repo": "iglootools/common-guidelines" }
+      "source": { "source": "github", "repo": "iglootools/common" }
     }
   },
   "enabledPlugins": {

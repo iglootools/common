@@ -2,7 +2,7 @@
 #
 # SessionStart hook. Its stdout is added to the session as context Claude can see, which is
 # how the always-on guidelines reach a project without a clone of this repository: the
-# `@../common-guidelines/guidelines/coding/general.md` import this replaces resolved through a sibling
+# `@../common/guidelines/coding/general.md` import this replaces resolved through a sibling
 # directory, and ${CLAUDE_PLUGIN_ROOT} does not.
 #
 # Matched on startup|clear|compact, not resume or fork. A resumed or forked session still
@@ -21,13 +21,13 @@ emit() {
   else
     # Loud, not silent. A guideline that failed to load must not be indistinguishable from a
     # guideline that does not apply.
-    printf 'ERROR: the iglootools common-guidelines plugin could not read %s.\n' "$path"
+    printf 'ERROR: the iglootools plugin could not read %s.\n' "$path"
     printf 'Tell the user this guideline is missing rather than proceeding as though it does not apply.\n\n'
   fi
 }
 
 printf '# iglootools common guidelines\n\n'
-printf 'Shared across iglootools projects and delivered by the common-guidelines plugin. These\n'
+printf 'Shared across iglootools projects and delivered by the iglootools plugin. These\n'
 printf 'govern every edit. Where the project documents a deviation in its own docs/guidelines.md,\n'
 printf 'the project wins; undocumented divergence is drift, not an override.\n\n'
 # The guideline files no longer repeat, one per file, that they are defaults and where the
