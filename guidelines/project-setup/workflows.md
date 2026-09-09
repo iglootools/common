@@ -1,9 +1,5 @@
 # GitHub Workflow Guidelines
 
-See [philosophy.md](../../philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](../../README.md#applying-these-guidelines) for how to deviate from
-them — these are defaults, and a documented, justified exception is always allowed.
-
 Sibling files: [shared-workflows.md](shared-workflows.md) for the workflows this repository
 hosts and every project calls, and [dependency-automation.md](dependency-automation.md) for
 Renovate and Dependabot.

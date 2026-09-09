@@ -1,9 +1,5 @@
 # Shared Workflow Guidelines
 
-See [philosophy.md](../../philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](../../README.md#applying-these-guidelines) for how to deviate from
-them — these are defaults, and a documented, justified exception is always allowed.
-
 Three workflows are identical in every project, so they live in this repository as reusable
 workflows and each project calls them with a thin stub. The general rules a workflow has to
 follow — pinning, concurrency, timeouts, naming — are in

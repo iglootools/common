@@ -1,9 +1,5 @@
 # IDE Guidelines
 
-See [philosophy.md](../../philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](../../README.md#applying-these-guidelines) for how to deviate from
-them — these are defaults, and a documented, justified exception is always allowed.
-
 Editor configuration. For the agent side — the Claude Code plugin set and how it resolves
 symbols — see [claude-code.md](claude-code.md). For the toolchain the editor points at, see
 [python-tooling.md](../python-tooling.md).

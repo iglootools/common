@@ -1,9 +1,5 @@
 # Claude Code Guidelines
 
-See [philosophy.md](../../philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](../../README.md#applying-these-guidelines) for how to deviate from
-them — these are defaults, and a documented, justified exception is always allowed.
-
 Claude Code's own configuration: which plugins a project enables, how they resolve symbols, and
 what has to be committed for the team to get them. The editor half is in
 [ide.md](ide.md), and the two are not interchangeable — VSCode runs Pylance for the

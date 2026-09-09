@@ -1,9 +1,5 @@
 # Python Guidelines
 
-See [philosophy.md](../philosophy.md) for the reasoning behind these guidelines, and
-[Applying these guidelines](../README.md#applying-these-guidelines) for how to deviate from them —
-these are defaults, and a documented, justified exception is always allowed.
-
 - **Functional Style**:
   - Avoid mutable accumulator lists (`errors = []; errors.append(...)`). Instead, build lists as single expressions using `[*(...), *(...)]` unpacking, conditional `[item] if cond else []` fragments, and helper functions that return lists.
   - Prefer dict/list comprehensions over imperative loops for building collections.
