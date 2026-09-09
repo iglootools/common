@@ -11,7 +11,7 @@ root supports them — `philosophy.md` for the reasoning, `skills/` and `hooks/`
 These two govern every edit, including edits to the guidelines themselves, so they are imported.
 `coding.md` carries the "defaults, not dogma" clause, so the exception rule arrives with it.
 
-`guidelines/python-tooling.md`, `guidelines/project-setup/ide.md` and
+`guidelines/project-setup/python-tooling.md`, `guidelines/project-setup/ide.md` and
 `guidelines/project-setup/claude-code.md` are triggered by files this repository does not have —
 no `pyproject.toml`, no `.vscode/`, no `.claude/settings.json`. Read one when you are editing it, and read the whole file:
 these guidelines are mostly about failures that are silent, so the part you would have skipped

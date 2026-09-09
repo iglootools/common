@@ -1,9 +1,59 @@
 # Python Tooling Guidelines
 
-This file covers the toolchain: how a Python project is built, how its environment is created, and
-what tasks it exposes. For the language itself see [python.md](python.md); for the setup steps every
-project shares see [project-setup/](project-setup/); for editor configuration see
-[project-setup/ide.md](project-setup/ide.md).
+The toolchain: how a Python project is built, how its environment is created, and what tasks it
+exposes. For the language itself — what to write, rather than what builds it — see
+[python.md](../python.md). Editor configuration is in [ide.md](ide.md), and what every repository
+carries regardless of language is in [repository.md](repository.md).
+
+## Python Version Policy
+
+Projects target **two** Python versions at once:
+
+| Role | Version | Why |
+|---|---|---|
+| **Floor** (minimum supported) | **3.12** | Default `python3` on Ubuntu 24.04 LTS |
+| **Local development** | **3.14** | Latest stable; also the default on Ubuntu 26.04 LTS |
+
+### Why 3.12 is the floor
+
+Ubuntu 24.04 LTS ships Python 3.12 as its system `python3`. Keeping the floor there
+means users on the previous LTS can `uv tool install` (or `pipx install`) a tool without
+adding a PPA, building Python from source, or upgrading the distro. Nothing in the code
+may use a feature newer than 3.12, even though development happens on 3.14.
+
+> **Considering moving the floor to 3.14 soon.** Ubuntu 26.04 LTS ships Python 3.14
+> (upgraded directly from 3.12 — 26.04 skips 3.13). Once we no longer need to support
+> 24.04, raising the floor to 3.14 lets us drop the compatibility constraint entirely,
+> since it would then match the local development version. Deliberately not done yet:
+> 24.04 is in standard support until 2029, so dropping it now would strand users still
+> on it.
+
+### How compatibility with both is maintained
+
+Five knobs enforce the floor. All of them must move together when the floor changes:
+
+| Knob | Where | Value |
+|---|---|---|
+| `requires-python` | `pyproject.toml` | `>=3.12,<3.15` |
+| ruff `target-version` | `pyproject.toml` | `py312` |
+| pyright `pythonVersion` | `pyproject.toml` | `3.12` |
+| `vermin --target` | `mise.toml` (`compat-check` task) | `3.12-` |
+| CI matrix | `.github/workflows/test.yml` | `3.12.x` |
+
+`vermin` is what actually catches accidental use of newer syntax and stdlib APIs —
+ruff's and pyright's targets catch some cases but not all, so `compat-check` is not
+redundant. The `<3.15` upper bound keeps the package from installing on a Python we
+have never tested; it is raised deliberately, not automatically.
+
+The local toolchain version lives in `mise.toml` (`[tools] python`), separate from all
+of the above. It is intentionally *ahead* of the floor so problems on new Python
+versions surface during development.
+
+### Known gap
+
+**CI only tests the floor.** The matrix entry for 3.14 is commented out to save CI
+minutes, so the newer version is exercised only on developer machines. Uncomment it in
+`.github/workflows/test.yml` if a Python-version-specific bug ever slips through.
 
 ## Build and Packaging
 
@@ -70,7 +120,7 @@ Which is more than poetry did:
 |---|---|
 | sdist includes every file not ignored by the VCS | ships `tests/`, `docs/`, `.github/` and the lockfiles unless constrained with `[tool.hatch.build.targets.sdist] only-include` |
 | wheel contents inferred from a `<NAME>/__init__.py` heuristic | when the heuristic misses, the result is a silently *empty* wheel rather than an error — so set `[tool.hatch.build.targets.wheel] packages` explicitly |
-| `.gitignore` is the only ignore file read — not `.git/info/exclude`, not `core.excludesfile` | a file ignored only locally is published. See the `.gitignore` rule under [All Projects](project-setup/repository.md) |
+| `.gitignore` is the only ignore file read — not `.git/info/exclude`, not `core.excludesfile` | a file ignored only locally is published. See the `.gitignore` rule under [All Projects](repository.md) |
 
 Prove parity rather than assuming it when migrating a build backend: diff the wheel payload and
 sdist file lists against the previous toolchain's at the same tag, and install the wheel and
@@ -173,7 +223,7 @@ CI asks whether a sync would *change* it.
 
 `mise.lock` has no `--check` equivalent, so that one has to regenerate and compare — and it
 should do so **in a scratch copy, never in place**. Copy
-[`scripts/lock-check.sh`](../scripts/lock-check.sh) into the project and reduce the task to
+[`scripts/lock-check.sh`](../../scripts/lock-check.sh) into the project and reduce the task to
 `run = "./scripts/lock-check.sh"`.
 
 Keep it as a script rather than inlining it as a TOML string. Anything that needs
@@ -215,7 +265,3 @@ mise deps install uv --force
 Keep `install` as a named task delegating to `mise deps install uv`, rather than calling
 `uv sync` directly. `mise deps` is experimental, and that indirection is what makes reverting
 to a plain `uv sync` a one-line change in one place.
-
-## Console Output
-
-Preferably print to the console using the [Rich](https://github.com/textualize/rich) library that is bundled with [Typer](https://typer.tiangolo.com/)

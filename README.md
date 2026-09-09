@@ -16,7 +16,7 @@ files they govern:
 
 | Read when a change reaches it | Triggered by |
 |---|---|
-| [`python-tooling.md`](guidelines/python-tooling.md) | uv, mise, hatchling, and the mise task set |
+| [`project-setup/python-tooling.md`](guidelines/project-setup/python-tooling.md) | `pyproject.toml`, `mise.toml`, a lock file, the Python version policy |
 | [`project-setup/workflows.md`](guidelines/project-setup/workflows.md) | `.github/workflows/**` |
 | [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
 | [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, and the repository settings both depend on |
@@ -68,7 +68,7 @@ So where the exception depends on a condition, **name the condition that would m
 unnecessary**, not just the reason it exists today. "Revisit when X supports Y" or "drop this
 once we no longer support Z" gives the exception an expiry criterion someone can actually check,
 instead of leaving a future reader to guess whether the justification still holds. The
-[Python version policy](guidelines/python.md#python-version-policy) is the shape to copy: it records the
+[Python version policy](guidelines/project-setup/python-tooling.md#python-version-policy) is the shape to copy: it records the
 constraint, what it costs, and the specific event that would retire it.
 
 **Where to document an exception** — put it where a reader will hit it, not in a separate log:

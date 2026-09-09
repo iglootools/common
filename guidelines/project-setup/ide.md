@@ -2,7 +2,7 @@
 
 Editor configuration. For the agent side — the Claude Code plugin set and how it resolves
 symbols — see [claude-code.md](claude-code.md). For the toolchain the editor points at, see
-[python-tooling.md](../python-tooling.md).
+[python-tooling.md](python-tooling.md).
 
 ## Pyright environment resolution
 
@@ -27,7 +27,7 @@ that default for the consumers that cannot discover it.
 Both keys are needed: `venv` is a directory *name* looked up inside `venvPath`, not a path.
 `pythonVersion` is a separate concern — it is the language level to check against, deliberately
 independent of the interpreter in `.venv` (see the
-[Python Version Policy](../python.md#python-version-policy)); a project can develop on a newer
+[Python Version Policy](python-tooling.md#python-version-policy)); a project can develop on a newer
 interpreter while checking against its supported floor.
 
 Verify it the way a language server sees it, with the venv deliberately off `PATH`. An activated
@@ -168,7 +168,7 @@ silently replaces it. Observed as an unexplained working-tree modification to a 
 
 The second is the fallback. When `VIRTUAL_ENV` is absent the extension writes the mise toolchain
 interpreter instead, which is precisely the state of a fresh clone: the first `mise install`
-deliberately does not create `.venv` (see [Mise and uv](../python-tooling.md#mise-and-uv)). In that
+deliberately does not create `.venv` (see [Mise and uv](python-tooling.md#mise-and-uv)). In that
 window, generation commits a python with none of the project's dependencies.
 
 Nothing is lost by excluding it. Generation exists for toolchains with no equivalent of `.venv`;
