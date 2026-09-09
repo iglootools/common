@@ -80,7 +80,7 @@ Renovate and Dependabot.
   for Renovate branches.
 - **Pair `install: false` with `env: false`.** After setup, `jdx/mise-action` exports mise's
   `[env]` into the job — and the `UV_PYTHON = "{{ tools.python.path }}"` pin that
-  [python-tooling.md](../python-tooling.md#configuration) requires resolves through the *installed*
+  [python-tooling.md](python-tooling.md#configuration) requires resolves through the *installed*
   toolset. With nothing installed, the template fails with ``Field `python` is not defined`` and
   takes the whole setup step down, before the workflow's own steps ever run. The two inputs are
   therefore a pair, not independent knobs: skipping the install means skipping the export. Nothing

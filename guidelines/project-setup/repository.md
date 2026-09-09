@@ -35,7 +35,7 @@ inside the package directory that is ignored only locally gets published inside 
 
 ## Python Projects
 
-See [python-tooling.md](../python-tooling.md) for the build backend, the mise and uv configuration,
+See [python-tooling.md](python-tooling.md) for the build backend, the mise and uv configuration,
 and the task set.
 
 ## CLI Projects

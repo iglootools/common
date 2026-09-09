@@ -70,7 +70,7 @@ silent, so the part that looks skippable is usually the part that names the fail
 
 | Read | When the change touches |
 |---|---|
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/python-tooling.md` | Building, packaging, dependencies, lock files, or the mise task set. Adding a dependency and adding a mise task count wherever the edit lands. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Building, packaging, dependencies, lock files, or the mise task set. Adding a dependency and adding a mise task count wherever the edit lands. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, or a question about why a dependency update did or did not appear. |
@@ -80,7 +80,7 @@ silent, so the part that looks skippable is usually the part that names the fail
 
 Two files split what used to be one row each, so check you have the right half.
 `pyproject.toml` appears twice: `[tool.pyright]` belongs to `project-setup/ide.md`, everything
-about building, packaging and dependencies to `python-tooling.md`. And editor configuration is
+about building, packaging and dependencies to `project-setup/python-tooling.md`. And editor configuration is
 `project-setup/ide.md` while Claude Code's own configuration is `project-setup/claude-code.md` —
 VSCode runs Pylance for the squiggles, the plugin runs its own pyright for Claude, so a question
 about one says nothing about the other.
@@ -138,7 +138,7 @@ time, and those conditions expire. Where the exception depends on one, name the 
 would make it unnecessary — "revisit when X supports Y", "drop this once we no longer support
 Z" — not just the reason it exists today. An undocumented exception silently becomes permanent,
 because nobody is left who remembers what it was working around. The shape to copy is the
-Python version policy in `${CLAUDE_PLUGIN_ROOT}/guidelines/python.md`: it records the constraint, what it
+Python version policy in `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md`: it records the constraint, what it
 costs, and the specific event that would retire it.
 
 Full reasoning: `${CLAUDE_PLUGIN_ROOT}/README.md#applying-these-guidelines`
