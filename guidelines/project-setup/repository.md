@@ -99,6 +99,11 @@ and the checklists to run for specific kinds of change.
 
 Link with relative paths, so the links resolve on GitHub, in the editor, and in a fork alike.
 
+The README's link to `CONTRIBUTING.md` is the exception when the README is also the package's
+long description (`readme = "README.md"` in `pyproject.toml`): PyPI renders it without the
+repository, so a relative link there is broken. Use the absolute GitHub URL, as the README's other
+links to `docs/` already have to.
+
 ### Ignore OS and editor cruft in the committed `.gitignore`
 
 Not in `.git/info/exclude` or a personal `core.excludesfile`. Those are not shared on clone, so
