@@ -14,6 +14,6 @@ rules and the editor settings along with it.
 | [python-tooling.md](python-tooling.md) | The Python toolchain: hatchling, guarding against a `0.0.0` release, uv and mise configuration, invoking tools through `uv run --no-sync`, the mise task set, lock checks | `pyproject.toml`, `mise.toml`, `uv.lock`, `mise.lock`, or the task set |
 | [ide.md](ide.md) | Pyright environment resolution, the committed extension set, checking `.venv` into `.vscode/settings.json`, fencing in `mise-vscode`, multi-root workspaces | `.vscode/`, a `*.code-workspace`, or `[tool.pyright]` |
 | [claude-code.md](claude-code.md) | The Pyright LSP plugin, multi-project workspaces, picking up configuration changes, and committing the plugin set so the team gets it | `.claude/settings.json`, or which plugins the project enables |
-| [repository.md](repository.md) | The conventional `docs/` paths the skill reads, ignoring OS and editor cruft in the committed `.gitignore`, `git config`, and where each project type goes next | `.gitignore`, or setting up a new repository |
+| [repository.md](repository.md) | The conventional documentation paths the skill reads, the recommended `docs/` set (domain, architecture, internals, CLI and config references), scaffolding `CONTRIBUTING.md` as the documentation index, ignoring OS and editor cruft in the committed `.gitignore`, `git config`, and where each project type goes next | `.gitignore`, `CONTRIBUTING.md` or the project's `docs/`, or setting up a new repository |
 
 Code rather than configuration is in [../coding/](../coding/).

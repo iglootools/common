@@ -1,6 +1,6 @@
 ---
 description: The iglootools shared guidelines — how these projects write and review code, package Python, configure CI and dependency automation, set up the editor, and record a documented exception where a rule does not fit. Use before changing any source file, GitHub workflow, dependency or build configuration, or editor and Claude Code settings; before calling a change done; and before departing from a rule.
-when_to_use: Writing or reviewing code; editing .github/workflows, renovate.json, dependabot.yml or .gitignore; editing pyproject.toml, mise.toml or a lock file; adding a dependency or a mise task; editing .vscode/, .claude/settings.json or a *.code-workspace; setting up a new repository; departing from a shared rule; adding a ruff ignore, a noqa, or a pyright suppression.
+when_to_use: Writing or reviewing code; editing .github/workflows, renovate.json, dependabot.yml or .gitignore; adding or restructuring project documentation (CONTRIBUTING.md, CLAUDE.md, docs/); editing pyproject.toml, mise.toml or a lock file; adding a dependency or a mise task; editing .vscode/, .claude/settings.json or a *.code-workspace; setting up a new repository; departing from a shared rule; adding a ruff ignore, a noqa, or a pyright suppression.
 paths:
   - "**/*.py"
   - "**/*.pyi"
@@ -19,6 +19,9 @@ paths:
   - "dependabot.yml"
   - ".github/dependabot.yml"
   - ".gitignore"
+  - "CONTRIBUTING.md"
+  - "CLAUDE.md"
+  - "docs/*.md"
   - ".vscode/**"
   - ".claude/settings.json"
   - "*.code-workspace"
@@ -50,14 +53,13 @@ definition still needs the file read directly.
 
 ## What the project documents, and where
 
-Every iglootools project keeps its own documentation at the same three paths. That is a
-convention rather than something each project announces, so do not wait to be pointed at them:
+Every iglootools project keeps two documents at the same paths. That is a convention rather than
+something each project announces, so do not wait to be pointed at them:
 
 | Path | Holds | Read it |
 |---|---|---|
-| `docs/guidelines.md` | the project's deviations from the shared set, which shared sections are out of scope, and rules of its own | before departing from a shared rule, and whenever a shared rule looks wrong here |
-| `docs/implementation-checklists.md` | project-specific checks with no counterpart in this plugin | before calling a change done |
-| `docs/setup-development-environment.md` | how to get the project running, including installing this plugin | when the task is setup, tooling or editor configuration |
+| `CONTRIBUTING.md` | the index of the project's documentation — setup, build and test, guidelines, domain, architecture, internals, CLI and config references | when you need any of those, to find which file has it |
+| `docs/guidelines.md` | the project's deviations from the shared set, which shared sections are out of scope, rules of its own, and its implementation checklists (inline, or linked by task) | before departing from a shared rule, whenever a shared rule looks wrong here, and before calling a change done |
 
 A missing file means the project has documented nothing of that kind, and the shared guidelines
 stand as written. It does not mean the content sits elsewhere under another name.
@@ -75,7 +77,7 @@ silent, so the part that looks skippable is usually the part that names the fail
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, or a question about why a dependency update did or did not appear. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/repository.md` | The committed `.gitignore`, or setting up a new repository. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/repository.md` | The committed `.gitignore`, adding or restructuring project documentation (`CONTRIBUTING.md`, `CLAUDE.md`, a new file under `docs/`), or setting up a new repository. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md` | `.vscode/`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/claude-code.md` | `.claude/settings.json`, or which Claude Code plugins the project enables. |
 
@@ -90,8 +92,9 @@ about one says nothing about the other.
 
 Walk the diff against the guidelines rather than trusting that you applied them while writing:
 
-1. The project's `docs/implementation-checklists.md`, if it has one. Those items are
-   project-specific and are not repeated anywhere in this plugin.
+1. The checklists in the project's `docs/guidelines.md` that cover this kind of change, including
+   any it links to. Those items are project-specific and are not repeated anywhere in this
+   plugin.
 2. `coding/general.md`, then `coding/python.md` for a Python change, rule by rule against what the diff
    actually does.
 3. Whichever file from the table above you read for this change.
