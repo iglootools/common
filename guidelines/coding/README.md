@@ -7,8 +7,8 @@ for any language, `python.md` states the Python-specific form of it where there 
 
 | File | What is in it |
 |---|---|
-| [general.md](general.md) | Language-agnostic principles: functional style, function size, high cohesion and low coupling, comments, UTC timestamps, avoiding mocks by passing values in, structured errors, no silent failures, dependency pinning, and the CLI conventions that hold regardless of language. Carries the defaults-not-dogma clause. |
-| [python.md](python.md) | The Python layer: functional style in Python terms, `dedent` for structured strings, typing, frozen dataclasses, 88-character formatting, control flow, console output through Rich — and the [Python Version Policy](python.md#python-version-policy), the 3.12 floor with the five knobs that enforce it. |
+| [general.md](general.md) | Language-agnostic principles: functional style, function size, high cohesion and low coupling, comments, UTC timestamps, avoiding mocks by passing values in, presentation at the edges (rendering, indentation and escaping outside the core), structured errors, no silent failures, dependency pinning, and the CLI conventions that hold regardless of language. Carries the defaults-not-dogma clause. |
+| [python.md](python.md) | The Python layer: functional style in Python terms, `dedent` for structured strings, typing, frozen dataclasses, plain exception classes and structured errors, 88-character formatting, control flow, console output through Rich (indentation and markup escaping) — and the [Python Version Policy](python.md#python-version-policy), the 3.12 floor with the five knobs that enforce it. |
 
 Configuration rather than code — how a project is built, its workflows, its editor — is in
 [../project-setup/](../project-setup/).
