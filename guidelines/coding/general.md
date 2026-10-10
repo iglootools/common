@@ -13,6 +13,15 @@ a rationale has to meet.
 
 **Function size**: Keep functions short and focused. When a function grows beyond ~30 lines or handles multiple concerns (e.g. scanning, processing, and persisting), extract named helpers. Each function should do one thing at one level of abstraction. Prefer reading like a high-level outline that delegates to well-named helpers over a single long procedure.
 
+**High Cohesion, Low Coupling**: Apply the same rule at every level of design: functions, classes, abstractions, modules, packages.
+- Group by what changes together. A module or package should own one coherent slice of the domain, so a typical change lands in one place instead of fanning out across several.
+- Communicate across boundaries through narrow, explicit interfaces. Expose the operations callers need, keep the rest private, and do not reach into another module's internals.
+- Keep dependencies one-directional and acyclic. Two modules that import each other are one module split in the wrong place: merge them, or extract what they share into a third.
+- Introduce an abstraction for a concept that exists in the domain, not to shuffle code around. An abstraction whose callers all need to know what is behind it adds coupling instead of removing it.
+- Treat a change that routinely touches many modules as a signal that the boundaries are in the wrong place, and move them rather than adding another cross-cutting edit.
+
+See [High cohesion, low coupling](../../philosophy.md#high-cohesion-low-coupling--at-every-boundary) for the reasoning, including how it applies to repositories and teams.
+
 **Code comments**: When making changes to the codebase, explain the reasoning when the implementation is non-obvious, and document any non-trivial design decisions or trade-offs that were made.
 
 **Charsets**:
