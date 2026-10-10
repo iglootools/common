@@ -214,6 +214,15 @@ For instance, in Python, frozen data classes, comprehensions, and unpacking prod
 Side effects should be pushed to the edges — core logic transforms data, the outer layer performs I/O.
 Mutation is reserved for cases where it genuinely simplifies the logic.
 
+### Presentation at the edges
+
+Core logic produces data — results, errors as values, paths — and the edge of the program decides how that data looks to a human.
+Keeping rendering out of the core is what lets the same result be printed to a terminal, exported as CSV, or asserted on in a test, and it is what keeps tests from breaking every time a message is reworded.
+It is the presentation half of "side effects at the edges": formatting is a concern of the output, not of the computation.
+
+The edge is also where text changes language. A name or a path is data; the moment it is spliced into terminal markup, HTML, a shell command or a CSV row it becomes part of a language with its own syntax, and must be escaped for that language — or kept apart from it by the API, as an argument list or a parameterized query does.
+Getting this wrong rarely crashes. It silently drops or reinterprets characters, for the inputs nobody tested with, which makes it the quiet cousin of injection: the same mistake, with corrupted output instead of an exploit.
+
 ### Document the why, not the what
 
 Code shows what happens; comments should explain why. Don't restate what the code already says.

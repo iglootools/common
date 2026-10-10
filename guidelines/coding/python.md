@@ -10,6 +10,17 @@
 - **Data Classes**:
   - All serialized model objects are frozen pydantic dataclasses, immutable once created.
   - Other data classes should also be frozen.
+  - Exception classes are the exception: write them as plain classes that set their attributes
+    in `__init__`, never as `@dataclass(frozen=True)`. Python assigns `__traceback__` (and
+    `add_note` writes `__notes__`) while an exception propagates — for instance when it passes
+    through a `@contextmanager` — and a frozen dataclass turns that into `FrozenInstanceError`,
+    replacing the real error with a confusing one.
+- **Errors**: the Python form of structured errors (see `Testability` in [general.md](general.md)).
+  - An error value is a frozen dataclass with a `kind: StrEnum` and the fields that describe it.
+  - An exception carries the same as attributes, and subclasses the built-in its callers already
+    handle (`OSError` for a failed external tool, `ValueError` for malformed input) so existing
+    `except` clauses keep catching it.
+  - `__str__` stays a plain fallback; the message users see is rendered by the output layer.
 - **Formatting**:
   - 88 characters (ruff default).
 - **Python Version**: 3.12 floor, 3.14 for local development. See
@@ -24,8 +35,15 @@
   - Prefer dict unpacking with a filtered comprehension over if-chains when conditionally
     including keys (e.g. `**{k: v for k, v in {...}.items() if v is not None}`).
 - **Console Output**: print through [Rich](https://github.com/textualize/rich), which
-  [Typer](https://typer.tiangolo.com/) already bundles. The Python-specific half of the
-  `Console Output` rule in [general.md](general.md).
+  [Typer](https://typer.tiangolo.com/) already bundles. The Python form of
+  `Presentation at the Edges` in [general.md](general.md):
+  - Apply indentation at the call site with `textwrap.indent` (or a small project helper built
+    on it); formatting helpers return unindented lines.
+  - Rich parses square brackets as markup and silently drops tags it does not recognize, so a
+    name such as `Hiking [private]` prints as `Hiking `. Escape interpolated user text with
+    `rich.markup.escape` where it meets intentional markup, or print with `markup=False` when
+    the line has none. Escape exactly once: a formatter that escapes what it embeds must be
+    printed with markup on, not escaped again.
 
 ## Python Version Policy
 
