@@ -22,7 +22,7 @@ files they govern:
 
 | Read when a change reaches it | Triggered by |
 |---|---|
-| [`project-setup/python-tooling.md`](guidelines/project-setup/python-tooling.md) | `pyproject.toml`, `mise.toml`, a lock file, the Python version policy |
+| [`project-setup/python-tooling.md`](guidelines/project-setup/python-tooling.md) | `pyproject.toml` (including the import-linter setup), `mise.toml`, a lock file, the Python version policy |
 | [`project-setup/workflows.md`](guidelines/project-setup/workflows.md) | `.github/workflows/**` |
 | [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
 | [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, and the repository settings both depend on |

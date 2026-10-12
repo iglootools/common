@@ -157,13 +157,81 @@ aube, dart and flutter — so do not go looking for a mise verb.
 
 ## Code Quality Tools
 
-Use `ruff` for linting and formatting, `pyright` for type-checking, and `vermin` for validating the desired Python version compatibility.
+Use `ruff` for linting and formatting, `pyright` for type-checking, `vermin` for validating the
+desired Python version compatibility, and `import-linter` for module boundaries.
+
+### Module boundaries (import-linter)
+
+What the contracts mean, and when to change them, is in
+[python.md](../coding/python.md) under `Module Boundaries`. This section covers how they are set
+up.
+
+Add `import-linter>=2.15,<3.0` to the dev dependency group, and declare the contracts in
+`pyproject.toml`:
+
+```toml
+# Module boundaries, enforced by `mise run boundaries-check` (part of `check`).
+# The rationale for each rule is in docs/architecture.md#layering.
+[tool.importlinter]
+root_package = "<pkg>"
+# Lets a contract name third-party packages, so core code can be kept off rich and typer.
+include_external_packages = true
+```
+
+Point the comment above `[tool.importlinter]` at the task and at the architecture section that
+explains the rules. A comment naming a task that has since been renamed points the next reader
+at something that does not exist, and nothing fails to say so.
+
+Expose it as a `boundaries-check` task, run through `uv run --no-sync` like every other tool,
+and add it to `check` so CI runs it through `check-all`:
+
+```toml
+[tasks.boundaries-check]
+description = "Check module boundaries (import-linter contracts in pyproject.toml)"
+run = "uv run --no-sync lint-imports"
+```
+
+The name follows the `*-check` convention and says what is asserted. It is neither `lint-imports`,
+which names the tool rather than the property, nor `import-check`, which a CLI that imports
+anything (photos, files) may already use for one of its own commands.
+
+**Prefer contracts whose coverage follows the code.** A `forbidden` contract with an enumerated
+`source_modules` list covers exactly the modules listed. A module added later is unchecked, and
+the run still passes. Choose the contract type that does not depend on the list being kept up to
+date:
+
+| Type | Use it for | Coverage of a new module |
+|---|---|---|
+| `layers` | the top-level ordering of packages, highest first; `\|` separates siblings that must not import each other | automatic: a layer is a whole package |
+| `protected` | "only X may import Y", such as only CLI modules importing `typer` | automatic: an allowlist of importers catches any new importer |
+| `independence` | sibling sub-apps that must not import each other | only the listed modules |
+| `forbidden` | everything else, especially "core never reaches the CLI layer, even indirectly" | only the listed `source_modules`, unless written with wildcards (`<pkg>.*.cli`) |
+
+Where an enumerated list is unavoidable, say so in a comment above it ("a new subpackage outside
+`cli/` belongs on this list"). That comment is the only reminder the next person gets. If a
+package keeps its `cli/` subpackage beside its core, a package listed as a `forbidden` source
+also covers its own `cli/`. List its non-CLI subpackages instead, and cover the package's
+`__init__` with a second contract that sets `as_packages = false`.
+
+**Every `ignore_imports` entry carries a comment** saying why the edge is acceptable. Leave
+`unmatched_ignore_imports_alerting` at its default, `error`, so an entry that no longer matches
+anything fails the check instead of lingering as an exemption for code that has moved.
+
+**Know what a contract cannot express.** import-linter reads every import statement, including
+those inside functions. A rule such as "the ML stack is imported lazily, never at startup" is
+therefore not a contract. Check it with a test that imports the entry point and inspects
+`sys.modules`.
+
+`acyclic_siblings` is not a default. Run against nbkp and photree with the root package as
+ancestor, it reported cycles between each module's `cli/` subpackage and the shared CLI wiring
+below them, which is layering both projects intend. It suits a project whose packages are split
+by layer, not one where each package keeps its own `cli/`.
 
 ## Mise Tasks
 
 Consider providing:
 - `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for config and dependency documentation, respectively
-- `format`, `lint`, `type-check`, `compat-check` tasks for code quality checks
+- `format`, `lint`, `type-check`, `compat-check`, `boundaries-check` tasks for code quality checks
 
 ### Lock checks
 
