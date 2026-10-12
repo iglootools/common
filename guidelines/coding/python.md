@@ -44,6 +44,20 @@
     `rich.markup.escape` where it meets intentional markup, or print with `markup=False` when
     the line has none. Escape exactly once: a formatter that escapes what it embeds must be
     printed with markup on, not escaped again.
+- **Module Boundaries**: the Python form of `High Cohesion, Low Coupling` in
+  [general.md](general.md). Which package may import which is declared as
+  [import-linter](https://import-linter.readthedocs.io/) contracts in `pyproject.toml`
+  (`[tool.importlinter]`), and a check task enforces them. The setup is in
+  [python-tooling.md](../project-setup/python-tooling.md#module-boundaries-import-linter).
+  - The contracts are the source of truth for the layering. A generated dependency graph only
+    *shows* the edges; the project's architecture doc explains why each rule exists.
+  - When a change needs an edge a contract forbids, first decide whether the edge belongs: move
+    the code to the layer that may own it rather than bending the contract. Never add an
+    `ignore_imports` entry just to make a new edge pass.
+  - When the architecture itself changes, change the contracts deliberately, in the same commit
+    as the restructuring, together with the architecture doc that explains them.
+  - Core modules do not import `rich` or `typer`. A contract names them, which is how
+    `Presentation at the Edges` is enforced rather than only stated.
 
 ## Python Version Policy
 

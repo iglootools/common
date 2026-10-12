@@ -73,7 +73,7 @@ silent, so the part that looks skippable is usually the part that names the fail
 
 | Read | When the change touches |
 |---|---|
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Building, packaging, dependencies, lock files, or the mise task set. Adding a dependency and adding a mise task count wherever the edit lands. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Building, packaging, dependencies, lock files, the import-linter setup, or the mise task set. Adding a dependency and adding a mise task count wherever the edit lands. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, or a question about why a dependency update did or did not appear. |
