@@ -15,6 +15,7 @@ a rationale has to meet.
 
 **High Cohesion, Low Coupling**: Apply the same rule at every level of design: functions, classes, abstractions, modules, packages.
 - Group by what changes together. A module or package should own one coherent slice of the domain, so a typical change lands in one place instead of fanning out across several.
+- Group by domain and subdomain first, technical responsibility second: top-level packages are slices of the domain (`album/`, `sync/`), and technical layers (`cli/`, `store/`) live inside them. A layer-first tree (`models/`, `services/`, `cli/`) spreads every feature across every package.
 - Communicate across boundaries through narrow, explicit interfaces. Expose the operations callers need, keep the rest private, and do not reach into another module's internals.
 - Keep dependencies one-directional and acyclic. Two modules that import each other are one module split in the wrong place: merge them, or extract what they share into a third.
 - Introduce an abstraction for a concept that exists in the domain, not to shuffle code around. An abstraction whose callers all need to know what is behind it adds coupling instead of removing it.

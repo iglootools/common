@@ -118,6 +118,16 @@ The goal is that 80% of changes affect a single repository — not because every
 Each unit should own a coherent slice of the domain, expose a stable contract, and evolve independently. 
 When a change routinely fans out across many boundaries, the boundaries are in the wrong place.
 
+Group by domain first, technical responsibility second. 
+The primary split of a codebase follows its domain and subdomains — `album/`, `gallery/`, `sync/`, `snapshots/` — 
+not its technical layers — `models/`, `services/`, `cli/`, `utils/`. 
+A feature changes its model, its logic and its command together, so a layer-first layout spreads every feature across every top-level package, 
+while a domain-first layout keeps it in one. 
+Technical layering still matters, but it belongs *inside* a domain package (`album/cli/`, `album/store/`) and in the contracts between packages, 
+not as the top-level shape of the tree. 
+Code that is genuinely shared and has no domain of its own — a process runner, a formatting helper — earns a small technical package, 
+and it is a dependency of the domain packages, never the other way around.
+
 The same logic applies to team structure: a team should own a coherent slice of the system end-to-end, 
 with minimal cross-team coordination needed for most changes. 
 If every feature requires syncing across multiple teams and technical boundaries, the ownership boundaries are in the wrong place.
