@@ -23,6 +23,14 @@ a rationale has to meet.
 
 See [High cohesion, low coupling](../../philosophy.md#high-cohesion-low-coupling--at-every-boundary) for the reasoning, including how it applies to repositories and teams.
 
+**People and AI Agents**: adopt a practice because it helps the people working on the project; that it also helps AI agents should be a consequence.
+- Write documentation for people first, in the project's docs. `AGENTS.md`, `CLAUDE.md`, skills, plugins, hooks and commands point agents at that documentation and fill the gaps only agents have — they are never the only copy of a rule.
+- Conventions for a layer or area (storage, CLI, event schema, CI) are written by the people who own it and kept next to the code they govern. Deliver them to agents with a trigger scoped to that area — a skill or hook that fires on its paths — rather than loading every convention into every session.
+- When a rule can be checked by a tool — compiler, type checker, linter, import contract, test — enforce it with the tool instead of describing it in prose.
+- Keep changes that carry more risk structurally apart from those that carry less, so review effort can follow the risk: read models and projections apart from commands and event schemas, and destructive operations behind explicit opt-in.
+
+See [People and AI agents](../../philosophy.md#people-and-ai-agents) for the reasoning.
+
 **Code comments**: When making changes to the codebase, explain the reasoning when the implementation is non-obvious, and document any non-trivial design decisions or trade-offs that were made.
 
 **Charsets**:
