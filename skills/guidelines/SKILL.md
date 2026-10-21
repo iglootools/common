@@ -22,6 +22,8 @@ paths:
   - "CONTRIBUTING.md"
   - "CLAUDE.md"
   - "docs/*.md"
+  - "README.md"
+  - "demo/**"
   - ".vscode/**"
   - ".claude/settings.json"
   - "*.code-workspace"
@@ -78,7 +80,7 @@ those paths; if one fires, follow it.
 
 Read none of these for an ordinary code change. Each is long and stays in context for the rest
 of the session once read, so read only the one the change actually reaches — and then read it
-in full, not the section that looks relevant. All three are largely about failures that are
+in full, not the section that looks relevant. They are largely about failures that are
 silent, so the part that looks skippable is usually the part that names the failure.
 
 | Read | When the change touches |
@@ -87,7 +89,10 @@ silent, so the part that looks skippable is usually the part that names the fail
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, or a question about why a dependency update did or did not appear. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/repository.md` | The committed `.gitignore`, adding or restructuring project documentation (`CONTRIBUTING.md`, `CLAUDE.md`, a new file under `docs/`), setting up a new repository, its rulesets (branch or tag protection), or how pull requests are merged. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/repository.md` | The committed `.gitignore`, setting up a new repository, its rulesets (branch or tag protection), how pull requests are merged, or the code of conduct and security policy. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/documentation.md` | Adding, renaming or restructuring project documentation: `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`, or a file under `docs/` — including `docs/guidelines.md` and a new area-conventions document. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/pypi-publishing.md` | `release.yml`, `publish.yml` or `publish-test.yml`, the version scheme, or cutting a release by hand. Read it *with* `workflows.md` when the edit is to a workflow. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/cli-demo.md` | `demo/`, `.github/workflows/demo.yml`, the `demo-*` mise tasks, or the README's asciinema embed. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md` | `.vscode/`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/claude-code.md` | `.claude/settings.json`, or which Claude Code plugins the project enables. |
 
