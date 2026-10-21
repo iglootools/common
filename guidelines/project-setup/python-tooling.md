@@ -234,6 +234,10 @@ by layer, not one where each package keeps its own `cli/`.
 Consider providing:
 - `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for config and dependency documentation, respectively
 - `format`, `lint`, `type-check`, `boundaries-check` tasks for code quality checks
+- `ci-*` tasks, one per workflow job — `ci-test` (`install`, `build`, `check-all`), `ci-build`
+  (`install`, `build`, `build-verify`) — each chaining the tasks above and adding no logic of its
+  own, so a workflow job is a single `mise run` and CI runs exactly what a developer can run. See
+  [Keep workflows thin](workflows.md).
 
 ### Lock checks
 

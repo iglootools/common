@@ -4,6 +4,37 @@ Sibling files: [shared-workflows.md](shared-workflows.md) for the workflows this
 hosts and every project calls, and [dependency-automation.md](dependency-automation.md) for
 Renovate and Dependabot.
 
+- **Keep workflows thin: a job sets up the toolchain and calls one mise task.** Build, check,
+  test, package and demo logic lives in mise tasks — or in scripts those tasks run — and the
+  job's work is a single `mise run ci-<purpose>`:
+
+  ```yaml
+  steps:
+    - uses: actions/checkout@<sha> # v7
+    - uses: jdx/mise-action@<sha> # v5
+      with:
+        # renovate: datasource=github-releases depName=jdx/mise
+        version: 2026.10.7
+    - run: mise run ci-test
+  ```
+
+  Logic written as inline `run:` lines only runs on a runner. Reproducing a CI failure then means
+  reading YAML and retyping it, with the environment drifting from CI's along the way, and the
+  next workflow that needs the same steps copies them. As a task it runs locally with the same
+  command, by a person or an agent, and every workflow shares one definition.
+
+  The YAML keeps what only exists in GitHub Actions: triggers, permissions, concurrency,
+  environments and secrets, OIDC, `timeout-minutes`, steps that are actions (checkout,
+  `pypa/gh-action-pypi-publish`, `actions/upload-artifact`), packages only the runner image lacks
+  (an `apt-get install` line), and steps that only make sense in CI — synthesizing a throwaway
+  Test PyPI version, say. The test for anything else: if it would also make sense on a
+  developer's machine, it belongs in a task.
+
+  A `ci-*` task chains the project's ordinary tasks (`install`, `build`, `check-all`) and adds
+  no logic of its own. Logic that only lives in a `ci-*` task is CI-only again: `mise run check`
+  would not run it, so CI would be checking something local runs never do. See the `ci-*` entry
+  under [Mise Tasks](python-tooling.md#mise-tasks).
+
 - Whenever safe (i.e. not affecting production), enable `workflow_dispatch` and `repository_dispatch` to allow manual triggering of workflows from the GitHub UI or CLI, which is useful for testing and debugging.
 - Use OpenID Connect (OIDC) authentication for publishing to PyPI, and set up a separate workflow for testing releases to Test PyPI. This allows testing the release and publish process without affecting the real PyPI index, and provides more detailed logs for debugging.
   - When the Test PyPI workflow synthesizes a throwaway version, derive it from the **base
