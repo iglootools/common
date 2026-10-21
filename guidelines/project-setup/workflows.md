@@ -36,12 +36,8 @@ Renovate and Dependabot.
   under [Mise Tasks](python-tooling.md#mise-tasks).
 
 - Whenever safe (i.e. not affecting production), enable `workflow_dispatch` and `repository_dispatch` to allow manual triggering of workflows from the GitHub UI or CLI, which is useful for testing and debugging.
-- Use OpenID Connect (OIDC) authentication for publishing to PyPI, and set up a separate workflow for testing releases to Test PyPI. This allows testing the release and publish process without affecting the real PyPI index, and provides more detailed logs for debugging.
-  - When the Test PyPI workflow synthesizes a throwaway version, derive it from the **base
-    release** version, not from the full VCS-derived one. Appending `.devYYYYMMDDHHMMSS` to a
-    version that already carries `.dev0` produces two dev segments and is invalid PEP 440 — a bug
-    that stays hidden as long as the workflow is only ever dispatched from a tag. Reading the tag
-    (`git describe --tags --abbrev=0`) avoids it and needs no build tool.
+- Publishing to PyPI — trusted publishing, the release → publish chain, the Test PyPI rehearsal —
+  is in [pypi-publishing.md](pypi-publishing.md).
 - **Pin every action to a full commit SHA, with the tag in a trailing comment.** A tag is a
   mutable pointer: whoever controls the action's repository can repoint `v4` at new code, and
   every workflow that references it picks that code up on the next run with no diff anywhere in

@@ -229,6 +229,34 @@ ancestor, it reported cycles between each module's `cli/` subpackage and the sha
 below them, which is layering both projects intend. It suits a project whose packages are split
 by layer, not one where each package keeps its own `cli/`.
 
+## Tests
+
+### Run test suites in parallel with pytest-xdist
+
+Add `pytest-xdist` to the dev dependency group and pass `-n auto` in every test task whose tests
+are isolated — each one working under its own `tmp_path`, patching through `monkeypatch`, and
+sharing no module-level state. It spreads the suite across one worker per CPU, which is what keeps
+the common case of [Shorten every feedback loop](../../philosophy.md#shorten-every-feedback-loop)
+running in seconds as the suite grows.
+
+```toml
+[tasks.test-unit]
+description = "Run unit tests"
+# -n auto: unit tests are isolated (tmp_path, monkeypatch), so they parallelize cleanly.
+run = "uv run --no-sync pytest tests/ --ignore=tests/integration_fs/ -n auto -v"
+```
+
+- **Put `-n auto` in the task, not in `addopts`.** `addopts` applies to every invocation, so
+  running one test by hand, or under `--pdb` or a debugger, would also start a worker per CPU —
+  slower to start and, under xdist, without an interactive terminal for the debugger.
+- **Parallel runs surface hidden coupling.** A test that passes alone and fails under `-n auto`
+  depends on state another test leaves behind, or on running in a particular order. Fix the
+  isolation rather than dropping `-n auto` for the suite.
+- **A suite that cannot be parallelized says why, at the task.** Some suites share a resource that
+  is expensive to duplicate per worker — a Docker environment started once for the session, say.
+  Leave `-n auto` off there, with a comment naming the shared resource, so the next person does
+  not "fix" it by adding the flag.
+
 ## Mise Tasks
 
 Consider providing:
