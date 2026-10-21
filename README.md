@@ -26,7 +26,7 @@ files they govern:
 | [`project-setup/workflows.md`](guidelines/project-setup/workflows.md) | `.github/workflows/**` |
 | [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
 | [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, and the repository settings both depend on |
-| [`project-setup/repository.md`](guidelines/project-setup/repository.md) | `.gitignore`, `CONTRIBUTING.md` and the project's `docs/`, setting up a new repository |
+| [`project-setup/repository.md`](guidelines/project-setup/repository.md) | `.gitignore`, `CONTRIBUTING.md` and the project's `docs/`, setting up a new repository, repository rulesets and merge settings |
 | [`project-setup/ide.md`](guidelines/project-setup/ide.md) | `.vscode/**`, `*.code-workspace`, `[tool.pyright]` |
 | [`project-setup/claude-code.md`](guidelines/project-setup/claude-code.md) | `.claude/settings.json` |
 
