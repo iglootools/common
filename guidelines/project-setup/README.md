@@ -8,7 +8,7 @@ rules and the editor settings along with it.
 
 | File | What is in it | Read it when the change touches |
 |---|---|---|
-| [workflows.md](workflows.md) | Thin workflows (a job calls one `mise run ci-*` task), pinning actions by SHA, pinning mise, lockable mise backends, `install: false`/`env: false` as a pair, naming a workflow after its file, choosing a concurrency group, job timeouts | anything under `.github/workflows/` |
+| [workflows.md](workflows.md) | Thin workflows (a job calls one `mise run ci-*` task), least-privilege `permissions` on every job, pinning actions by SHA, pinning mise, lockable mise backends, `install: false`/`env: false` as a pair, naming a workflow after its file, choosing a concurrency group, job timeouts | anything under `.github/workflows/` |
 | [shared-workflows.md](shared-workflows.md) | The three workflows this repository hosts and every project calls by pinned SHA — the link checker, the `mise.lock` regenerator, the uv dependency-graph submission — and what a caller must declare for each | adding or changing a caller of one of them |
 | [dependency-automation.md](dependency-automation.md) | The Renovate/Dependabot split by latency, why committing `renovate.json` does not turn Renovate on, and the repository settings alerts and security updates depend on | `renovate.json`, `dependabot.yml`, or a dependency update that did or did not appear |
 | [python-tooling.md](python-tooling.md) | The Python toolchain: hatchling, guarding against a `0.0.0` release, uv and mise configuration, invoking tools through `uv run --no-sync`, module boundaries with import-linter, the mise task set (including `ci-*` tasks), lock checks | `pyproject.toml` (including `[tool.importlinter]`), `mise.toml`, `uv.lock`, `mise.lock`, or the task set |

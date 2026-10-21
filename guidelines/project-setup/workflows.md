@@ -35,6 +35,20 @@ Renovate and Dependabot.
   would not run it, so CI would be checking something local runs never do. See the `ci-*` entry
   under [Mise Tasks](python-tooling.md#mise-tasks).
 
+- **Declare `permissions` on every job, at least privilege.** A job without a block inherits the
+  repository's default token permissions — read-write in older repositories, read-only in new
+  organizations — so the same workflow works in one repository and fails in the next, or quietly
+  holds write access it never uses. A block replaces the default completely: every scope it
+  omits is set to none, so a job that declares `id-token: write` for publishing also needs
+  `contents: read` to check out. Comment any `write` with what the job writes.
+
+  ```yaml
+  jobs:
+    test:
+      permissions:
+        contents: read
+  ```
+
 - Whenever safe (i.e. not affecting production), enable `workflow_dispatch` and `repository_dispatch` to allow manual triggering of workflows from the GitHub UI or CLI, which is useful for testing and debugging.
 - Publishing to PyPI — trusted publishing, the release → publish chain, the Test PyPI rehearsal —
   is in [pypi-publishing.md](pypi-publishing.md).

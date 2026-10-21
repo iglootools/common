@@ -173,7 +173,7 @@ unchanged so the title CI recorded is kept, and commits the README change on its
 The CI path is kept wired up so it can be re-enabled by uncommenting two steps:
 `HAS_ASCIINEMA_INSTALL_ID` in the workflow's `env`, and the `ASCIINEMA_INSTALL_ID` repository
 secret, which ties uploads to the maintainer's asciinema.org account. Set the secret up as part
-of the repository's GitHub configuration in `docs/build-test.md`:
+of the repository's GitHub configuration in `docs/building-and-testing.md`:
 
 1. Run `asciinema auth` and follow the link it prints.
 2. Store the content of `~/.local/state/asciinema/install-id` in the `ASCIINEMA_INSTALL_ID` secret.
@@ -195,5 +195,5 @@ appending a second.
 
 Refresh it on every major release, after adding the release's scenarios to `demo.sh`: run
 `mise run demo-upload-latest` once the release's demo workflow has succeeded. List both steps in
-the Release Process of `docs/build-test.md`, because nothing else prompts them. Between major
+the Release Process of `docs/building-and-testing.md`, because nothing else prompts them. Between major
 releases, refresh when a release visibly changes what the demo shows.
