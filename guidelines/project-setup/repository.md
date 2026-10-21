@@ -15,7 +15,7 @@ convention rather than by being pointed at them:
 | Path | Holds |
 |---|---|
 | `CONTRIBUTING.md` | the index of the project's documentation for anyone changing it — see [below](#scaffold-contributingmd-as-the-documentation-index) |
-| `docs/guidelines.md` | deviations from the shared guidelines, which shared sections are out of scope, rules of the project's own, and its implementation checklists |
+| `docs/guidelines.md` | deviations from the shared guidelines, which shared sections are out of scope, rules of the project's own, its implementation checklists, and an index of the conventions set for particular areas of the code |
 
 Renaming one does not produce an error: the skill finds nothing, concludes the project documented
 nothing project-specific, and applies the shared guidelines as written. A project's deviations
@@ -28,6 +28,20 @@ field, a migration — so it belongs with the project's other rules, under a hea
 task. A checklist long enough to crowd the rest out moves to its own file under `docs/`, linked
 from `docs/guidelines.md` beside the task it covers; the link is what makes it discoverable, so a
 checklist nothing links to is one nobody runs.
+
+**`docs/guidelines.md` is loaded into every agent session**, after the shared guidelines, by the
+plugin's `SessionStart` hook — that is what lets a project rule override a shared one at the
+moment code is written rather than at review. Two consequences:
+
+- Keep it to rules, exceptions and checklists, and move anything long — a checklist that crowds
+  the rest out, an area's full conventions — to its own file under `docs/`, linked from here.
+  Every line in it is paid for in every session.
+- Index area conventions here. When the people who own an area — storage, the CLI, the event
+  schema, CI — write conventions for it, keep them in their own document and list it here next
+  to the paths it governs, for example `` `nbkp/sync/**` — [docs/sync-conventions.md](sync-conventions.md) ``.
+  The listing is what an agent sees at write time; the skill tells it to read the linked
+  document before touching those paths. A project may additionally wrap a large area's
+  conventions in a skill of its own scoped to those paths, but the document stays the source.
 
 Because these are conventions, a project's `CLAUDE.md` should not restate them, nor restate any
 guidance the plugin already delivers. What belongs there is what only that project knows: its

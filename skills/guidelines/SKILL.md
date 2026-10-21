@@ -30,13 +30,16 @@ paths:
 ## Writing code
 
 `coding/general.md` is already in this session — the plugin's `SessionStart` hook emits it at startup
-and again after a compaction, along with `coding/python.md` when the project has a `pyproject.toml`.
-Apply them at write time, not as a post-hoc review.
+and again after a compaction, along with `coding/python.md` when the project has a `pyproject.toml`,
+and the project's own `docs/guidelines.md` after both when the project has one. Apply them at
+write time, not as a post-hoc review, and where the project's file contradicts a shared rule,
+follow the project's file.
 
 If a file you need is not in context, because the project has no `pyproject.toml`, a compaction
 dropped it, or the hook reported that it could not read it, read
-`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/general.md` or
-`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md` before continuing.
+`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/general.md`,
+`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md` or the project's `docs/guidelines.md` before
+continuing.
 
 ## Finding code
 
@@ -59,10 +62,17 @@ something each project announces, so do not wait to be pointed at them:
 | Path | Holds | Read it |
 |---|---|---|
 | `CONTRIBUTING.md` | the index of the project's documentation — setup, build and test, guidelines, domain, architecture, internals, CLI and config references | when you need any of those, to find which file has it |
-| `docs/guidelines.md` | the project's deviations from the shared set, which shared sections are out of scope, rules of its own, and its implementation checklists (inline, or linked by task) | before departing from a shared rule, whenever a shared rule looks wrong here, and before calling a change done |
+| `docs/guidelines.md` | the project's deviations from the shared set, which shared sections are out of scope, rules of its own, its implementation checklists (inline, or linked by task), and the conventions its owners set for particular areas of the code (linked by the paths they govern) | it is already in context — the hook emits it; reread it if a compaction dropped it |
 
 A missing file means the project has documented nothing of that kind, and the shared guidelines
 stand as written. It does not mean the content sits elsewhere under another name.
+
+**Area conventions.** The people who own a part of the code — storage, the CLI, the event
+schema, the CI pipeline — may have written conventions for it, and `docs/guidelines.md` links
+each such document next to the paths it governs. When a change reaches one of those paths, read
+the linked document in full before editing, the same way the table below works for the shared
+files. A project may also deliver an area's conventions through a skill of its own scoped to
+those paths; if one fires, follow it.
 
 ## Read the file the change reaches
 
@@ -108,8 +118,8 @@ Never edit around a rule silently — take one of the two paths below.
 
 ### The project may already have decided
 
-Check the project's `docs/guidelines.md` for a rule or a documented exception that overrides the
-shared default, and read any comment at the point of deviation in the file you are editing. A
+Check the project's `docs/guidelines.md` (already in context) and any area conventions it links
+for a rule or a documented exception that overrides the shared default, and read any comment at the point of deviation in the file you are editing. A
 documented project rule wins. If the project records none, the shared guideline stands as
 written.
 
@@ -141,8 +151,9 @@ to it.
 time, and those conditions expire. Where the exception depends on one, name the condition that
 would make it unnecessary — "revisit when X supports Y", "drop this once we no longer support
 Z" — not just the reason it exists today. An undocumented exception silently becomes permanent,
-because nobody is left who remembers what it was working around. The shape to copy is the
-Python version policy in `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md`: it records the constraint, what it
-costs, and the specific event that would retire it.
+because nobody is left who remembers what it was working around. The shape to copy is
+"When a dependency lags" in `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md`'s Python
+Version Policy: the exception sits next to the setting it overrides, names the dependency
+that forces it, and names the event that retires it — "move to 3.x when it publishes wheels".
 
 Full reasoning: `${CLAUDE_PLUGIN_ROOT}/README.md#applying-these-guidelines`

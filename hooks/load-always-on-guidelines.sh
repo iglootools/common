@@ -28,8 +28,9 @@ emit() {
 
 printf '# iglootools common guidelines\n\n'
 printf 'Shared across iglootools projects and delivered by the iglootools plugin. These\n'
-printf 'govern every edit. Where the project documents a deviation in its own docs/guidelines.md,\n'
-printf 'the project wins; undocumented divergence is drift, not an override.\n\n'
+printf 'govern every edit. Where the project documents a deviation in its own docs/guidelines.md\n'
+printf '(emitted at the end of this context when it exists), the project wins; undocumented\n'
+printf 'divergence is drift, not an override.\n\n'
 # The guideline files no longer repeat, one per file, that they are defaults and where the
 # reasoning lives. Stating it here is the always-on equivalent of stating it once in the
 # README, which a consumer session never sees.
@@ -46,4 +47,17 @@ emit "$plugin_root/guidelines/coding/general.md"
 # understood anything about the task.
 if [[ -f "$project_dir/pyproject.toml" ]]; then
   emit "$plugin_root/guidelines/coding/python.md"
+fi
+
+# The project's own rules come last, because they override everything above. Naming the file
+# was not enough: the shared rules were in context while code was being written and the
+# override was not, so a project deviation was only noticed if the agent happened to go and
+# read it. A missing file is not an error — it means the project documents no deviations.
+project_guidelines="$project_dir/docs/guidelines.md"
+if [[ -e "$project_guidelines" ]]; then
+  printf '# Project guidelines (docs/guidelines.md)\n\n'
+  printf 'This project'"'"'s own rules, documented exceptions and checklists. Where they conflict with\n'
+  printf 'the shared guidelines above, these win. Where they list conventions for an area of the\n'
+  printf 'code, read the linked document in full before changing files in that area.\n\n'
+  emit "$project_guidelines"
 fi
