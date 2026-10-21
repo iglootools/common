@@ -118,6 +118,16 @@ The goal is that 80% of changes affect a single repository — not because every
 Each unit should own a coherent slice of the domain, expose a stable contract, and evolve independently. 
 When a change routinely fans out across many boundaries, the boundaries are in the wrong place.
 
+Group by domain first, technical responsibility second. 
+The primary split of a codebase follows its domain and subdomains — `album/`, `gallery/`, `sync/`, `snapshots/` — 
+not its technical layers — `models/`, `services/`, `cli/`, `utils/`. 
+A feature changes its model, its logic and its command together, so a layer-first layout spreads every feature across every top-level package, 
+while a domain-first layout keeps it in one. 
+Technical layering still matters, but it belongs *inside* a domain package (`album/cli/`, `album/store/`) and in the contracts between packages, 
+not as the top-level shape of the tree. 
+Code that is genuinely shared and has no domain of its own — a process runner, a formatting helper — earns a small technical package, 
+and it is a dependency of the domain packages, never the other way around.
+
 The same logic applies to team structure: a team should own a coherent slice of the system end-to-end, 
 with minimal cross-team coordination needed for most changes. 
 If every feature requires syncing across multiple teams and technical boundaries, the ownership boundaries are in the wrong place.
@@ -268,3 +278,53 @@ Further reading on coding philosophy:
 - [Simple Made Easy](https://www.infoq.com/presentations/Simple-Made-Easy/) by Rich Hickey (talk)
 - [The Value of Values](https://www.infoq.com/presentations/Value-Values/) by Rich Hickey (talk)
 - [Out of the Tar Pit](http://curtclifton.net/papers/MosesSchonworkerTarPit.pdf) by Moseley & Marks (paper)
+
+## People and AI agents
+
+**No practice should exist only because an AI agent does the work.**
+An agent working on the codebase is a contributor that lacks the context a team member builds up over months, reads only what is written down,
+and works fast enough to take a wrong turn many times before anyone looks.
+What helps it is what helps a new team member or a reviewer: written conventions, fast and unambiguous feedback, and a design in which a mistake stays contained.
+Choose practices that pay for themselves with human contributors alone; that they also make agents effective is a consequence, not the reason.
+A practice justified only by the agent is a sign of a gap in the human setup, and that gap is the thing to fix.
+
+### Documentation for people first, agent configuration for the gaps
+
+Write the documentation a person needs — architecture, conventions, how to build and test, why things are the way they are — in the project's docs, where people read it.
+Do not start with `AGENTS.md` or `CLAUDE.md`.
+A rule that exists only in agent configuration is invisible to the people who review the agent's work, so nobody notices when it goes stale,
+and the human contributors never get it at all.
+
+Agent-specific files then fill the gaps that human documentation cannot: pointing at the right document at the right moment,
+loading the conventions of a layer when its files are edited, and wrapping a multi-step workflow into a command.
+`AGENTS.md`, skills, plugins, hooks, triggers and commands are delivery mechanisms for knowledge that already exists in the docs,
+plus the few things only an agent needs — never the only copy of a rule.
+This repository works that way: the guidelines are written for people, and the plugin's skills and hooks only decide when an agent reads them.
+
+**Let the people who own an area set its conventions.**
+Whoever knows a layer best — storage, the CLI, the event schema, the CI pipeline — writes the conventions, guidelines and frameworks for it,
+and keeps them next to the code they govern.
+Everyone else, people and agents alike, follows them when a change touches that area, without having to rediscover them.
+A convention written once by a specialist and loaded when it applies scales better than review comments that repeat it on every pull request.
+
+### Practices that are good on their own and help agents
+
+The workflow and architecture in this document already serve agents, because they serve anyone who has to make a change without knowing everything:
+
+- **Tight feedback loops** ([Shorten every feedback loop](#shorten-every-feedback-loop)).
+  An agent iterates by trying something and reading the result, so the time to a trustworthy result limits how fast it can work, just as it does for a person.
+  A test suite that runs in seconds lets it check every step instead of guessing.
+- **Machine-checked rules over written ones** ([Automate the toil](#automate-the-toil), [Make the right thing easy and the wrong thing hard](#make-the-right-thing-easy-and-the-wrong-thing-hard)).
+  Compilers, type checkers, linters and enforced module boundaries reject a mistake with a precise message at the moment it is made.
+  A rule that a tool can check should be checked by the tool; prose is for the rules that cannot be.
+- **Structured errors and inspectable state** ([Errors as first-class values](#errors-as-first-class-values), [Make everything inspectable](#make-everything-inspectable)).
+  An agent debugging a failure has only what the system shows it, so an error kind with its fields and a dump command do more for it than a stack trace and a binary file.
+- **Architecture that grades risk.**
+  Separating reads from writes ([Event-driven, append-only, replayable](#event-driven-append-only-replayable)) also separates how much a change can break.
+  A change to a read model can at worst produce a wrong view, which is rebuilt by replaying the log;
+  a change to the write path decides which events are recorded permanently.
+  Review effort can then follow the risk: lighter scrutiny on the read side, the most on commands, event schemas and anything destructive.
+  Clear boundaries do the same at a smaller scale: a change confined to one module behind a narrow interface ([High cohesion, low coupling](#high-cohesion-low-coupling--at-every-boundary)) is cheaper to review than one that crosses five.
+- **Small, reviewable changes** ([Small, reviewable changes](#small-reviewable-changes)).
+  Agents produce code faster than people can review it, so a reviewer's attention runs out first.
+  One intent per change is what keeps the review meaningful.

@@ -15,12 +15,21 @@ a rationale has to meet.
 
 **High Cohesion, Low Coupling**: Apply the same rule at every level of design: functions, classes, abstractions, modules, packages.
 - Group by what changes together. A module or package should own one coherent slice of the domain, so a typical change lands in one place instead of fanning out across several.
+- Group by domain and subdomain first, technical responsibility second: top-level packages are slices of the domain (`album/`, `sync/`), and technical layers (`cli/`, `store/`) live inside them. A layer-first tree (`models/`, `services/`, `cli/`) spreads every feature across every package.
 - Communicate across boundaries through narrow, explicit interfaces. Expose the operations callers need, keep the rest private, and do not reach into another module's internals.
 - Keep dependencies one-directional and acyclic. Two modules that import each other are one module split in the wrong place: merge them, or extract what they share into a third.
 - Introduce an abstraction for a concept that exists in the domain, not to shuffle code around. An abstraction whose callers all need to know what is behind it adds coupling instead of removing it.
 - Treat a change that routinely touches many modules as a signal that the boundaries are in the wrong place, and move them rather than adding another cross-cutting edit.
 
 See [High cohesion, low coupling](../../philosophy.md#high-cohesion-low-coupling--at-every-boundary) for the reasoning, including how it applies to repositories and teams.
+
+**People and AI Agents**: adopt a practice because it helps the people working on the project; that it also helps AI agents should be a consequence.
+- Write documentation for people first, in the project's docs. `AGENTS.md`, `CLAUDE.md`, skills, plugins, hooks and commands point agents at that documentation and fill the gaps only agents have — they are never the only copy of a rule.
+- Conventions for a layer or area (storage, CLI, event schema, CI) are written by the people who own it and kept next to the code they govern. Deliver them to agents with a trigger scoped to that area — a skill or hook that fires on its paths — rather than loading every convention into every session.
+- When a rule can be checked by a tool — compiler, type checker, linter, import contract, test — enforce it with the tool instead of describing it in prose.
+- Keep changes that carry more risk structurally apart from those that carry less, so review effort can follow the risk: read models and projections apart from commands and event schemas, and destructive operations behind explicit opt-in.
+
+See [People and AI agents](../../philosophy.md#people-and-ai-agents) for the reasoning.
 
 **Code comments**: When making changes to the codebase, explain the reasoning when the implementation is non-obvious, and document any non-trivial design decisions or trade-offs that were made.
 
