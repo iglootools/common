@@ -104,7 +104,7 @@ owns installation:
 
 ```toml
 [tools]
-python = "3.14.3"
+python = "3.15.0"
 uv = "0.12.3"
 
 [env]
@@ -157,8 +157,10 @@ aube, dart and flutter — so do not go looking for a mise verb.
 
 ## Code Quality Tools
 
-Use `ruff` for linting and formatting, `pyright` for type-checking, `vermin` for validating the
-desired Python version compatibility, and `import-linter` for module boundaries.
+Use `ruff` for linting and formatting, `pyright` for type-checking, and `import-linter` for
+module boundaries. There is no compatibility check (`vermin`): projects support only the
+version they are developed on, so nothing can be too new (see the
+[Python Version Policy](../coding/python.md#python-version-policy)).
 
 ### Module boundaries (import-linter)
 
@@ -231,7 +233,7 @@ by layer, not one where each package keeps its own `cli/`.
 
 Consider providing:
 - `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for config and dependency documentation, respectively
-- `format`, `lint`, `type-check`, `compat-check`, `boundaries-check` tasks for code quality checks
+- `format`, `lint`, `type-check`, `boundaries-check` tasks for code quality checks
 
 ### Lock checks
 

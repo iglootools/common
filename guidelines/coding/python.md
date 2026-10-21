@@ -21,10 +21,24 @@
     handle (`OSError` for a failed external tool, `ValueError` for malformed input) so existing
     `except` clauses keep catching it.
   - `__str__` stays a plain fallback; the message users see is rendered by the output layer.
+- **Imports**: import at module level. Where an import has to be deferred — an expensive
+  module the CLI does not need to start, or a cycle between modules — use a module-level
+  `lazy import` / `lazy from ... import` (PEP 810) rather than an import inside a function,
+  a `TYPE_CHECKING` block, or a module `__getattr__`.
+  - A lazy import is still a dependency edge: import-linter and pydeps both see it, so
+    the module-boundary contracts keep applying.
+  - Enable ruff's `TID255` (lazy-import-immediately-resolved), which flags a lazy import
+    that module-level code resolves straight away, so the deferral is lost.
+  - When the deferral is the point, such as keeping CLI startup fast, back it with a test
+    that imports the entry point in a fresh interpreter and asserts the heavy modules are
+    absent from `sys.modules`. Nothing else notices when an eager import creeps back.
+  - An optional extra stays an in-function `try: import ... except ImportError`. PEP 810
+    forbids `lazy` inside `try`, and a lazy import would move the `ImportError` to the
+    first use, where the except clause no longer surrounds it.
 - **Formatting**:
   - 88 characters (ruff default).
-- **Python Version**: 3.12 floor, 3.14 for local development. See
-  [Python Version Policy](#python-version-policy) below.
+- **Python Version**: the latest stable release (3.15), one version for development, CI
+  and users alike. See [Python Version Policy](#python-version-policy) below.
 - **Control Flow**
   - Prefer match-case over if-elif-else chains
   - Prefer comprehensions and built-ins (map, filter) over manual loops when appropriate.
@@ -61,50 +75,73 @@
 
 ## Python Version Policy
 
-Projects target **two** Python versions at once:
+Projects target **one** Python version: the **latest stable CPython release** — 3.15 at
+the time of writing. The minimum supported version, the version developed on and the
+version CI tests are the same, so there is no compatibility floor to guard and no
+second interpreter to keep working.
 
-| Role | Version | Why |
-|---|---|---|
-| **Floor** (minimum supported) | **3.12** | Default `python3` on Ubuntu 24.04 LTS |
-| **Local development** | **3.14** | Latest stable; also the default on Ubuntu 26.04 LTS |
+### Why the latest, and only the latest
 
-### Why 3.12 is the floor
+Supporting an older Python costs more than it buys for these projects. Every feature
+newer than the floor is off-limits, a separate check (`vermin`) is needed to enforce
+that because ruff's and pyright's targets miss cases, and CI has to test a version
+nobody develops on. Meanwhile the tools are installed by people who can get a current
+interpreter in one step:
 
-Ubuntu 24.04 LTS ships Python 3.12 as its system `python3`. Keeping the floor there
-means users on the previous LTS can `uv tool install` (or `pipx install`) a tool without
-adding a PPA, building Python from source, or upgrading the distro. Nothing in the code
-may use a feature newer than 3.12, even though development happens on 3.14.
+- `uv tool install <tool>` downloads a managed Python when the system has no matching
+  one, so the distro's `python3` does not matter.
+- `pipx install --python <path-to-python3.15> <tool>` works the same way with an
+  interpreter installed by any other means (mise, pyenv, a PPA, Homebrew).
 
-> **Considering moving the floor to 3.14 soon.** Ubuntu 26.04 LTS ships Python 3.14
-> (upgraded directly from 3.12 — 26.04 skips 3.13). Once we no longer need to support
-> 24.04, raising the floor to 3.14 lets us drop the compatibility constraint entirely,
-> since it would then match the local development version. Deliberately not done yet:
-> 24.04 is in standard support until 2029, so dropping it now would strand users still
-> on it.
+The system `python3` of an LTS distribution is therefore not a constraint, and the
+projects do not track it.
 
-### How compatibility with both is maintained
+### The knobs
 
-Five knobs enforce the floor. All of them must move together when the floor changes:
+Four settings name the version. All of them move together, in one change:
 
 | Knob | Where | Value |
 |---|---|---|
-| `requires-python` | `pyproject.toml` | `>=3.12,<3.15` |
-| ruff `target-version` | `pyproject.toml` | `py312` |
-| pyright `pythonVersion` | `pyproject.toml` | `3.12` |
-| `vermin --target` | `mise.toml` (`compat-check` task) | `3.12-` |
-| CI matrix | `.github/workflows/test.yml` | `3.12.x` |
+| `[tools] python` | `mise.toml` | `3.15.x` — the exact patch release; CI installs it from here |
+| `requires-python` | `pyproject.toml` | `>=3.15,<3.16` |
+| ruff `target-version` | `pyproject.toml` | `py315` |
+| pyright `pythonVersion` | `pyproject.toml` | `3.15` |
 
-`vermin` is what actually catches accidental use of newer syntax and stdlib APIs —
-ruff's and pyright's targets catch some cases but not all, so `compat-check` is not
-redundant. The `<3.15` upper bound keeps the package from installing on a Python we
-have never tested; it is raised deliberately, not automatically.
+The `<3.16` upper bound keeps the package from installing on a Python nobody has
+tested; it is raised deliberately, together with the other knobs, not automatically.
 
-The local toolchain version lives in `mise.toml` (`[tools] python`), separate from all
-of the above. It is intentionally *ahead* of the floor so problems on new Python
-versions surface during development.
+CI takes its interpreter from `mise.toml` like a developer machine does, with no
+version matrix: there is only one version to test.
 
-### Known gap
+### Moving to a new release
 
-**CI only tests the floor.** The matrix entry for 3.14 is commented out to save CI
-minutes, so the newer version is exercised only on developer machines. Uncomment it in
-`.github/workflows/test.yml` if a Python-version-specific bug ever slips through.
+Move once every dependency publishes wheels for the new version. `uv lock` is not the
+check: it resolves happily to a release that has only an sdist, and a developer machine
+with a compiler then builds it without a word, so the gap shows up later as a failed
+install on a user's machine. After raising `requires-python`, relock with
+`uv lock --upgrade` (an older locked release often predates the new wheels) and ask
+for wheels explicitly:
+
+```bash
+uv sync --no-build --dry-run
+```
+
+It names every package that would have to be built from source. A pure-Python package
+whose sdist builds without a compiler — PyYAML falling back from its C extension — is
+acceptable; anything that needs a C, C++ or Rust toolchain is not. Then:
+
+1. Move all four knobs, relock (`uv lock`, `mise lock`), and run the full check and test
+   suite.
+2. Run `ruff check --fix`; with the new `target-version` its `UP` rules rewrite the
+   idioms the new version makes redundant.
+3. Adopt the release's new features where they remove a workaround or make the code
+   simpler — not everywhere they could apply.
+
+### When a dependency lags
+
+A dependency that publishes no wheels for the latest release holds the project back. Stay
+on the newest version that dependency supports, and record it as an exception the way
+[general.md](general.md) asks: a comment next to `requires-python` naming the
+dependency, and the condition that retires the exception — usually "move when it
+publishes wheels for 3.x". Do not build the dependency from source to get ahead of it:
+that trades a version number for a toolchain every user then needs.
