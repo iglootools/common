@@ -28,7 +28,7 @@ gh workflow run release.yml
 gh run list --workflow publish.yml   # then watch the publish it triggers
 ```
 
-Record the project's side of this in `docs/release-publish.md`: the workflows, the commands, and
+Record the project's side of this in `docs/releasing-and-publishing.md`: the workflows, the commands, and
 the trusted-publisher configuration below, so it can be re-created and reviewed rather than
 living only in the PyPI and GitHub settings.
 
@@ -80,9 +80,9 @@ Three things this depends on that nothing checks:
   as a patch. Merging with a merge commit, as [repository.md](repository.md#merge-pull-requests-with-a-merge-commit)
   requires, is what keeps each branch commit, and therefore its type, visible to the action.
 - **The tag is created through the API with `GITHUB_TOKEN`**, which needs write access to
-  contents. The workflow declares no `permissions:` block, so it relies on the repository's
-  default workflow permissions being read and write. With the read-only default, the tag push is
-  refused and the release fails.
+  contents. Declare `permissions: contents: write` on the job rather than inheriting the
+  repository's default token permissions: a repository whose default is read-only (GitHub's
+  default for new organizations) refuses the tag push, and the release fails.
 - **The release tag ruleset must allow creation**, which it does: it forbids only deletion and
   update. See [repository.md](repository.md#protect-the-default-branch-and-release-tags).
 
@@ -220,10 +220,13 @@ jobs:
       url: https://pypi.org/p/<package>/
     permissions:
       id-token: write   # mandatory: without it there is no OIDC token to exchange
+      contents: read    # checkout; a permissions block sets every scope it omits to none
 ```
 
 - **`id-token: write` at the job level.** Without it the action has no token to exchange, and
-  the upload fails.
+  the upload fails. Add `contents: read` beside it: declaring any permission sets every scope it
+  omits to none, so a block with only `id-token: write` leaves checkout working only while the
+  repository is public.
 - **A GitHub environment per index: `pypi` and `testpypi`.** The environment name is part of
   what PyPI checks. `environment.url` is only the link GitHub displays next to the deployment. It
   is not the `repository-url` that tells the action where to upload.
