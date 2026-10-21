@@ -263,7 +263,10 @@ resumed or forked session still carries the earlier injection in its transcript,
 one may have had it summarized away.
 
 Emission can be conditional: `coding/python.md` goes out only when the project has a `pyproject.toml`,
-so a project with no Python does not pay for it. If a file cannot be read, the hook says so in
+so a project with no Python does not pay for it. The project's own `docs/guidelines.md` goes out
+last, when it exists, under a heading that says it overrides the shared rules above it: an
+override the agent only reads on demand is one it does not have in front of it while writing
+the code it overrides. If a file cannot be read, the hook says so in
 the injected text rather than emitting nothing, because a guideline that failed to load must not
 be indistinguishable from one that does not apply.
 
