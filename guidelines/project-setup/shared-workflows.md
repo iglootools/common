@@ -83,7 +83,7 @@ Four things about that stub are load-bearing:
   before the same failure, and each one pads every report so a genuine 404 arrives buried in
   known-good noise.
 
-### Call the shared mise.lock regenerator too
+### Call the shared lock regenerator too
 
 The other workflow that is identical everywhere, for the same reason and with the same shape:
 
@@ -112,6 +112,14 @@ jobs:
       # renovate: datasource=github-releases depName=jdx/mise
       version: <the version mise.lock was generated with>
 ```
+
+It regenerates `uv.lock` as well whenever the repository has one, which is what lets a Renovate
+bump to `[tool.uv] build-constraint-dependencies` pass CI: Renovate's regex custom manager rewrites
+the pin in `pyproject.toml` but never re-locks, while `uv.lock` records those constraints in its
+`[manifest]` — see [python-tooling.md](python-tooling.md#pin-the-build-backend-explicitly). The
+caller declares nothing extra for it. The job installs only uv and Python through mise, and runs
+`uv lock` against that Python with downloads off: `env: false` keeps mise's `[env]`, and with it the
+project's `UV_PYTHON` pin, out of the job, so the step has to restate the pin.
 
 The mise version stays in the caller rather than becoming a constant in the shared workflow, for
 two reasons that both point the same way. The [rule on pinning mise](workflows.md) requires it

@@ -31,7 +31,7 @@ change the dev-version format.
 
 ### Pin the build backend explicitly
 
-`uv.lock` does **not** cover PEP 517 build dependencies: `uv build` resolves them fresh from PyPI
+`uv.lock` does **not** resolve PEP 517 build dependencies: `uv build` resolves them fresh from PyPI
 on a cold cache. `[tool.uv] build-constraint-dependencies` is the only pin, and it must cover the
 whole closure — most importantly `dunamai`, which is what computes the version. Regenerate with:
 
@@ -43,6 +43,13 @@ printf '%s\n' hatchling uv-dynamic-versioning \
 Leave `[build-system].requires` unpinned so the two can never contradict each other. No
 built-in Renovate manager reads `build-constraint-dependencies`, so these pins rot silently
 unless a `customManagers` regex entry is added for them.
+
+That entry only gets the bump halfway. `uv.lock` does not resolve the build closure, but it does
+record the constraints themselves, in its `[manifest]`, and Renovate regenerates the lock only for
+dependencies its built-in managers extracted. A regex-manager bump therefore arrives with
+`pyproject.toml` changed and `uv.lock` stale, and a CI job running with `UV_LOCKED=1` fails on it
+before any test. The [shared lock regenerator](shared-workflows.md#call-the-shared-lock-regenerator-too)
+runs `uv lock` on Renovate branches to close that gap, so a project with these pins needs to call it.
 
 ### Guard against a `0.0.0` release
 
