@@ -5,6 +5,13 @@ name: reusable-renovate-mise-lock
 # the renovate/artifacts check red on every tool bump. This workflow runs mise on Renovate
 # branches to regenerate the lock and commit it back if it changed.
 #
+# It regenerates uv.lock as well, in a project that has one. Renovate does update uv.lock for the
+# dependencies its pep621 manager extracts, but not for a pin a regex custom manager bumps — and
+# `[tool.uv] build-constraint-dependencies` is pinned exactly that way, while uv.lock records those
+# constraints in its `[manifest]`. Without this step every build-backend bump leaves uv.lock stale,
+# and CI's `UV_LOCKED=1` rejects the branch before a single test runs. The workflow keeps its name
+# because renaming it would break every caller's `uses:` ref.
+#
 # The caller keeps what is genuinely its own: the push trigger, the concurrency group, the
 # `contents: write` grant and the mise version. `permissions` in a called workflow is a ceiling
 # on what the caller granted rather than a grant of its own, so a caller that omits
@@ -28,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write # committing the regenerated mise.lock back to the Renovate branch
+      contents: write # committing the regenerated lock files back to the Renovate branch
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -45,8 +52,8 @@ jobs:
       # installed, which is precisely the state `install: false` leaves behind, taking the whole
       # setup step down with it. A project with no such template survives without `env: false`,
       # which is how the pairing gets dropped from a copy and stays latent until someone adds an
-      # [env] entry. The export buys nothing here regardless: the only step after this one is
-      # `mise lock`, which needs the binary and the config, not a tool environment.
+      # [env] entry. The export buys nothing here regardless: `mise lock` needs the binary and the
+      # config, not a tool environment, and the uv.lock step restates the one variable it needs.
       - name: Setup mise
         uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5
         with:
@@ -59,14 +66,33 @@ jobs:
       - name: Regenerate mise.lock
         run: mise lock
 
-      - name: Commit mise.lock if changed
+      # Runs after `mise lock`, so the install resolves against the regenerated lock — a uv or
+      # Python bump on the same branch is then locked before it is installed. Only uv and Python:
+      # nothing else in the toolset is needed to lock.
+      - name: Install uv and Python
+        if: hashFiles('uv.lock') != ''
+        run: mise install uv python
+
+      # uv is invoked by path rather than through `mise exec`/`mise run`, which would trigger the
+      # project's `[deps.uv]` auto-sync and build the project for no purpose. `env: false` above
+      # means mise's [env] is not exported, so the interpreter pin python-tooling.md requires is
+      # restated here: without it uv may resolve on the runner's own Python or download one.
+      - name: Regenerate uv.lock
+        if: hashFiles('uv.lock') != ''
         run: |
-          if git diff --quiet -- mise.lock; then
-            echo "mise.lock is up to date."
+          UV_PYTHON="$(mise which python)" UV_PYTHON_DOWNLOADS=never "$(mise which uv)" lock
+
+      # `git diff --name-only` rather than naming both files to `git add`: a pathspec that matches
+      # no file is an error for `git add`, and a project without uv has no uv.lock.
+      - name: Commit lock files if changed
+        run: |
+          mapfile -t changed < <(git diff --name-only -- mise.lock uv.lock)
+          if [ "${#changed[@]}" -eq 0 ]; then
+            echo "Lock files are up to date."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mise.lock
-          git commit -m "chore(deps): regenerate mise.lock"
+          git add -- "${changed[@]}"
+          git commit -m "chore(deps): regenerate lock files"
           git push

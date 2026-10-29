@@ -1,7 +1,7 @@
 # Dependency Automation Guidelines
 
 How Renovate and Dependabot divide the work, and the repository settings both depend on.
-The workflow that regenerates `mise.lock` on Renovate branches is in
+The workflow that regenerates `mise.lock` and `uv.lock` on Renovate branches is in
 [shared-workflows.md](shared-workflows.md).
 
 - `renovate.json`: group all dependency updates into a single PR, delay
