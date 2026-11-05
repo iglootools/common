@@ -31,7 +31,13 @@ See [High cohesion, low coupling](../../philosophy.md#high-cohesion-low-coupling
 
 See [People and AI agents](../../philosophy.md#people-and-ai-agents) for the reasoning.
 
-**Code comments**: When making changes to the codebase, explain the reasoning when the implementation is non-obvious, and document any non-trivial design decisions or trade-offs that were made.
+**Code comments**: A comment explains *why*, never *what*. The code already states what it does, through the names of its functions, classes, variables and constants and through its types. A comment covers what the code cannot express.
+- Write a comment for the reasoning a reader cannot recover from the code: why a non-obvious implementation was chosen over the obvious one, a constraint imposed from outside (a tool's bug, a spec, a platform quirk), a trade-off and the alternative that was rejected, an invariant the code relies on without checking, or the condition that would retire a workaround.
+- Remove a comment that only restates the code beneath it. That includes `# increment the counter`, `# extract node declarations` above a regex already named for them, a section banner that repeats the names of the functions under it, and a docstring that turns the name of the function, class or module (or the module's path) into a sentence. Each one is text the reader has to skip, and nothing fails when it goes out of date.
+- When the code seems to need a "what" comment, it is not saying enough. Improve the code instead: rename the variable, extract a named helper, introduce a named constant, or tighten a type. Then delete the comment.
+- Docstrings follow the same rule. A docstring on an interface is worth keeping when it tells a caller something the signature does not, such as units, ownership, error conditions or side effects. A docstring that a tool shows to users, like CLI help text or generated API docs, is user documentation and stays.
+- Delete commented-out code. Version control keeps it.
+- Keep comments true. A change that alters the reasoning updates or removes the comment in the same edit. A comment that is wrong is worse than no comment.
 
 **Charsets**:
 - UTF-8 everywhere.

@@ -11,8 +11,8 @@ on:
 
 concurrency:
   # A link check only reads and reports, so a run in flight can be abandoned and redone. See
-  # the concurrency section of project-setup.md for why main carries the commit sha and every
-  # other ref does not.
+  # the concurrency rule in guidelines/project-setup/workflows.md for why main carries the
+  # commit sha and every other ref does not.
   group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.event.workflow_run.head_sha || github.sha) || github.ref }}
   cancel-in-progress: true
 
@@ -26,5 +26,6 @@ jobs:
       issues: write # filing the report issue
     # This repository is the one place the ref is a path rather than a pinned SHA: a local ref
     # always resolves to the commit being tested, so the workflow is exercised as changed
-    # rather than as last released. Consuming projects pin — see project-setup.md.
+    # rather than as last released. Consuming projects pin — see
+    # guidelines/project-setup/shared-workflows.md.
     uses: ./.github/workflows/reusable-check-links.yml
