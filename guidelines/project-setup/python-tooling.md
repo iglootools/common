@@ -270,7 +270,8 @@ Consider providing:
 - `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for config and dependency documentation, respectively
 - `format`, `lint`, `type-check`, `boundaries-check` tasks for code quality checks
 - `ci-*` tasks, one per workflow job — `ci-test` (`install`, `build`, `check-all`), `ci-build`
-  (`install`, `build`, `build-verify`) — each chaining the tasks above and adding no logic of its
+  (`install`, `build`, `build-verify`), or several jobs that split `check-all` when its parts
+  are slow enough to be worth running side by side — each chaining the tasks above and adding no logic of its
   own, so a workflow job is a single `mise run` and CI runs exactly what a developer can run. See
   [Keep workflows thin](workflows.md).
 
@@ -296,8 +297,8 @@ Every line of that script is load-bearing, and the reasons are not guessable:
 | Detail | Why |
 |---|---|
 | regenerate in `$tmp` | `mise lock` always writes. Letting it write the real lockfile means undoing it afterwards, and a `git checkout mise.lock` to do so **discards the regenerated file the error message just told you to commit** |
-| inputs from the index (`git show :<file>`) | mise rewrites `mise.lock` on its own: with `lockfile = true`, any tool-resolving command updates the version stanza and drops the per-platform checksums it can no longer vouch for — which is exactly the state that makes `mise install --locked` fail on a fresh runner. The working copy is therefore not a stable reference, so "up to date" can only mean "matches what is staged". It also makes the check immune to CI's `mise use python@<matrix>`, which rewrites the working `mise.toml` |
-| `env -u MISE_PYTHON_VERSION` | `mise lock` honours it, so an env-selected matrix interpreter would otherwise be locked in place of the committed pin |
+| inputs from the index (`git show :<file>`) | mise rewrites `mise.lock` on its own: with `lockfile = true`, any tool-resolving command updates the version stanza and drops the per-platform checksums it can no longer vouch for — which is exactly the state that makes `mise install --locked` fail on a fresh runner. The working copy is therefore not a stable reference, so "up to date" can only mean "matches what is staged". It also makes the check immune to anything that rewrites the working `mise.toml`, such as a `mise use` in CI |
+| `env -u MISE_PYTHON_VERSION` | `mise lock` honours it, so an interpreter selected through the environment would otherwise be locked in place of the committed pin |
 | `set -euo pipefail` | without it a failing `mise lock` leaves the copied lockfile untouched, the `diff` finds no difference, and the check **passes** — the guard defeated by the situation it exists to catch |
 
 The threshold cuts both ways: a task body that is two or three straight-line commands with
