@@ -235,8 +235,10 @@ Getting this wrong rarely crashes. It silently drops or reinterprets characters,
 
 ### Document the why, not the what
 
-Code shows what happens; comments should explain why. Don't restate what the code already says.
-document the constraints, trade-offs, and non-obvious decisions that would otherwise be lost. 
+Code shows what happens; comments should explain why. Don't restate what the code already says:
+the names of functions, types and variables are what carry the what, and a comment that repeats them is noise that drifts out of date without failing anything.
+If the what is not clear from the code, fix the code — a better name, an extracted helper, a named constant — rather than annotating it.
+Document the constraints, trade-offs, and non-obvious decisions that would otherwise be lost. 
 For architectural choices that affect multiple components, use Architecture Decision Records (ADRs) or equivalent. 
 The goal is that someone reading the code six months later can understand not just what it does, but why it does it that way instead of the obvious alternative.
 

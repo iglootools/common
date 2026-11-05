@@ -22,7 +22,7 @@ on:
     inputs:
       version:
         description: >-
-          mise version for jdx/mise-action, pinned by the caller because project-setup.md
+          mise version for jdx/mise-action, pinned by the caller because project-setup/workflows.md
           requires it to match the version the project's mise.lock was generated with.
           Deliberately named `version` rather than `mise-version`: the Renovate custom manager
           that keeps the pin current matches a `# renovate:` marker followed by whitespace and a
@@ -61,8 +61,6 @@ jobs:
           install: false
           env: false
 
-      # `mise lock` regenerates checksums and URLs for all platforms in the lockfile, picking up
-      # any tool versions Renovate bumped in mise.toml.
       - name: Regenerate mise.lock
         run: mise lock
 
