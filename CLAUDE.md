@@ -7,8 +7,9 @@ root supports them — `philosophy.md` for the reasoning, `skills/` and `hooks/`
 
 @guidelines/coding/general.md
 @guidelines/coding/python.md
+@guidelines/coding/git.md
 
-These two govern every edit, including edits to the guidelines themselves, so they are imported.
+These three govern every edit, including edits to the guidelines themselves, so they are imported.
 `coding/general.md` carries the "defaults, not dogma" clause, so the exception rule arrives with it.
 
 `guidelines/project-setup/python-tooling.md`, `guidelines/project-setup/ide.md` and

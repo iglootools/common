@@ -70,6 +70,13 @@ Large, messy PRs don't get reviewed well — reviewers skim, miss problems, and 
 Keep changes focused: one concern per commit, one intent per PR. Invest in the Git commit history.
 This pairs naturally with "do fewer things completely" — small scope, fully finished. 
 
+Different kinds of change call for different kinds of review. A refactoring is checked for
+the absence of change, and a behaviour change is read line by line, so a commit that mixes them
+forces the reviewer to read every line of both with full attention. In the same way, a branch
+records the change, not the effort that went into it. A fix-up added on top of the branch makes
+the reviewer read code that a later commit removes, so until the branch is merged its history
+is a draft to be revised. Once merged, it is append-only like everything else.
+
 ### No broken windows workflow
 
 Treat bugs as unfinished features, not as a separate category of work to be triaged later. 

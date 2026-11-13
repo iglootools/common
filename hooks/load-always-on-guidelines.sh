@@ -41,6 +41,7 @@ printf 'from one are in %s/README.md#applying-these-guidelines.\n\n' "$plugin_ro
 printf 'These files live in %s/guidelines/coding/, where the relative links inside them resolve.\n\n' "$plugin_root"
 
 emit "$plugin_root/guidelines/coding/general.md"
+emit "$plugin_root/guidelines/coding/git.md"
 
 # python.md is dead weight in a project with no Python, and two of the iglootools projects
 # have none. The presence of pyproject.toml is a check the session can make before it has

@@ -11,14 +11,15 @@ Renamed from `common-guidelines`, which described only the first of those.
 The rules themselves live in [**`guidelines/`**](guidelines/), split into
 [`coding/`](guidelines/coding/) for how code is written and
 [`project-setup/`](guidelines/project-setup/) for how a repository is configured. Each has its
-own index. They divide by how they are delivered rather than by subject: They split by how they are delivered rather than by subject — two govern every edit and
-are in context from the start of a session, the rest are read only when a change reaches the
-files they govern:
+own index. They divide by how they are delivered rather than by subject: three govern every
+edit and are in context from the start of a session, the rest are read only when a change
+reaches the files they govern:
 
 | Always on | |
 |---|---|
 | [`coding/general.md`](guidelines/coding/general.md) | language-agnostic coding principles |
 | [`coding/python.md`](guidelines/coding/python.md) | the Python layer, wherever the project has a `pyproject.toml` |
+| [`coding/git.md`](guidelines/coding/git.md) | commits shaped for review: refactoring apart from behaviour, rework and feedback folded into the commit they correct, merge commits rather than squashes, rebasing and cleaning up before review, commit messages |
 
 | Read when a change reaches it | Triggered by |
 |---|---|
@@ -110,9 +111,9 @@ Everything here is delivered by a single plugin. **No clone of this repository i
 no project needs to sit in a sibling directory.
 
 The guidelines split into two kinds, and the plugin delivers each by the mechanism that fits.
-`coding/general.md` and `coding/python.md` govern every edit, so a `SessionStart` hook puts them in context from
-the start. The other three are triggered by a specific file, so a skill reads them only when a
-change reaches the files they govern.
+`coding/general.md`, `coding/python.md` and `coding/git.md` govern every edit, so a `SessionStart`
+hook puts them in context from the start. The rest are triggered by a specific file, so a skill
+reads them only when a change reaches the files they govern.
 
 ### The plugin
 
@@ -254,8 +255,10 @@ repository on the machine, which is what
 
 ### The ones that load in every session
 
-Some guidelines govern every edit rather than one kind of file — `coding/general.md` and `coding/python.md`
-today. Those are not skills: a skill is model-invoked, which is right for a guideline triggered
+Some guidelines govern every edit rather than one kind of file — `coding/general.md`,
+`coding/python.md` and `coding/git.md` today. `coding/git.md` has no file to trigger it at all:
+it applies at the moment of committing, which is exactly when an agent fixing a lint failure
+would not stop to look for a skill. Those are not skills: a skill is model-invoked, which is right for a guideline triggered
 by a file and wrong for one that applies to everything. They are delivered instead by
 [hooks/load-always-on-guidelines.sh](hooks/load-always-on-guidelines.sh), which runs on
 `SessionStart` and whose stdout becomes context the agent sees. Another such guideline is added
@@ -277,7 +280,8 @@ be indistinguishable from one that does not apply.
 
 This repository does not consume its own plugin: `${CLAUDE_PLUGIN_ROOT}` would resolve to the
 installed copy rather than the file being edited. Its [CLAUDE.md](CLAUDE.md) imports
-`coding/general.md` and `coding/python.md` directly instead, which needs no plugin at all.
+`coding/general.md`, `coding/python.md` and `coding/git.md` directly instead, which needs no
+plugin at all.
 
 To work on the plugin, load it from the working tree without installing it, which is what makes
 `${CLAUDE_PLUGIN_ROOT}` resolve here:

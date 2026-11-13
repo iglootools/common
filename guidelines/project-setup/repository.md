@@ -17,12 +17,11 @@ inside the package directory that is ignored only locally gets published inside 
 ### Merge pull requests with a merge commit
 
 Merge, do not squash or rebase, unless the project has a reason to do otherwise. A merge commit
-keeps every commit of the branch and records where the branch joined `main`, so the history can
-always be summarized later — `git log --first-parent` reads as one entry per pull request — while
-a squash discards the individual steps for good (see "Preserve data, build tooling around it" in
-[philosophy.md](../../philosophy.md#event-driven-append-only-replayable)). That only pays off if
-the commits are worth keeping, which is what "one concern per commit" in
-[Small, reviewable changes](../../philosophy.md#small-reviewable-changes) asks for.
+keeps the history, lets merged branches be deleted with `git branch -d`, and keeps stacked pull
+requests working. The reasons are in
+[git.md](../coding/git.md#merge-with-a-merge-commit-not-a-squash-or-a-rebase), along with the
+cleanup that makes the commits worth keeping. See also "Preserve data, build tooling around
+it" in [philosophy.md](../../philosophy.md#event-driven-append-only-replayable).
 
 The default-branch ruleset below enforces it (`allowed_merge_methods: ["merge"]`), so the choice
 is made once per repository rather than per pull request. A project with a real reason to differ —

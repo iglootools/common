@@ -13,8 +13,9 @@ guidelines themselves are the reference.
 
 ## Guidelines
 
-Edits here follow [guidelines/coding/general.md](guidelines/coding/general.md) and
-[guidelines/coding/python.md](guidelines/coding/python.md), like any other iglootools project.
+Edits here follow [guidelines/coding/general.md](guidelines/coding/general.md),
+[guidelines/coding/python.md](guidelines/coding/python.md) and
+[guidelines/coding/git.md](guidelines/coding/git.md), like any other iglootools project.
 [README.md#applying-these-guidelines](README.md#applying-these-guidelines) is the bar a documented
 exception has to meet.
 

@@ -31,8 +31,9 @@ paths:
 
 ## Writing code
 
-`coding/general.md` is already in this session — the plugin's `SessionStart` hook emits it at startup
-and again after a compaction, along with `coding/python.md` when the project has a `pyproject.toml`,
+`coding/general.md` and `coding/git.md` are already in this session — the plugin's `SessionStart`
+hook emits them at startup and again after a compaction, along with `coding/python.md` when the
+project has a `pyproject.toml`,
 and the project's own `docs/guidelines.md` after both when the project has one. Apply them at
 write time, not as a post-hoc review, and where the project's file contradicts a shared rule,
 follow the project's file.
@@ -40,6 +41,7 @@ follow the project's file.
 If a file you need is not in context, because the project has no `pyproject.toml`, a compaction
 dropped it, or the hook reported that it could not read it, read
 `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/general.md`,
+`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md`,
 `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md` or the project's `docs/guidelines.md` before
 continuing.
 
@@ -113,6 +115,10 @@ Walk the diff against the guidelines rather than trusting that you applied them 
 2. `coding/general.md`, then `coding/python.md` for a Python change, rule by rule against what the diff
    actually does.
 3. Whichever file from the table above you read for this change.
+4. `coding/git.md` against the branch's commits, not only its diff: one concern per commit,
+   refactoring apart from behaviour, and any fix made while checking folded into the commit that
+   introduced the problem. A problem the branch only carried along, through a move or a rename,
+   gets a cleanup commit of its own.
 
 Say what you changed as a result.
 
