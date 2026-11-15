@@ -7,12 +7,19 @@ goes from here.
 - `git config user.email "<email>"` and `git config user.name "<name>"` in the project.
 - A `CONTRIBUTING.md` indexing the project's documentation, and the rest of `docs/` — see [documentation.md](documentation.md)
 
-### Ignore OS and editor cruft in the committed `.gitignore`
+### Ignore OS and editor cruft, and generated iglootools output, in the committed `.gitignore`
 
 Not in `.git/info/exclude` or a personal `core.excludesfile`. Those are not shared on clone, so
 they look like coverage to whoever set them up while giving none to anyone else. This is not
 cosmetic: hatchling reads only `.gitignore` when selecting files to package, so a `.DS_Store`
 inside the package directory that is ignored only locally gets published inside the wheel.
+
+List `.iglootools/` there too. It is the one directory iglootools tools and the plugin write
+generated output to, such as the audit skills' reports under `.iglootools/audits/` (see
+[audit.md](../review/audit.md#the-report)). One directory, ignored as a whole, means a new kind
+of output needs no new `.gitignore` entry in every project. Nothing in it is ever committed: a
+file a project should commit, such as settings for a tool, belongs somewhere else, so the
+directory never mixes generated and committed files.
 
 ### Merge pull requests with a merge commit
 

@@ -10,10 +10,11 @@ Renamed from `common-guidelines`, which described only the first of those.
 
 The rules themselves live in [**`guidelines/`**](guidelines/), split into
 [`coding/`](guidelines/coding/) for how code is written and
-[`project-setup/`](guidelines/project-setup/) for how a repository is configured. Each has its
-own index. They divide by how they are delivered rather than by subject: three govern every
-edit and are in context from the start of a session, the rest are read only when a change
-reaches the files they govern:
+[`project-setup/`](guidelines/project-setup/) for how a repository is configured, and
+[`review/`](guidelines/review/) for auditing a codebase against both. Each has its own index.
+They divide by how they are delivered rather than by subject: three govern every edit and are
+in context from the start of a session, the rest are read only when a change reaches the files
+they govern:
 
 | Always on | |
 |---|---|
@@ -33,6 +34,10 @@ reaches the files they govern:
 | [`project-setup/cli-demo.md`](guidelines/project-setup/cli-demo.md) | `demo/**`, the demo workflow and tasks |
 | [`project-setup/ide.md`](guidelines/project-setup/ide.md) | `.vscode/**`, `*.code-workspace`, `[tool.pyright]` |
 | [`project-setup/claude-code.md`](guidelines/project-setup/claude-code.md) | `.claude/settings.json` |
+
+| Read by the audit skills | |
+|---|---|
+| [`review/audit.md`](guidelines/review/audit.md) | what an audit looks for, by category; severity, confidence and origin; the report's layout; and how findings are fixed |
 
 `project-setup/` is one file per trigger deliberately: it was a single 501-line file, so a change
 to a workflow pulled the Renovate rules and the editor settings into context along with it.
