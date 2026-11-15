@@ -87,7 +87,8 @@ silent, so the part that looks skippable is usually the part that names the fail
 
 | Read | When the change touches |
 |---|---|
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Building, packaging, dependencies, lock files, the import-linter setup, or the mise task set. Adding a dependency and adding a mise task count wherever the edit lands. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Python building, packaging and dependencies, `uv.lock`, the import-linter setup, the Python settings in `mise.toml` (`[deps.uv]`, the `python` and `uv` pins), or the Python task set. Adding a dependency counts wherever the edit lands. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/mise.md` | `mise.toml` or `mise.lock`, in any project. Adding or changing a mise task counts wherever the edit lands. Read it *with* `python-tooling.md` when the edit is to a Python project's mise settings. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, or a question about why a dependency update did or did not appear. |
@@ -98,9 +99,11 @@ silent, so the part that looks skippable is usually the part that names the fail
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md` | `.vscode/`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/claude-code.md` | `.claude/settings.json`, or which Claude Code plugins the project enables. |
 
-Two files split what used to be one row each, so check you have the right half.
+Some files are split between two guidelines, so check you have the right half.
 `pyproject.toml` appears twice: `[tool.pyright]` belongs to `project-setup/ide.md`, everything
-about building, packaging and dependencies to `project-setup/python-tooling.md`. And editor configuration is
+about building, packaging and dependencies to `project-setup/python-tooling.md`. `mise.toml`
+does too: its tasks and the `mise.lock` check belong to `project-setup/mise.md` in every project,
+and a Python project's uv settings to `project-setup/python-tooling.md`. And editor configuration is
 `project-setup/ide.md` while Claude Code's own configuration is `project-setup/claude-code.md` —
 VSCode runs Pylance for the squiggles, the plugin runs its own pyright for Claude, so a question
 about one says nothing about the other.
