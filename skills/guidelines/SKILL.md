@@ -1,6 +1,6 @@
 ---
 description: The iglootools shared guidelines — how these projects write and review code, package Python, configure CI and dependency automation, set up the editor, and record a documented exception where a rule does not fit. Use before changing any source file, GitHub workflow, dependency or build configuration, or editor and Claude Code settings; before calling a change done; and before departing from a rule.
-when_to_use: Writing or reviewing code; editing .github/workflows, renovate.json, dependabot.yml or .gitignore; adding or restructuring project documentation (CONTRIBUTING.md, CLAUDE.md, docs/); editing pyproject.toml, mise.toml or a lock file; adding a dependency or a mise task; editing .vscode/, .claude/settings.json or a *.code-workspace; setting up a new repository; departing from a shared rule; adding a ruff ignore, a noqa, or a pyright suppression.
+when_to_use: Writing or reviewing code; editing .github/workflows, renovate.json, dependabot.yml or .gitignore; adding or restructuring project documentation (CONTRIBUTING.md, CLAUDE.md, docs/); editing pyproject.toml, mise.toml, a file under mise-tasks/ or a lock file; adding a dependency or a mise task; editing .vscode/, .claude/settings.json or a *.code-workspace; setting up a new repository; departing from a shared rule; adding a ruff ignore, a noqa, or a pyright suppression.
 paths:
   - "**/*.py"
   - "**/*.pyi"
@@ -11,6 +11,7 @@ paths:
   - "**/*.mjs"
   - "pyproject.toml"
   - "mise.toml"
+  - "mise-tasks/**"
   - "mise.lock"
   - "uv.lock"
   - ".github/workflows/**"
@@ -88,7 +89,7 @@ silent, so the part that looks skippable is usually the part that names the fail
 | Read | When the change touches |
 |---|---|
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Python building, packaging and dependencies, `uv.lock`, the import-linter setup, the Python settings in `mise.toml` (`[deps.uv]`, the `python` and `uv` pins), or the Python task set. Adding a dependency counts wherever the edit lands. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/mise.md` | `mise.toml` or `mise.lock`, in any project. Adding or changing a mise task counts wherever the edit lands. Read it *with* `python-tooling.md` when the edit is to a Python project's mise settings. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/mise.md` | `mise.toml`, anything under `mise-tasks/`, or `mise.lock`, in any project. Adding or changing a mise task counts wherever the edit lands. Read it *with* `python-tooling.md` when the edit is to a Python project's mise settings. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, or a question about why a dependency update did or did not appear. |

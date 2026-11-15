@@ -270,8 +270,8 @@ Consider providing:
 - `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for config and dependency documentation, respectively
 - `format`, `lint`, `type-check`, `boundaries-check` tasks for code quality checks
 
-The rules for tasks in any project — `ci-*` tasks and checking `mise.lock` — are in
-[mise.md](mise.md).
+The rules for tasks in any project — `ci-*` tasks, multi-line bodies as file tasks under
+`mise-tasks/`, and checking `mise.lock` — are in [mise.md](mise.md).
 
 ### Lock checks
 
@@ -285,15 +285,17 @@ A `reinstall` task that deletes `.venv` and reinstalls from scratch. Most of wha
 to be for is gone: `uv sync` is exact by default, so it removes packages present in neither
 `pyproject.toml` nor `uv.lock`, and the `UV_PYTHON` pin above is what picks up a raised
 `[tools] python`. It survives for the one case `[deps.uv]`'s hashing cannot see — a venv that
-is *dirty* rather than *stale*, after someone ran `uv pip install` into it by hand:
+is *dirty* rather than *stale*, after someone ran `uv pip install` into it by hand. Its body
+is two commands, so it is a file task, `mise-tasks/reinstall`, as
+[mise.md](mise.md#put-a-multi-line-task-body-in-a-file-task-under-mise-tasks) asks:
 
-```toml
-[tasks.reinstall]
-description = "Delete .venv and reinstall dependencies from scratch"
-run = """
+```bash
+#!/usr/bin/env bash
+#MISE description="Delete .venv and reinstall dependencies from scratch"
+set -euo pipefail
+
 rm -rf "$MISE_PROJECT_ROOT/.venv"
 mise deps install uv --force
-"""
 ```
 
 Keep `install` as a named task delegating to `mise deps install uv`, rather than calling
