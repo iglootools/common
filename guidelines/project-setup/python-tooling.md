@@ -172,7 +172,7 @@ version they are developed on, so nothing can be too new (see the
 ### Module boundaries (import-linter)
 
 What the contracts mean, and when to change them, is in
-[python.md](../coding/python.md) under `Module Boundaries`. This section covers how they are set
+[python.md › Module Boundaries](../coding/python.md#module-boundaries). This section covers how they are set
 up.
 
 Add `import-linter>=2.15,<3.0` to the dev dependency group, and declare the contracts in
