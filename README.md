@@ -10,10 +10,11 @@ Renamed from `common-guidelines`, which described only the first of those.
 
 The rules themselves live in [**`guidelines/`**](guidelines/), split into
 [`coding/`](guidelines/coding/) for how code is written and
-[`project-setup/`](guidelines/project-setup/) for how a repository is configured. Each has its
-own index. They divide by how they are delivered rather than by subject: three govern every
-edit and are in context from the start of a session, the rest are read only when a change
-reaches the files they govern:
+[`project-setup/`](guidelines/project-setup/) for how a repository is configured, and
+[`review/`](guidelines/review/) for auditing a codebase against both. Each has its own index.
+They divide by how they are delivered rather than by subject: three govern every edit and are
+in context from the start of a session, the rest are read only when a change reaches the files
+they govern:
 
 | Always on | |
 |---|---|
@@ -34,6 +35,10 @@ reaches the files they govern:
 | [`project-setup/ide.md`](guidelines/project-setup/ide.md) | `.vscode/**`, `*.code-workspace`, `[tool.pyright]` |
 | [`project-setup/claude-code.md`](guidelines/project-setup/claude-code.md) | `.claude/settings.json` |
 
+| Read by the audit skills | |
+|---|---|
+| [`review/audit.md`](guidelines/review/audit.md) | what an audit looks for, by category; severity, confidence and origin; the report's layout; and how findings are fixed |
+
 `project-setup/` is one file per trigger deliberately: it was a single 501-line file, so a change
 to a workflow pulled the Renovate rules and the editor settings into context along with it.
 
@@ -47,8 +52,10 @@ its rationale has to meet, and naming the condition that would retire it.
 work. The rest of the repository supports the guidelines rather than stating any:
 
 - [philosophy.md](philosophy.md) — the reasoning behind the guidelines
-- [skills/](skills/) — the Claude Code skill that routes an agent to whichever guideline governs
-  the edit it is about to make. It restates no guidance of its own.
+- [skills/](skills/) — the Claude Code skills: `guidelines`, which routes an agent to whichever
+  guideline governs the edit it is about to make, and `audit-pr` and `audit-full`, which audit
+  a branch or the whole codebase. None restates guidance of its own.
+- [agents/](agents/) — the `auditor` agent the audit skills start, several at a time.
 - [hooks/](hooks/) — the `SessionStart` hook that loads the always-on guidelines into every
   session.
 - [scripts/](scripts/) — reference implementations to copy into a project, for the few cases where
@@ -117,7 +124,7 @@ reads them only when a change reaches the files they govern.
 
 ### The plugin
 
-This repository is also a Claude Code plugin. It ships one skill, `guidelines`, which restates
+This repository is also a Claude Code plugin. Its main skill, `guidelines`, restates
 no guideline: its body says which file to read and when, so the guidelines stay in one place,
 readable by humans and agents alike. It does three things — dispatches to the guideline file a
 change reaches, carries the pass to make before calling the change done, and walks the procedure
@@ -129,6 +136,23 @@ actually reaches, and an ordinary code change reads none of them.
 It also enforces the philosophy the guidelines rest on: check the work against them before
 calling it done, and document a deviation rather than drift from a rule silently. See
 [Applying these guidelines](#applying-these-guidelines).
+
+### Auditing
+
+`/iglootools:audit-pr` audits the current branch against its base, and `/iglootools:audit-full`
+audits the whole codebase or the paths given. Both run only when you type them, because an
+audit starts several agents and costs accordingly. Each splits the categories in
+[guidelines/review/audit.md](guidelines/review/audit.md) across parallel `auditor` agents,
+sends the `critical` and `high` findings to a second auditor that tries to disprove them, and
+writes a Markdown report to `.iglootools/audits/`. Every finding gets an ID such as `SEC-1`, so
+you can ask for exactly the fixes you want: "fix SEC-1 and ERR-2", "fix all ARCH".
+
+The skills run in the main conversation rather than in a subagent of their own, for two
+reasons. The findings have to be in the conversation that will fix them. And the fan-out
+needs no nested delegation when the main conversation starts the auditors itself.
+
+The auditors do not see what the `SessionStart` hook emits, because a subagent does not
+receive it, so the `auditor` agent reads the guidelines itself.
 
 ### Install it per project, not per user
 
