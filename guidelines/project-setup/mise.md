@@ -42,7 +42,10 @@ code, and has room for the comments that explain it.
 - **Put the metadata in comments**, with the same fields as a `[tasks.*]` table:
   `#MISE description="..."`, `#MISE depends=["build"]`, and `sources`, `outputs`, `dir`, `env`
   and `alias` likewise. Arguments go in `#USAGE` comments (`#USAGE arg "<name>"`) and arrive in
-  the script as `$usage_name`.
+  the script as `$usage_name`. mise reads a comment line that starts with `MISE` or `USAGE` as
+  one of these, with or without a space after the `#`, so a comment that happens to wrap onto
+  a line beginning with a variable such as `MISE_TRUSTED_CONFIG_PATHS` makes every run warn
+  `invalid usage spec`. Rewrap it.
 - **Commit the file as executable** (mode `100755`). mise silently ignores a file under
   `mise-tasks/` that is not: the task vanishes from `mise tasks ls`, and `mise run` reports it
   does not exist, with no hint why. `git ls-files -s mise-tasks` shows each file's mode.
