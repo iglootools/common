@@ -137,9 +137,12 @@ Not audited: none.
 - **Coverage is stated, not implied.** "No findings in" lists the categories that were audited
   and came back clean. "Not audited" lists what was skipped and why — a category left out on
   request, an auditor that failed or ran out of turns — so a gap never reads as a clean result.
+- **A problem one auditor notices in another's category** becomes a finding like any other,
+  marked `plausible` unless it was confirmed, so it can be fixed by ID like the rest.
 - **Problems noticed outside the scope** go in a final "Outside the scope" list, with a location
-  and one line each, instead of being dropped. They have no ID and no severity, because nobody
-  audited that code. Run an audit over it to turn them into findings.
+  and one line each, instead of being dropped. That covers code in another repository, paths
+  the audit was not asked to cover, and categories it did not run. They have no ID and no
+  severity, because nobody audited that code. Run an audit over it to turn them into findings.
 
 ## Fixing findings
 

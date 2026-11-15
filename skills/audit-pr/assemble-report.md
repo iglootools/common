@@ -27,10 +27,25 @@ malformed or has no coverage block, send that auditor one message (SendMessage) 
 resend its findings in the required format. If the second reply is still unusable, list its
 categories under "Not audited" with the reason. Never drop them silently.
 
-Collect each coverage block's `not-audited`, `checks-run` and `outside-scope` entries for the
-report.
+Collect each coverage block's `not-audited`, `checks-run` and `outside-scope` entries.
 
-## 3. Verify critical and high findings
+## 3. Turn in-scope notes into findings
+
+An auditor's `outside-scope` notes are problems it noticed but did not own. A note about code
+inside this audit's scope, in a category the audit runs, was outside only that auditor's
+categories, and the auditor that owned the category did not report it. Promote it to a finding,
+or it would be left without an ID and could not be fixed by ID:
+
+- Skip it when it duplicates a finding already reported, by location and root cause.
+- Otherwise, read the code it points at and write a finding block for it in the category the
+  note names, or the one that fits if the note named none. Use `confidence: plausible`, unless
+  reading the code settled it, and choose the severity as `audit.md` defines it.
+- A promoted `critical` or `high` finding goes through the next step with the others.
+
+Keep in "Outside the scope" only the notes about code this audit did not cover: another
+repository, paths outside the scope, or a category the audit did not run.
+
+## 4. Verify critical and high findings
 
 Send every `critical` and `high` finding to a fresh auditor in `verify` mode, grouped by the
 auditor that reported them, all in one message:
@@ -47,18 +62,18 @@ Drop each finding that comes back `rejected`, and count it for the report header
 confidence of each `upheld` finding to the one the verifier gives. A finding whose verifier
 failed keeps its original confidence and is noted in the header as unverified.
 
-## 4. Merge duplicates
+## 5. Merge duplicates
 
 Two findings are one when their locations overlap and they describe the same root cause, which
 happens where categories meet (an unescaped shell argument is both `SEC` and `ERR`). Keep one: the
 higher severity, and that finding's category. Fold the other's scenario into it.
 
-## 5. Assign IDs
+## 6. Assign IDs
 
 Order the categories as the table in `audit.md` does. Within a category, sort by severity,
 then `confirmed` before `plausible`, then location, and number from 1: `SEC-1`, `SEC-2`, …
 
-## 6. Write the report
+## 7. Write the report
 
 Write it to `.iglootools/audits/<date>-<scope>.md` at the repository root, with the date from
 `date -u +%F` and the scope the skill names. Add `-2`, `-3`, … when the file exists. Follow the
@@ -69,8 +84,8 @@ layout in `audit.md` exactly:
   unverified). Then the line pointing to `audit.md`'s "Fixing findings" section, linked as
   `https://github.com/iglootools/common/blob/iglootools--v<version>/guidelines/review/audit.md#fixing-findings`.
 - Summary table with counts, "No findings in" and "Not audited", then the index, then one
-  section per category that has findings, then "Outside the scope" when any auditor listed
-  something there.
+  section per category that has findings, then "Outside the scope" when notes remain there
+  after step 3.
 - Locations link as `../../<path>#L<line>` (`#L<start>-L<end>` for a range).
 - A shared rule links to
   `https://github.com/iglootools/common/blob/iglootools--v<version>/guidelines/<file>`; a
@@ -87,7 +102,7 @@ Then check that the report is ignored by git:
 adding `.iglootools/` to the committed `.gitignore`. Do not edit
 `.gitignore` yourself: an audit reports, it does not change the project.
 
-## 7. Reply
+## 8. Reply
 
 Do not paste the report. Reply with:
 
