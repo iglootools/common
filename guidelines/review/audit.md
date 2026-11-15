@@ -114,7 +114,7 @@ Not audited: none.
 | Severity | critical · confirmed |
 | Location | [sync/rsync.py:88](../../sync/rsync.py#L88) |
 | Origin | introduced in `3f2a1c9` |
-| Rule | [coding/general.md › Command Line](<link>) |
+| Rule | [coding/general.md › Command Line](https://github.com/iglootools/common/blob/iglootools--v1.21.0/guidelines/coding/general.md#command-line) |
 | Status | open |
 
 **Scenario.** A volume named `x; rm -rf ~` runs the `rm`.
@@ -132,8 +132,8 @@ Not audited: none.
 - **Locations** are relative to the report file (`../../<path>`, two levels up from
   `.iglootools/audits/`) with a `#L<line>` anchor, so they open the file in an editor and at the
   line on GitHub.
-- **Rules** link to the guideline at the plugin version that was applied, so a later change to
-  the guideline does not change what the finding cited.
+- **Rules** link to the rule's own heading in the guideline, at the plugin version that was
+  applied, so a later change to the guideline does not change what the finding cited.
 - **Coverage is stated, not implied.** "No findings in" lists the categories that were audited
   and came back clean. "Not audited" lists what was skipped and why — a category left out on
   request, an auditor that failed or ran out of turns — so a gap never reads as a clean result.

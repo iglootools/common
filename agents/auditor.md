@@ -87,8 +87,10 @@ origin: 3f2a1c9
 ````
 
 - `location` is a path relative to the repository root, with `:line` or `:start-end`.
-- `rule` is the guideline the finding breaks, as `<file under guidelines/> › <rule name>` for a
-  shared rule or `docs/guidelines.md › <section>` for a project rule, or `none`.
+- `rule` is the guideline the finding breaks, as `<file under guidelines/> › <heading>` for a
+  shared rule or `docs/guidelines.md › <heading>` for a project rule, or `none`. Copy the
+  heading of the rule's section exactly, because the report turns it into a link to that
+  heading. When the rule sits in no section of its own, cite the nearest heading above it.
 - `origin` is a commit SHA, `pre-existing`, or `n/a` outside a branch range.
 - `title` fits on one line. `scenario` is the concrete input or state and what goes wrong.
 
