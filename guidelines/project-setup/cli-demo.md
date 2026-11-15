@@ -12,7 +12,7 @@ The pieces, as `nbkp` and `photree` lay them out:
 | Path | What it is |
 |---|---|
 | `demo/demo.sh` | the scripted session: the commands the viewer watches, in order |
-| `demo/demo-magic.sh` | vendored [demo-magic](https://github.com/paxtonhare/demo-magic), which types each command out before running it |
+| `demo/demo-magic.sh` | vendored [demo-magic](https://github.com/paxtonhare/demo-magic), which types each command out before running it. Marked `linguist-vendored` in `.gitattributes`, so the shellcheck task skips it — see [mise.md](mise.md#lint-every-shell-script-with-shellcheck) |
 | `demo/record-demo.sh` | runs `demo.sh` under `asciinema rec` and writes `demo/demo.cast` |
 | `<tool> demo seed` | a command the tool itself ships, which creates the data the demo runs against |
 | `mise.toml` | the `demo-*` tasks and the `asciinema`/`agg` pins |

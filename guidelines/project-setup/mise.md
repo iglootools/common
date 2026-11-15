@@ -51,11 +51,64 @@ code, and has room for the comments that explain it.
   does not exist, with no hint why. `git ls-files -s mise-tasks` shows each file's mode.
 - **Start with `#!/usr/bin/env bash` and `set -euo pipefail`.** Without `pipefail` a failure
   early in a pipeline is ignored, and without `-u` a misspelled variable expands to nothing.
+- **Write for bash 3.2.** On macOS `/usr/bin/env bash` finds the system bash, 3.2, unless
+  something else is earlier on `PATH`, so a script that uses `mapfile`, associative arrays or
+  `${var,,}` works in CI and fails on a developer's machine. Under `set -u`, bash before 4.4
+  also rejects `"${array[@]}"` on an empty array. shellcheck does not catch these.
 - **A task that only calls a script is the script.** A one-line task that runs
   `./scripts/<name>.sh` is a file task with an extra hop and a second place to document it:
   move the script to `mise-tasks/<name>`. Keep `scripts/` for programs that are not tasks.
 - **Composition stays in `mise.toml`.** A task that only chains others, through `depends` or
   `run = [{ task = "..." }]`, is not a script: the `ci-*` tasks stay inline.
+
+## Lint every shell script with shellcheck
+
+Pin [shellcheck](https://www.shellcheck.net/) in `[tools]` and copy
+[`scripts/lint-shell.sh`](../../scripts/lint-shell.sh) into the project as the file task
+`mise-tasks/lint-shell`, executable. Make `check` depend on it, so CI runs it wherever it runs
+`check`:
+
+```toml
+[tools]
+shellcheck = "0.11.0"
+```
+
+The task lints every tracked shell script: each `.sh` or `.bash` file, and each file whose
+shebang runs `sh` or `bash`, which is how it finds the file tasks under `mise-tasks/`. Moving a
+task body into a file is what makes it lintable, and this is the step that lints it.
+
+- **Run shellcheck at its default severity**, which includes style findings. Fix a finding, or
+  disable it on the line it concerns with the reason beside it, as for any other documented
+  exception:
+
+  ```bash
+  # shellcheck disable=SC2034  # kept for the GIF conversion below, commented out for now
+  GIF="$SCRIPT_DIR/demo.gif"
+  ```
+
+  A directive covers the command after it, with one exception: placed before a script's first
+  command, it covers the whole file. Keep it next to the line it concerns. For the same reason,
+  do not disable a check for the whole project in a `.shellcheckrc`: a broad disable hides the
+  next instance along with this one.
+- **Point shellcheck at what a script sources.** The task runs shellcheck with
+  `--external-sources`, so a variable a script sets for a file it sources, such as demo-magic's
+  `TYPE_SPEED`, is seen as used. A source path built from the script's directory needs a
+  directive to resolve:
+
+  ```bash
+  # shellcheck source-path=SCRIPTDIR source=demo-magic.sh
+  source "$SCRIPT_DIR/demo-magic.sh"
+  ```
+
+- **Mark vendored and generated scripts in `.gitattributes`**, with `linguist-vendored` or
+  `linguist-generated`, and the task skips them. A copied third-party script, such as the
+  demo's `demo-magic.sh`, is not the project's to restyle, and a generated one is fixed in its
+  generator. GitHub reads the same attributes to leave those files out of diffs and language
+  statistics, so one marker serves both:
+
+  ```gitattributes
+  demo/demo-magic.sh linguist-vendored
+  ```
 
 ## Check `mise.lock` in a scratch copy
 
