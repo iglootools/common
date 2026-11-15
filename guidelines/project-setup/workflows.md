@@ -32,8 +32,8 @@ Renovate and Dependabot.
 
   A `ci-*` task chains the project's ordinary tasks (`install`, `build`, `check-all`) and adds
   no logic of its own. Logic that only lives in a `ci-*` task is CI-only again: `mise run check`
-  would not run it, so CI would be checking something local runs never do. See the `ci-*` entry
-  under [Mise Tasks](python-tooling.md#mise-tasks).
+  would not run it, so CI would be checking something local runs never do. See
+  [One `ci-*` task per workflow job](mise.md#one-ci--task-per-workflow-job).
 
 - **Declare `permissions` on every job, at least privilege.** A job without a block inherits the
   repository's default token permissions — read-write in older repositories, read-only in new
