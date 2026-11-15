@@ -9,7 +9,7 @@
     {
       "name": "iglootools",
       "source": "./",
-      "description": "Loads the shared iglootools guidelines when a change reaches the files they govern."
+      "description": "Loads the shared iglootools guidelines when a change reaches the files they govern, and audits code against them."
     }
   ]
 }
