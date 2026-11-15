@@ -103,7 +103,9 @@ categories: BUG, ERR, DATA
 paths: src/nbkp/sync/, src/nbkp/backup.py
 checks-run: mise run lint (passed), uv run pytest tests/sync (2 failed: see BUG findings)
 not-audited: none
-outside-scope: src/nbkp/paths.py:5 last_n slices one item too many (len(items) - n - 1)
+outside-scope:
+  - src/nbkp/paths.py:5 [BUG] last_n slices one item too many (len(items) - n - 1)
+  - pyproject.toml:12 [DEPS] httpx is declared but never imported
 ```
 ````
 
@@ -111,6 +113,8 @@ outside-scope: src/nbkp/paths.py:5 last_n slices one item too many (len(items) -
 too large to read in full, a check that would not run. Never leave a gap unreported: a missing
 area must not read as a clean one.
 
-`outside-scope` lists problems you noticed outside your scope or categories, one per line as
-`<location> <one-line description>`, or `none`. They are not findings, because nobody audited
-that code, but they are not lost either.
+`outside-scope` lists problems you noticed but do not own, because they are outside your scope,
+outside your categories, or both. Write one per line as
+`- <location> [<category>] <one-line description>`, with the category the problem belongs to,
+or write `none`. The caller decides what becomes of them. A problem in your scope but in another
+auditor's category may become a finding, so give enough in the line to judge it.

@@ -47,5 +47,5 @@ changed files.
 ## 5. Run the auditors and write the report
 
 Follow `${CLAUDE_PLUGIN_ROOT}/skills/audit-pr/assemble-report.md`, adding your `HIST` findings
-to the auditors' before step 4 there. The report's scope name is `pr-<branch>`, with `/` in the
+to the auditors' before its "Merge duplicates" step. The report's scope name is `pr-<branch>`, with `/` in the
 branch name replaced by `-`.
