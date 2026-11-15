@@ -95,7 +95,7 @@ See [Presentation at the edges](../../philosophy.md#presentation-at-the-edges) f
 
 ## Command Line
 
-- When calling external commands, build the command lines as lists of arguments instead of strings to avoid issues with quoting and escaping — the command-line case of treating interpolated text as data (see Presentation at the Edges).
+- When calling external commands, build the command lines as lists of arguments instead of strings to avoid issues with quoting and escaping — the command-line case of treating interpolated text as data (see [Presentation at the Edges](#presentation-at-the-edges)).
 - Make CLIs discoverable: commands should reference each other (e.g. a `check` command suggests `troubleshoot`, which suggests `rebuild`). 
   The user should be able to navigate the tool by following its output.
 - Display paths relative to the base directory for readability. 

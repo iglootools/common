@@ -106,7 +106,7 @@ different merge method records the reason in its `docs/guidelines.md`.
   expect. `refactor:` promises no change in behaviour. The release workflow reads the types to
   choose the version bump
   ([pypi-publishing.md](../project-setup/pypi-publishing.md#let-the-release-workflow-pick-the-bump-from-conventional-commits)).
-- The body explains *why*, under the same rule as [code comments](general.md): the diff already
+- The body explains *why*, under the same rule as [code comments](general.md#code-comments): the diff already
   shows what changed. Include the alternative you rejected, the constraint that forced the
   approach, and the command that produced a mechanical change.
 - The message describes the commit as it finally is. When a fold changes what a commit does,

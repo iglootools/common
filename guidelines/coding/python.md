@@ -26,7 +26,7 @@ Use type annotations for all functions and methods, including return types. Use 
 
 ## Errors
 
-The Python form of structured errors (see `Testability` in [general.md](general.md)).
+The Python form of structured errors (see [Testability](general.md#testability) in general.md).
 
 - An error value is a frozen dataclass with a `kind: StrEnum` and the fields that describe it.
 - An exception carries the same as attributes, and subclasses the built-in its callers already
@@ -76,7 +76,7 @@ and users alike. See [Python Version Policy](#python-version-policy) below.
 
 Print through [Rich](https://github.com/textualize/rich), which
 [Typer](https://typer.tiangolo.com/) already bundles. The Python form of
-`Presentation at the Edges` in [general.md](general.md):
+[Presentation at the Edges](general.md#presentation-at-the-edges) in general.md:
 
 - Apply indentation at the call site with `textwrap.indent` (or a small project helper built
   on it); formatting helpers return unindented lines.
@@ -88,8 +88,8 @@ Print through [Rich](https://github.com/textualize/rich), which
 
 ## Module Boundaries
 
-The Python form of `High Cohesion, Low Coupling` in
-[general.md](general.md). Which package may import which is declared as
+The Python form of
+[High Cohesion, Low Coupling](general.md#high-cohesion-low-coupling) in general.md. Which package may import which is declared as
 [import-linter](https://import-linter.readthedocs.io/) contracts in `pyproject.toml`
 (`[tool.importlinter]`), and a check task enforces them. The setup is in
 [python-tooling.md](../project-setup/python-tooling.md#module-boundaries-import-linter).
