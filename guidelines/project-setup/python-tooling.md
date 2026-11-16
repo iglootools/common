@@ -42,7 +42,27 @@ printf '%s\n' hatchling uv-dynamic-versioning \
 
 Leave `[build-system].requires` unpinned so the two can never contradict each other. No
 built-in Renovate manager reads `build-constraint-dependencies`, so these pins rot silently
-unless a `customManagers` regex entry is added for them.
+unless a `customManagers` regex entry is added for them. It takes two patterns:
+
+```json
+{
+  "customType": "regex",
+  "managerFilePatterns": ["/pyproject.toml/"],
+  "matchStrings": [
+    "build-constraint-dependencies = \\[[^\\]]*\\]",
+    "\"(?<depName>[a-zA-Z0-9._-]+)==(?<currentValue>[^\"]+)\""
+  ],
+  "matchStringsStrategy": "recursive",
+  "datasourceTemplate": "pypi"
+}
+```
+
+The first isolates the array, and the second, applied within it, captures every pin. The
+obvious single pattern, anchored on the field name and capturing a pin, extracts only the
+first pin: its anchor is consumed by the first match, so the rest of the array is never
+matched. That fails quietly, since Renovate keeps updating one dependency and the build
+closure looks maintained. In photree it extracted one of ten pins, and it went unnoticed in
+two iglootools projects until an audit.
 
 That entry only gets the bump halfway. `uv.lock` does not resolve the build closure, but it does
 record the constraints themselves, in its `[manifest]`, and Renovate regenerates the lock only for
@@ -60,6 +80,8 @@ such PR fails. The cost is that "no git history" becomes a *successful* build pr
 `<pkg>-0.0.0-py3-none-any.whl` and exits 0. Nothing else in the publish path catches this, and
 PyPI never allows a version to be re-uploaded. So provide a `build-verify` task that reads the
 built wheel's own `METADATA` and fails on the fallback version, and wire it into the CI build.
+Have it read the fallback version from `pyproject.toml` rather than keep its own copy: a copy
+nothing compares with the original lets fallback builds through as soon as the two differ.
 Read the metadata rather than pattern-matching filenames — a legitimate `1.0.0.dev0` contains
 `0.0.0` as a substring — and fail when the directory contains no wheel at all, or the guard is
 defeated by the very situation it exists to catch.
