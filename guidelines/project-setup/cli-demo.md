@@ -144,6 +144,19 @@ for no reader: the README embeds the copy on asciinema.org, and CI keeps the one
   `workflow_dispatch` and `repository_dispatch`. The `workflow_run` trigger is not redundant with
   the tag: a tag pushed by the release workflow's `GITHUB_TOKEN` does not trigger other workflows,
   so without it a release would never record its demo.
+- **Skip the job when the release failed.** `workflow_run` fires when the release completes,
+  whether it succeeded or failed, so without a guard a failed release still records a demo of a
+  version that was never published. Use the guard
+  [pypi-publishing.md](pypi-publishing.md#chain-publish-to-release-with-workflow_run-and-also-listen-for-v-tags)
+  gives `publish.yml`, which still runs for every other trigger:
+
+  ```yaml
+  if: >-
+    github.event.workflow_run.conclusion == 'success'
+    || github.event_name != 'workflow_run'
+  ```
+- **`UV_LOCKED: 1` in the workflow `env`**, as in the test and publish workflows, so a stale
+  `uv.lock` fails the recording instead of being re-resolved on the runner.
 - **Upload the artifact `if: ${{ !cancelled() }}`**, not only on success. When the demo fails, the
   cast is the only record of what the recorded session printed, since the job log shows the
   recording but not the terminal inside it. Set `if-no-files-found: error`, so a recording that
