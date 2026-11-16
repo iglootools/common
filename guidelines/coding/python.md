@@ -104,6 +104,21 @@ The Python form of
 - Core modules do not import `rich` or `typer`. A contract names them, which is how
   `Presentation at the Edges` is enforced rather than only stated.
 
+## Tests
+
+The Python form of [Mocks](general.md#mocks) in general.md. The tool setup that enforces it is
+in [python-tooling.md](../project-setup/python-tooling.md#enforce-the-patching-rule).
+
+- **What counts as patching:** `unittest.mock`, and pytest's `monkeypatch` fixture. Changing
+  directory is not patching (use `contextlib.chdir`), and neither is choosing a backend
+  through a library's own API.
+- **A seam is a keyword parameter whose default is the real function.** The default is bound
+  when the function is defined, so a test that still patches the module attribute no longer
+  reaches the code, and keeps passing without testing anything. Run the whole suite after
+  introducing a seam, not only the tests you converted.
+- **Use real values, not `Mock` stand-ins.** A stand-in accepts any attribute access, so a
+  typo or a renamed field still passes.
+
 ## Python Version Policy
 
 Projects target **one** Python version: the **latest stable CPython release** — 3.15 at

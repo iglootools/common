@@ -263,7 +263,7 @@ by layer, not one where each package keeps its own `cli/`.
 ### Run test suites in parallel with pytest-xdist
 
 Add `pytest-xdist` to the dev dependency group and pass `-n auto` in every test task whose tests
-are isolated — each one working under its own `tmp_path`, patching through `monkeypatch`, and
+are isolated — each one working under its own `tmp_path`, taking its dependencies as fakes, and
 sharing no module-level state. It spreads the suite across one worker per CPU, which is what keeps
 the common case of [Shorten every feedback loop](../../philosophy.md#shorten-every-feedback-loop)
 running in seconds as the suite grows.
@@ -271,7 +271,7 @@ running in seconds as the suite grows.
 ```toml
 [tasks.test-unit]
 description = "Run unit tests"
-# -n auto: unit tests are isolated (tmp_path, monkeypatch), so they parallelize cleanly.
+# -n auto: unit tests are isolated (tmp_path, injected fakes), so they parallelize cleanly.
 run = "uv run --no-sync pytest tests/ --ignore=tests/integration_fs/ -n auto -v"
 ```
 
@@ -285,6 +285,81 @@ run = "uv run --no-sync pytest tests/ --ignore=tests/integration_fs/ -n auto -v"
   is expensive to duplicate per worker — a Docker environment started once for the session, say.
   Leave `-n auto` off there, with a comment naming the shared resource, so the next person does
   not "fix" it by adding the flag.
+
+### Enforce the patching rule
+
+What counts as patching, and the three exceptions to the rule against it, are in
+[general.md › Mocks](../coding/general.md#mocks) and
+[python.md › Tests](../coding/python.md#tests). pytest and ruff enforce it between them, with
+no custom code:
+
+1. **Replace the `monkeypatch` fixture** in the root `tests/conftest.py` with one that fails
+   the test and says why. A fixture defined there overrides pytest's for every test below it.
+
+   ```python
+   @pytest.fixture
+   def monkeypatch() -> NoReturn:
+       """Replace pytest's fixture for every test: tests do not patch."""
+       pytest.fail(
+           "The monkeypatch fixture is disabled: inject a fake through a parameter"
+           " instead (docs/guidelines.md, Tests).",
+           pytrace=False,
+       )
+   ```
+
+   Do not reach for `-p no:monkeypatch` in `addopts` instead. pytest loads its built-in
+   plugins before it reads `addopts` from `pyproject.toml`, so the flag only works on the
+   command line, and a suite configured that way still has the fixture.
+2. **Ban what is left with ruff.** `TID251` (flake8-tidy-imports banned-api) bans
+   `unittest.mock` and `pytest.MonkeyPatch`, the only ways to patch once the fixture is gone.
+   Enable `RUF100` as well, which reports a `noqa` that no longer suppresses anything:
+
+   ```toml
+   [tool.ruff.lint]
+   # TID251: tests inject fakes through parameters instead of patching
+   # (docs/guidelines.md, Tests). unittest.mock is banned, and so is
+   # pytest.MonkeyPatch: tests/conftest.py replaces the monkeypatch fixture with one
+   # that fails. Each documented exception carries `# noqa: TID251` on its import, and
+   # RUF100 reports a noqa that is no longer needed.
+   extend-select = ["RUF100", "TID251"]
+
+   [tool.ruff.lint.flake8-tidy-imports.banned-api]
+   "unittest.mock".msg = "Inject a fake through a parameter instead of patching (docs/guidelines.md, Tests)."
+   "pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (docs/guidelines.md, Tests)."
+   ```
+3. **Mark each exception at its import**, with its category, rather than in
+   `per-file-ignores`: ruff does not report a `per-file-ignores` entry that no longer matches
+   anything, while `RUF100` does report a stale `noqa`. A file that patches in several tests
+   can define its own `monkeypatch` fixture, so the tests themselves stay as they are. Define
+   it in the test module, never in a `conftest.py`, where it would re-enable patching for
+   the whole directory.
+
+   ```python
+   from pytest import MonkeyPatch  # noqa: TID251 -- (c) HOME, read by a library below any seam
+
+
+   @pytest.fixture
+   def monkeypatch() -> Iterator[MonkeyPatch]:
+       """Patching is allowed in this file only: see docs/guidelines.md (Tests)."""
+       with MonkeyPatch.context() as patch:
+           yield patch
+   ```
+
+Changing directory goes with the fixture. Give `tests/conftest.py` a `chdir` fixture over
+`contextlib.chdir`, undone at the end of the test:
+
+```python
+@pytest.fixture
+def chdir() -> Iterator[Callable[[Path], None]]:
+    """Change the working directory until the end of the test."""
+    with contextlib.ExitStack() as stack:
+        yield lambda path: stack.enter_context(contextlib.chdir(path))
+```
+
+The exceptions table in `docs/guidelines.md` stays the one list of reasons. The `noqa` comment
+carries a short form of its row, so a reader can tell which one it belongs to. A project that
+adopts the rule with patches already in place marks each of them **pending** the same way, which
+is what lets the checks go in before the tests are converted.
 
 ## Mise Tasks
 
