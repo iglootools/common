@@ -117,3 +117,29 @@ updates:
 **`package-ecosystem` must track the build tool.** A stale value fails *silently*: `pip` reads
 `poetry.lock` and understands neither `uv.lock` nor `[dependency-groups]`, so after a migration
 it keeps running, finds nothing, and reports green — indistinguishable from working coverage.
+
+### Give every copy of a pin the same datasource
+
+Some versions are pinned in more than one place: the uv in `mise.toml` and in a test image's
+Dockerfile, say. Renovate updates each copy through whichever manager found it, and the
+14-day `minimumReleaseAge` holds an update only when its datasource reports a release date.
+A Docker image tag has none, and under `minimumReleaseAgeBehaviour: timestamp-optional` an
+update without a date is not held at all. So the Dockerfile's copy can be bumped the day a
+release appears, while `mise.toml`'s copy, a dated GitHub release, waits two weeks. The two
+drift apart in the very PR meant to update them, and nothing fails to say so.
+
+Track every copy through the same datasource, so all of them become eligible on the same day
+and land in the same update:
+
+- Mark each extra copy with a `# renovate:` comment naming the datasource and package the
+  primary copy uses — for a tool pinned in `mise.toml`, the one Renovate's mise manager uses
+  for it, such as `github-releases` `astral-sh/uv` — and read the comments with a regex
+  `customManagers` entry.
+- Turn the original manager off for those copies only, so a copy is not updated twice: a
+  `packageRules` entry with `matchManagers` (`["dockerfile"]`), `matchDepNames` listing the
+  copies as that manager names them (`ghcr.io/astral-sh/uv`), and `"enabled": false`.
+- Leave a pin that exists once, such as a Debian base image, with its own manager.
+
+nbkp found this in [iglootools/nbkp#259](https://github.com/iglootools/nbkp/pull/259), where a
+Renovate PR bumped uv in its test Dockerfile and left `mise.toml` behind. Check for duplicated
+pins whenever a version appears in a second file, not only when the first drift shows up.
