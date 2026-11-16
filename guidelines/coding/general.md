@@ -63,7 +63,40 @@ A comment explains *why*, never *what*. The code already states what it does, th
 
 ## Mocks
 
+Mocks and patches are the exception, not the rule. A test that patches a module attribute is
+tied to where the code looks a name up rather than to what it does. It passes against code
+that no longer calls the patched name, and it breaks when a refactor changes how the name is
+looked up but not the behaviour.
+
 - Prefer passing values as explicit parameters (with sensible defaults) over reading global/ambient state internally. This makes functions testable without mocking. For example, pass `now: datetime` instead of calling `datetime.now()` internally, pass `platform: str = sys.platform` instead of reading `sys.platform` internally. Tests should pass these values explicitly rather than patching modules.
+- When a test needs to control something, use the first option that fits:
+  1. **A decider.** Put the decision in a pure function over plain values (what to report,
+     which exit code, whether a finding is fatal) and test that function with plain values.
+     The code around it only gathers the inputs and acts on the answer, and a few wiring
+     tests are enough for it.
+  2. **An injected dependency.** Take the dependency as a parameter whose default is the
+     real implementation, such as a command runner, a clock, the environment or a tool
+     locator, and pass a fake in the test. Keep the fakes in one shared test module so every
+     test drives the same few. Pass real values rather than stand-ins: a real result object,
+     a real model instance, a config file written under the test's temporary directory.
+  3. **A cheap real resource.** A child process, a temporary file or directory, an
+     in-process server.
+- Patching is reserved for three cases:
+  - **(a) A third-party boundary the project wraps**, where the test is about the wrapper
+    and a real instance needs infrastructure the test cannot have.
+  - **(b) A fault no real resource can produce** at the point the test needs it.
+  - **(c) Process-global state** the test must isolate from the developer's machine, such as
+    a home directory or a user-level config file.
+- **Each exception is documented** in the project's `docs/guidelines.md`, in a table that
+  gives the file, what it replaces, its category, why it is needed, and what would retire it.
+  The same list is enforced by a tool, so a new patch fails the build until it is either
+  removed or added to the table. A project that adopts this rule with patches already in
+  place lists them in the same table under a **pending** category, so the guard stops new
+  ones on day one and the table becomes the list of work left to do.
+- **Tests never touch the developer's real environment.** Without a test double, a test that
+  reaches a user-level secret store, config file or SSH configuration reads, or prompts for,
+  whatever is on the developer's machine. Choose a test backend once for the whole suite, or
+  pass the path in.
 
 ## Presentation at the Edges
 
