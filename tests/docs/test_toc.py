@@ -141,6 +141,18 @@ def test_add_puts_the_block_before_the_first_listed_heading() -> None:
     )
 
 
+def test_add_puts_the_block_above_a_generated_sections_marker() -> None:
+    markdown = (
+        "# Architecture\n\nIntro.\n\n"
+        "<!-- BEGIN MODULE OVERVIEW (auto-generated) -->\n"
+        "## Module Overview\n\ngraph\n<!-- END MODULE OVERVIEW -->\n\n## Layering\n"
+    )
+    assert markdown_toc.with_empty_block(markdown).startswith(
+        "# Architecture\n\nIntro.\n\n<!-- toc -->\n<!-- tocstop -->\n\n"
+        "<!-- BEGIN MODULE OVERVIEW (auto-generated) -->\n## Module Overview\n"
+    )
+
+
 def test_add_refuses_a_file_without_sections() -> None:
     with pytest.raises(markdown_toc.TocError) as raised:
         markdown_toc.with_empty_block("# Title only\n\n```\n## In code\n```\n")
