@@ -19,6 +19,9 @@ def test_defaults_come_from_the_project_name(tmp_path: Path) -> None:
     assert project.docs.cli_reference == tmp_path / "docs/cli-reference.md"
     assert project.docs.architecture == tmp_path / "docs/architecture.md"
     assert project.docs.depgraph_exclude == ()
+    assert project.name == "my-tool"
+    assert project.demo.script == tmp_path / "demo/demo.sh"
+    assert project.demo.recording == tmp_path / "demo/demo.cast"
     assert project.demo.workflow == "demo.yml"
     assert project.demo.readme == tmp_path / "README.md"
     assert project.fallback_version is None

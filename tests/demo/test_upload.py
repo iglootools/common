@@ -9,6 +9,9 @@ from iglootools.demo import upload
 from iglootools.project import DemoSettings
 
 SETTINGS = DemoSettings(
+    script=Path("demo/demo.sh"),
+    recording=Path("demo/demo.cast"),
+    window_size="160x45",
     workflow="demo.yml",
     artifact="demo-recording",
     cast="demo.cast",

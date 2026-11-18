@@ -1,3 +1,4 @@
+import os
 import tempfile
 from pathlib import Path
 from typing import Annotated
@@ -5,6 +6,7 @@ from typing import Annotated
 import typer
 
 from iglootools.cliwiring import display_path, project, say, warn
+from iglootools.demo import record as recording
 from iglootools.demo import upload as uploads
 from iglootools.project import DemoSettings
 
@@ -141,3 +143,43 @@ def _repoint_readme(readme: Path, shown: str, url: str) -> None:
         raise typer.Exit(0)
     readme.write_text(result.content, encoding="utf-8")
     say(f"Updated {shown}")
+
+
+@app.command("record")
+def record_command(
+    ctx: typer.Context,
+    title: Annotated[
+        str | None,
+        typer.Option("--title", help="Cast title (default: <name> v<version> demo)."),
+    ] = None,
+) -> None:
+    """Record the scripted demo (demo/demo.sh by default) as an asciinema cast.
+
+    Runs in the project's environment, whose installed version names the cast. Publish a
+    CI recording afterwards with `iglootools demo upload`.
+    """
+    proj = project(ctx)
+    settings = proj.demo
+    shown = display_path(settings.recording, proj.root)
+    cast_title = title or recording.title(
+        proj.name, recording.installed_version(proj.name)
+    )
+    if not settings.script.exists():
+        warn(
+            f"{display_path(settings.script, proj.root)} not found: nothing to record."
+        )
+        raise typer.Exit(1)
+    say(f"Recording {shown} ({cast_title})")
+    try:
+        status = recording.record(
+            recording.recording_command(settings, cast_title),
+            recording.recording_environment(os.environ),
+            proj.root,
+        )
+    except FileNotFoundError:
+        warn('asciinema not found. Pin it in mise.toml: "aqua:asciinema/asciinema".')
+        raise typer.Exit(1) from None
+    if status != 0:
+        warn(f"The recording failed: the demo exited with status {status}.")
+        raise typer.Exit(status)
+    say(f"Done: {shown}")

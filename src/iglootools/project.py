@@ -14,6 +14,9 @@ Every setting has a default that fits nbkp and photree, so a project only writes
     depgraph-exclude = ["nbkp.templates"]       # default: none
 
     [tool.iglootools.demo]
+    script = "demo/demo.sh"                     # what `demo record` runs
+    recording = "demo/demo.cast"                # where it writes the cast
+    window-size = "160x45"
     workflow = "demo.yml"
     artifact = "demo-recording"
     cast = "demo.cast"
@@ -58,6 +61,9 @@ class DocsSettings:
 
 @dataclass(frozen=True)
 class DemoSettings:
+    script: Path
+    recording: Path
+    window_size: str
     workflow: str
     artifact: str
     cast: str
@@ -67,6 +73,8 @@ class DemoSettings:
 @dataclass(frozen=True)
 class Project:
     root: Path
+    name: str
+    """The [project] name, which is also the distribution name."""
     package: str
     """The import name of the project's top-level package."""
     requirements: tuple[str, ...]
@@ -93,6 +101,7 @@ def load_project(root: Path) -> Project:
     )
     return Project(
         root=root,
+        name=name,
         package=package,
         requirements=(
             *project_table.get("dependencies", []),
@@ -132,6 +141,9 @@ def _docs_settings(
 
 def _demo_settings(table: dict[str, Any], root: Path, path: Path) -> DemoSettings:
     return DemoSettings(
+        script=root / _string(table, "script", path, "demo/demo.sh"),
+        recording=root / _string(table, "recording", path, "demo/demo.cast"),
+        window_size=_string(table, "window-size", path, "160x45"),
         workflow=_string(table, "workflow", path, "demo.yml"),
         artifact=_string(table, "artifact", path, "demo-recording"),
         cast=_string(table, "cast", path, "demo.cast"),
