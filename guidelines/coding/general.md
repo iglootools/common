@@ -1,16 +1,12 @@
 # Coding Guidelines
 
-**These are defaults, not dogma.** A project is free to deviate from any rule here, or add its own,
-as long as the deviation and its rationale are documented — project-wide ones in the project's
-`docs/guidelines.md`, local ones in a comment at the point of deviation. A justified exception is fine;
-silent drift is not. Where the exception depends on a condition that may change, name the condition that
-would retire it — a written rationale is what lets the exception be re-evaluated later instead of becoming
-permanent by default. See [Applying these guidelines](../../README.md#applying-these-guidelines) for the bar
-a rationale has to meet.
+**These are defaults, not dogma**: a project may depart from any shared guideline, as
+[Documented Exceptions](#documented-exceptions) describes.
 
 <!-- toc -->
 **On this page**
 
+- [Documented Exceptions](#documented-exceptions)
 - [Functional Style](#functional-style)
 - [Function size](#function-size)
 - [High Cohesion, Low Coupling](#high-cohesion-low-coupling)
@@ -25,6 +21,33 @@ a rationale has to meet.
 - [Testability](#testability)
 - [No Silent Failures](#no-silent-failures)
 <!-- tocstop -->
+
+## Documented Exceptions
+
+A project or module may deviate from any shared guideline, or add rules of its own, provided the
+deviation and its reasoning are written down. Divergence for a documented reason is fine; drift
+without one is not. The same holds for the principles in
+[philosophy.md](../../philosophy.md), and between projects: two iglootools projects may differ,
+but the difference traces to a decision someone made, not to one of them falling behind.
+
+- **Put it where a reader will hit it**, not in a separate log:
+  - *Project-wide*: the project's `docs/guidelines.md`, stated against the rule it overrides.
+    Extend an entry already there on the same subject rather than adding a second one beside
+    it; two entries on one subject drift apart.
+  - *Local or config-level*: a comment at the point of deviation, such as a
+    `[tool.ruff.lint] ignore` entry paired with the decision that motivates it, a `# noqa` with
+    its reason beside it, or a comment above the constraint in `pyproject.toml`.
+- **Meet the bar**: a rationale a reviewer would accept, naming the rule it overrides. "We ignore
+  this rule" is drift; "we ignore this rule because X, and here is what we do instead" is an
+  exception. Legitimate reasons look like a performance constraint, an ecosystem convention, a
+  third-party library limitation, or a platform or version still supported.
+- **"We have not gotten around to it" is debt, not an exception**: do the work, or record it
+  wherever the project tracks debt.
+- **Name the condition that would retire it**: "revisit when X supports Y", "drop this once we
+  no longer support Z". Those conditions expire, and an exception without one silently becomes
+  permanent, because nobody is left who remembers what it was working around. The shape to copy
+  is [When a dependency lags](python.md#when-a-dependency-lags): the exception sits next to the
+  setting it overrides, names the dependency that forces it, and names the event that retires it.
 
 ## Functional Style
 

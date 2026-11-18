@@ -146,32 +146,6 @@ shared guideline and say what you found.
 
 ### Otherwise, record the exception
 
-**1. Check it is an exception, not debt.** If the reason is "we have not gotten around to it",
-that is debt to track, not an exception to document — either do the work, or record it wherever
-the project tracks debt. Legitimate reasons look like a performance constraint, an ecosystem
-convention, a third-party library limitation, or a platform or version still supported.
-
-**2. Put it where a reader will hit it**, not in a separate log.
-
-- *Project-wide* — the project's `docs/guidelines.md`, stated against the rule it overrides. If
-  that file already documents an exception in the same area, extend that entry rather than
-  adding a second one beside it; two entries on one subject drift apart.
-- *Local or config-level* — a comment at the point of deviation: the `[tool.ruff.lint]` `ignore`
-  entry paired with the decision that motivates it, a `# noqa` with its reason beside it, a
-  comment above the constraint in `pyproject.toml`.
-
-**3. Meet the bar** — a rationale a reviewer would accept, not merely a note that the deviation
-exists. "We ignore this rule" is drift; "we ignore this rule because X, and here is what we do
-instead" is an exception. Name the rule being overridden, so the exception is traceable back
-to it.
-
-**4. Name what would retire it.** Almost every exception answers a condition that is true at the
-time, and those conditions expire. Where the exception depends on one, name the condition that
-would make it unnecessary — "revisit when X supports Y", "drop this once we no longer support
-Z" — not just the reason it exists today. An undocumented exception silently becomes permanent,
-because nobody is left who remembers what it was working around. The shape to copy is
-"When a dependency lags" in `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md`'s Python
-Version Policy: the exception sits next to the setting it overrides, names the dependency
-that forces it, and names the event that retires it — "move to 3.x when it publishes wheels".
-
-Full reasoning: `${CLAUDE_PLUGIN_ROOT}/README.md#applying-these-guidelines`
+Follow `coding/general.md` › Documented Exceptions, already in context: check that it is an
+exception and not debt, put it where a reader will hit it, meet the bar, and name the condition
+that would retire it.

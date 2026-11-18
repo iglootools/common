@@ -35,7 +35,7 @@ actually reaches, and an ordinary code change reads none of them.
 
 It also enforces the philosophy the guidelines rest on: check the work against them before
 calling it done, and document a deviation rather than drift from a rule silently. See
-[Applying these guidelines](../README.md#applying-these-guidelines).
+[Documented Exceptions](../guidelines/coding/general.md#documented-exceptions).
 
 ## Auditing
 

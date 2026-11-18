@@ -178,4 +178,4 @@ Ask for findings by ID, by category or by severity: "fix SEC-1 and ERR-2", "fix 
 
 A finding you disagree with is not fixed by editing around the rule. Either it is wrong, and
 gets `won't fix: <reason>`, or the project records a documented exception for it, as
-[Applying these guidelines](../../README.md#applying-these-guidelines) describes.
+[Documented Exceptions](../coding/general.md#documented-exceptions) describes.

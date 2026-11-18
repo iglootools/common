@@ -239,7 +239,7 @@ numbered and titled with the decision itself:
 - **The bar is a choice worth arguing.** Where the project simply does what its framework does,
   or a one-line comment at the setting carries the reasoning, the comment is enough.
 - **Name what would retire it**, as for a documented exception in
-  [Applying these guidelines](../../README.md#applying-these-guidelines).
+  [Documented Exceptions](../coding/general.md#documented-exceptions).
 
 ### Record repository settings as commands in one place
 

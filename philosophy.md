@@ -42,7 +42,7 @@ The guidelines are meant to be practical and actionable; this is the reasoning b
 ## Applying this document
 
 These are defaults, not dogma. Where an exception goes and the bar its rationale has to meet are
-in [Applying these guidelines](README.md#applying-these-guidelines).
+in [general.md › Documented Exceptions](guidelines/coding/general.md#documented-exceptions).
 
 That standard covers the reasoning below as much as the concrete rules it underpins, and it is
 easier to neglect here: nothing fails when a principle is quietly dropped, whereas a rule at
