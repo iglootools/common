@@ -104,10 +104,36 @@ jobs:
           cat ./lychee/out.md 2>/dev/null || echo "(no output file)"
           exit 1
 
-      - name: Create Issue From File
+      # One open report at a time: a run that finds broken links updates the open report
+      # rather than filing another, and a run that finds none closes it. Filing a new issue
+      # every week left a stack of identical reports, of which only the newest was current.
+      - name: Find the open report
+        id: existing
+        if: steps.report.outputs.ran == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ inputs.issue-title }}
+        run: |
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "\"$TITLE\" in:title" --json number,title \
+            --jq "[.[] | select(.title == env.TITLE)] | sort_by(.number) | last | .number // empty")
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update the report
         if: steps.report.outputs.broken_links == 'true'
         uses: peter-evans/create-issue-from-file@fca9117c27cdc29c6c4db3b86c48e4115a786710 # v6
         with:
           title: ${{ inputs.issue-title }}
           content-filepath: ./lychee/out.md
           labels: ${{ inputs.issue-labels }}
+          issue-number: ${{ steps.existing.outputs.number }}
+
+      - name: Close the report once the links are fixed
+        if: steps.report.outputs.broken_links == 'false' && steps.existing.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ steps.existing.outputs.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue close "$NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --comment "No broken links in the latest check ($RUN_URL)."
