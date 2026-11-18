@@ -65,9 +65,10 @@ Configured as [repository.md](guidelines/project-setup/repository.md#protect-the
 describes. Two rulesets:
 
 - **`main`** (default branch): no deletion or force-push, changes through a pull request merged
-  with a merge commit. No `required_status_checks` rule: no workflow here runs on pull requests
-  (`check-links.yml` is scheduled), so there is no check to require. Add one if a pull-request
-  workflow is introduced.
+  with a merge commit, and the `test` check from `test.yml` must pass. `test` has to keep
+  running on every pull request (no `paths` filter on its workflow), or a pull request it skips
+  can never be merged. `integration_id` 15368 is GitHub Actions, which keeps a check with the
+  same name from another app from satisfying the rule.
 - **`release tags`** (`refs/tags/v*`, `refs/tags/iglootools--v*`): no deletion or update. Both
   prefixes are release tags — see [README.md#releasing](README.md#releasing).
 
@@ -89,7 +90,11 @@ gh api --method POST repos/iglootools/common/rulesets --input - <<'JSON'
         "require_code_owner_review": false,
         "require_last_push_approval": false,
         "required_review_thread_resolution": false,
-        "allowed_merge_methods": ["merge"] } }
+        "allowed_merge_methods": ["merge"] } },
+    { "type": "required_status_checks", "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [{ "context": "test", "integration_id": 15368 }] } }
   ]
 }
 JSON
@@ -106,4 +111,4 @@ JSON
 ```
 
 Verify with `gh api repos/iglootools/common/rules/branches/main -q '[.[].type]'`, which should
-print `["deletion","non_fast_forward","pull_request"]`.
+print `["deletion","non_fast_forward","pull_request","required_status_checks"]`.
