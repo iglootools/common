@@ -25,12 +25,12 @@ the arguments narrow them with `only:` or `skip:`. A category left out on reques
 
 ## 3. Audit the commit history yourself
 
-`HIST` needs only the commit list, so check it here rather than in an auditor, against
-`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md`: read `git log --reverse --stat` for the
-range and each commit's diff. Look for commits that mix refactoring and behaviour, fix-ups
-never folded in (`git log --format=%s <merge-base>..HEAD | grep -E '^(fixup|squash|amend)! '`),
-messages that do not match their diff, and changes a later commit in the range undoes. Record
-each problem as a `finding` block in the auditor's format, with `origin` set to the commit.
+`HIST` needs only the commit list, so check it here rather than in an auditor. Read
+`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md` in full and check the range against every
+rule in it, using its own commands with `<merge-base>` as the base: `git log --reverse --stat`
+for the range, then each commit's diff. Record each problem as a `finding` block in the
+auditor's format, with `origin` set to the commit and `rule` citing the section it breaks
+(`coding/git.md › Commit messages`).
 
 ## 4. Split the work
 

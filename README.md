@@ -20,7 +20,7 @@ they govern:
 |---|---|
 | [`coding/general.md`](guidelines/coding/general.md) | language-agnostic coding principles |
 | [`coding/python.md`](guidelines/coding/python.md) | the Python layer, wherever the project has a `pyproject.toml` |
-| [`coding/git.md`](guidelines/coding/git.md) | commits shaped for review: refactoring apart from behaviour, rework and feedback folded into the commit they correct, merge commits rather than squashes, rebasing and cleaning up before review, commit messages |
+| [`coding/git.md`](guidelines/coding/git.md) | commits shaped for review: what is a commit and what is its own pull request, refactoring apart from behaviour, rework and feedback folded into the commit they correct, merge commits rather than squashes, rebasing and cleaning up before review, commit messages |
 
 | Read when a change reaches it | Triggered by |
 |---|---|

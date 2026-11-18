@@ -27,7 +27,7 @@ categories appear in this order in a report, functional first.
 | `OPS` | Operability and CLI experience | Missing logging or inspection tooling, no dry-run or preflight check where one is needed, commands that do not point to each other, error messages that do not say what to do next, absolute paths where relative ones are expected |
 | `DOC` | Documentation | Docs that contradict the code, missing reference or contributor docs, documentation that is only in agent configuration, generated references not checked |
 | `GUIDE` | Guideline conformance | Only what fits no other category: a deviation from a shared or project rule that is not documented as an exception, and a documented exception whose retirement condition now holds |
-| `HIST` | Commit history | `audit-pr` only. A commit that mixes refactoring and behaviour, a fix-up never folded in, a message that does not match its diff, a problem a later commit introduces and another fixes — see [git.md](../coding/git.md) |
+| `HIST` | Commit history | `audit-pr` only. Any rule in [git.md](../coding/git.md) the branch breaks: a commit that belongs in its own pull request, refactoring mixed with behaviour, rework or a fix-up never folded in, a message that does not match its diff |
 
 **Which categories each audit runs.** `audit-pr` runs every category. `audit-full` runs every
 category except `HIST`. Commit history is worth auditing only while it can still be changed:
