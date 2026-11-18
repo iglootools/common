@@ -23,6 +23,7 @@ CI costs a re-run; a mistake here costs a version number and leaves a permanent 
   - [Pick the bump by hand when the commits undersell the change](#pick-the-bump-by-hand-when-the-commits-undersell-the-change)
 - [Publishing](#publishing)
   - [Chain publish to release with `workflow_run`, and also listen for `v*` tags](#chain-publish-to-release-with-workflow_run-and-also-listen-for-v-tags)
+  - [Skip a release run that did not release](#skip-a-release-run-that-did-not-release)
   - [Check out the released commit, with its history and tags](#check-out-the-released-commit-with-its-history-and-tags)
   - [Build in CI, and verify before uploading](#build-in-ci-and-verify-before-uploading)
   - [Publish with trusted publishing, never an API token](#publish-with-trusted-publishing-never-an-api-token)
@@ -188,6 +189,37 @@ reason to [name every workflow after its file](workflows.md).
 `--ref`: from a branch, the build gets a development version such as
 `1.4.0.post3.dev0+2a99beb`. `build-verify` lets that through, since it only rejects `0.0.0`, and
 PyPI then rejects it at upload because it does not accept local versions (`+…`).
+
+### Skip a release run that did not release
+
+A successful `release` run is not proof that anything was released. A dry run
+(`dry-run: true`, see [shared-workflows.md](shared-workflows.md#call-the-shared-release-workflow))
+and a run dispatched on another branch both complete successfully and push no tag, yet
+`workflow_run` starts the publish all the same. It then builds an untagged commit, and the only
+thing standing between that development version and PyPI is PyPI's refusal of local versions
+(`+…`): nbkp's publish failed at upload with `400 Bad Request` after a dry run from a test
+branch. So right after the checkout, check that the commit carries a `v*` tag, and skip the
+rest of the job when it does not:
+
+```yaml
+- name: Check that the release run released
+  id: released
+  if: github.event_name == 'workflow_run'
+  run: |
+    if tag=$(git describe --exact-match --tags --match 'v*' HEAD 2>/dev/null); then
+      echo "Publishing $tag"
+    else
+      echo "skip=true" >> "$GITHUB_OUTPUT"
+      echo "::notice::$(git rev-parse --short HEAD) carries no v* tag, so the release run did not release. Nothing to publish."
+    fi
+- uses: jdx/mise-action@<sha> # v5
+  if: steps.released.outputs.skip != 'true'
+# … every later step carries the same `if:`
+```
+
+It skips rather than fails: nothing went wrong, there was simply nothing to publish. The shared
+demo workflow applies the same check, since a dry run would otherwise record a demo titled with a
+development version.
 
 ### Check out the released commit, with its history and tags
 
