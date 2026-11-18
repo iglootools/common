@@ -50,6 +50,13 @@ run = [
   { task = "test" },
 ]
 
+[tasks.ci-test]
+description = "Install, then run every check and test (what the test workflow runs)"
+run = [
+  { task = "install" },
+  { task = "check-all" },
+]
+
 [tasks.test]
 description = "Run the tests for tools/"
 # -n auto: the tests are isolated (tmp_path, plain values), so they parallelize cleanly.
