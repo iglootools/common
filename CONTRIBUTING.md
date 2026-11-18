@@ -4,6 +4,16 @@ This repository is the source of the shared iglootools guidelines, not a consume
 documentation is shaped differently from a project's: there is no `docs/` directory, and the
 guidelines themselves are the reference.
 
+<!-- toc -->
+**On this page**
+
+- [Getting started](#getting-started)
+- [Guidelines](#guidelines)
+- [Understanding the repository](#understanding-the-repository)
+- [Reference](#reference)
+- [Repository settings](#repository-settings)
+<!-- tocstop -->
+
 ## Getting started
 
 - [CLAUDE.md](CLAUDE.md) — loading the plugin from the working tree, validating it, and running

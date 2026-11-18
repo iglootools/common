@@ -7,6 +7,17 @@ goes from here.
 - `git config user.email "<email>"` and `git config user.name "<name>"` in the project.
 - A `CONTRIBUTING.md` indexing the project's documentation, and the rest of `docs/` — see [documentation.md](documentation.md)
 
+<!-- toc -->
+**On this page**
+
+  - [Ignore OS and editor cruft, and generated iglootools output, in the committed `.gitignore`](#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore)
+  - [Merge pull requests with a merge commit](#merge-pull-requests-with-a-merge-commit)
+  - [Protect the default branch and release tags](#protect-the-default-branch-and-release-tags)
+  - [Inherit the code of conduct and security policy from the organization](#inherit-the-code-of-conduct-and-security-policy-from-the-organization)
+- [Python Projects](#python-projects)
+- [CLI Projects](#cli-projects)
+<!-- tocstop -->
+
 ### Ignore OS and editor cruft, and generated iglootools output, in the committed `.gitignore`
 
 Not in `.git/info/exclude` or a personal `core.excludesfile`. Those are not shared on clone, so

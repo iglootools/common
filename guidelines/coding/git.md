@@ -32,6 +32,17 @@ step towards it.
   with the current branch stacked on it if it depends on it. Moving it later means rewriting
   both branches.
 
+<!-- toc -->
+**On this page**
+
+- [A new commit or a new pull request](#a-new-commit-or-a-new-pull-request)
+- [Keep refactoring apart from behaviour changes](#keep-refactoring-apart-from-behaviour-changes)
+- [Fold rework into the commit it corrects](#fold-rework-into-the-commit-it-corrects)
+- [Merge with a merge commit, not a squash or a rebase](#merge-with-a-merge-commit-not-a-squash-or-a-rebase)
+- [Commit messages](#commit-messages)
+- [Rebase and clean up before asking for review](#rebase-and-clean-up-before-asking-for-review)
+<!-- tocstop -->
+
 ## Keep refactoring apart from behaviour changes
 
 - A commit either changes behaviour or restructures code, never both. A refactoring is checked

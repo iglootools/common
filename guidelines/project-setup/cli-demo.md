@@ -19,6 +19,20 @@ The pieces, as `nbkp` and `photree` lay them out:
 | `.github/workflows/demo.yml` | records the demo on every release and keeps the cast as an artifact |
 | `build-scripts/demoupload.py` | publishes the newest CI recording and repoints the README at it |
 
+<!-- toc -->
+**On this page**
+
+- [Record a cast, not a GIF or a screen video](#record-a-cast-not-a-gif-or-a-screen-video)
+- [Script the session; do not record it by hand](#script-the-session-do-not-record-it-by-hand)
+- [Seed the data with a command the tool ships](#seed-the-data-with-a-command-the-tool-ships)
+- [Make a failing command fail the recording](#make-a-failing-command-fail-the-recording)
+- [Record through mise tasks, with the tools pinned](#record-through-mise-tasks-with-the-tools-pinned)
+- [Keep the cast out of git](#keep-the-cast-out-of-git)
+- [Record the demo in CI on every release](#record-the-demo-in-ci-on-every-release)
+- [Publish from a machine that can reach asciinema.org](#publish-from-a-machine-that-can-reach-asciinemaorg)
+- [Embed the cast at the top of the README](#embed-the-cast-at-the-top-of-the-readme)
+<!-- tocstop -->
+
 ### Record a cast, not a GIF or a screen video
 
 A cast is the terminal's output stream with timings, not pictures of it. The README embed plays it

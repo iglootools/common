@@ -3,6 +3,42 @@
 This document describes the general philosophy that underpins the [coding guidelines](guidelines/coding/).
 The guidelines are meant to be practical and actionable; this is the reasoning behind them.
 
+<!-- toc -->
+**On this page**
+
+- [Applying this document](#applying-this-document)
+- [Workflow](#workflow)
+  - [Async by default](#async-by-default)
+  - [Shorten every feedback loop](#shorten-every-feedback-loop)
+  - [Automate the toil](#automate-the-toil)
+  - [Do fewer things, do them completely](#do-fewer-things-do-them-completely)
+  - [Small, reviewable changes](#small-reviewable-changes)
+  - [No broken windows workflow](#no-broken-windows-workflow)
+  - [Reproducible environments](#reproducible-environments)
+- [Architecture and System Design](#architecture-and-system-design)
+  - [Task-driven interfaces, not CRUD](#task-driven-interfaces-not-crud)
+  - [High cohesion, low coupling — at every boundary](#high-cohesion-low-coupling--at-every-boundary)
+  - [Event-driven, append-only, replayable](#event-driven-append-only-replayable)
+  - [Errors as first-class values](#errors-as-first-class-values)
+  - [Observability is not optional](#observability-is-not-optional)
+  - [Security as a default, not a phase](#security-as-a-default-not-a-phase)
+  - [Assume failure in distributed systems](#assume-failure-in-distributed-systems)
+- [Coding](#coding)
+  - [Correctness over convenience](#correctness-over-convenience)
+  - [Explicit over implicit](#explicit-over-implicit)
+  - [Functional style preferred](#functional-style-preferred)
+  - [Presentation at the edges](#presentation-at-the-edges)
+  - [Document the why, not the what](#document-the-why-not-the-what)
+  - [Name things precisely](#name-things-precisely)
+  - [Test behavior, not implementation](#test-behavior-not-implementation)
+  - [Make the right thing easy and the wrong thing hard](#make-the-right-thing-easy-and-the-wrong-thing-hard)
+  - [Design for deletion](#design-for-deletion)
+  - [Make everything inspectable](#make-everything-inspectable)
+- [People and AI agents](#people-and-ai-agents)
+  - [Documentation for people first, agent configuration for the gaps](#documentation-for-people-first-agent-configuration-for-the-gaps)
+  - [Practices that are good on their own and help agents](#practices-that-are-good-on-their-own-and-help-agents)
+<!-- tocstop -->
+
 ## Applying this document
 
 These are defaults, not dogma. Where an exception goes and the bar its rationale has to meet are

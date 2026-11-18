@@ -15,6 +15,15 @@ mark it ready or merge it, the plugin's
 `.iglootools/audits/` covers the current commit. It does not block the command, and pull
 requests opened outside Claude get no reminder.
 
+<!-- toc -->
+**On this page**
+
+- [Categories](#categories)
+- [Rating a finding](#rating-a-finding)
+- [The report](#the-report)
+- [Fixing findings](#fixing-findings)
+<!-- tocstop -->
+
 ## Categories
 
 Every finding has exactly one category. The ID prefix is the category's short name, and the

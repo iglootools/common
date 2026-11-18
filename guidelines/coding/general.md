@@ -8,6 +8,24 @@ would retire it — a written rationale is what lets the exception be re-evaluat
 permanent by default. See [Applying these guidelines](../../README.md#applying-these-guidelines) for the bar
 a rationale has to meet.
 
+<!-- toc -->
+**On this page**
+
+- [Functional Style](#functional-style)
+- [Function size](#function-size)
+- [High Cohesion, Low Coupling](#high-cohesion-low-coupling)
+- [People and AI Agents](#people-and-ai-agents)
+- [Code comments](#code-comments)
+- [Charsets](#charsets)
+- [Time Management](#time-management)
+- [Mocks](#mocks)
+- [Presentation at the Edges](#presentation-at-the-edges)
+- [Version Management](#version-management)
+- [Command Line](#command-line)
+- [Testability](#testability)
+- [No Silent Failures](#no-silent-failures)
+<!-- tocstop -->
+
 ## Functional Style
 
 - Prefer functional programming style over procedural style. Use pure functions and avoid mutability when possible.

@@ -13,6 +13,26 @@ Every rule here exists because PyPI is append-only. A version number, once taken
 uploaded again — not after a deletion, not with different contents. A mistake anywhere else in
 CI costs a re-run; a mistake here costs a version number and leaves a permanent record of it.
 
+<!-- toc -->
+**On this page**
+
+- [The pipeline](#the-pipeline)
+- [Versioning](#versioning)
+  - [Derive the version from the git tag, never from `pyproject.toml`](#derive-the-version-from-the-git-tag-never-from-pyprojecttoml)
+  - [Let the release workflow pick the bump from conventional commits](#let-the-release-workflow-pick-the-bump-from-conventional-commits)
+  - [Pick the bump by hand when the commits undersell the change](#pick-the-bump-by-hand-when-the-commits-undersell-the-change)
+- [Publishing](#publishing)
+  - [Chain publish to release with `workflow_run`, and also listen for `v*` tags](#chain-publish-to-release-with-workflow_run-and-also-listen-for-v-tags)
+  - [Check out the released commit, with its history and tags](#check-out-the-released-commit-with-its-history-and-tags)
+  - [Build in CI, and verify before uploading](#build-in-ci-and-verify-before-uploading)
+  - [Publish with trusted publishing, never an API token](#publish-with-trusted-publishing-never-an-api-token)
+  - [Queue publish runs, never cancel them](#queue-publish-runs-never-cancel-them)
+  - [Rehearse on Test PyPI with a throwaway version](#rehearse-on-test-pypi-with-a-throwaway-version)
+- [When a publish fails](#when-a-publish-fails)
+  - [Rerun a publish that failed before uploading anything](#rerun-a-publish-that-failed-before-uploading-anything)
+  - [Verify on the version's own JSON endpoint](#verify-on-the-versions-own-json-endpoint)
+<!-- tocstop -->
+
 ## The pipeline
 
 | Workflow | Triggered by | Does |
