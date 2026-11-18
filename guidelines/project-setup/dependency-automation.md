@@ -26,7 +26,7 @@ The rules every iglootools project needs live once, as presets in
 
 | Preset | Holds |
 |---|---|
-| `renovate/base` | `helpers:pinGitHubActionDigests`, the 14-day `minimumReleaseAge` with `timestamp-optional`, and the custom manager for the mise version pinned in workflows |
+| `renovate/base` | `helpers:pinGitHubActionDigests`, the 14-day `minimumReleaseAge` with `timestamp-optional` and its exemption for iglootools' own releases, and the custom managers for the mise version pinned in workflows and for versions named in `mise.toml`'s `[env]` |
 | `renovate/python` | the custom manager for `[tool.uv] build-constraint-dependencies` |
 
 A project extends them pinned to the release tag, and keeps only what is its own: its grouping
@@ -135,6 +135,12 @@ three independent switches, none of which reports anything when off, all of whic
 before a published advisory reaches a pull request.
 
 ### Split Renovate and Dependabot by job, not by ecosystem
+
+**iglootools' own releases are exempt.** The `base` preset sets `minimumReleaseAge` to zero for
+packages from the `iglootools` organization: the shared workflows and presets, the `iglootools`
+command and its version in `mise.toml`. The hold protects against someone else's broken or
+malicious release; these are released and reviewed by the same people who review the update,
+so waiting two weeks only delays fixes the projects are waiting for.
 
 The 14-day delay above is a supply-chain measure: it protects you from a release that turns out
 to be broken or malicious, and it works by waiting. Waiting is exactly the wrong response to a
