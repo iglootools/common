@@ -28,7 +28,11 @@ The project-setup guidelines apply by file; read the whole file before editing w
 
 ## Where things are
 
-- [CONTRIBUTING.md](CONTRIBUTING.md): setup, and how to change what other repositories pin (the
-  plugin, the `iglootools` command, the shared workflows) without breaking them.
+- [CONTRIBUTING.md](CONTRIBUTING.md): the index of the documents below.
+- [docs/releasing-and-publishing.md](docs/releasing-and-publishing.md): how to change what other
+  repositories pin (the plugin, the `iglootools` command, the shared workflows) without breaking
+  them, and cutting a release.
+- [docs/internals.md](docs/internals.md): how the plugin's skill and hooks deliver the
+  guidelines. Read before changing `skills/`, `hooks/` or `agents/`.
 - [README.md](README.md): what is here, and which guideline each kind of file triggers.
 - [philosophy.md](philosophy.md): the reasoning behind the guidelines.
