@@ -37,16 +37,16 @@ extend-select = ["RUF100", "TID251"]
 "pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (guidelines/coding/general.md, Mocks)."
 
 [tool.pytest.ini_options]
-# The tools are scripts, not an installed package, so the tests import them from tools/.
-pythonpath = ["tools"]
+# Not an installed package yet, so the tests import it from src/.
+pythonpath = ["src"]
 testpaths = ["tests"]
 
 [tool.pyright]
 pythonVersion = "3.15"
-include = ["tools", "tests"]
+include = ["src", "tests"]
 # uv creates the project venv at .venv; restating it here is what lets editors and
 # language servers resolve imports against it, since they inherit no shell activation.
 venvPath = "."
 venv = ".venv"
-# The tests import the tools the way pytest's pythonpath does.
-extraPaths = ["tools"]
+# The tests import the package the way pytest's pythonpath does.
+extraPaths = ["src"]

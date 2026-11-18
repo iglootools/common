@@ -6,7 +6,7 @@ empty block before the first of those headings in a file that has none.
 
     mise run toc                     # rewrite every block that is out of date
     mise run toc-check               # list stale files and exit 1; changes nothing
-    mise exec -- uv run --no-sync python tools/markdown_toc.py --add <file>...
+    mise exec -- uv run --no-sync python src/iglootools/docs/toc.py --add <file>...
 """
 
 import argparse
@@ -166,7 +166,7 @@ def main(argv: Sequence[str]) -> int:
         "--add", nargs="+", type=Path, metavar="FILE", help="add a block to FILE"
     )
     args = parser.parse_args(argv)
-    root = Path(__file__).resolve().parent.parent
+    root = Path(__file__).resolve().parents[3]
 
     for path in args.add or []:
         path.write_text(with_empty_block(path.read_text()))

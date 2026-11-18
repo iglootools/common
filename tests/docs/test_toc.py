@@ -1,8 +1,9 @@
 from pathlib import Path
 from textwrap import dedent
 
-import markdown_toc
 import pytest
+
+from iglootools.docs import toc as markdown_toc
 
 # Expected anchors come from github-slugger 2.0.0, given each heading's text as GitHub
 # renders it (code spans, links and emphasis reduced to their text). They are the

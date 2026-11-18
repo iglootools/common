@@ -38,7 +38,7 @@ Each guideline file, `philosophy.md`, `README.md` and this file open with a tabl
 between `<!-- toc -->` and `<!-- tocstop -->`. Do not edit it by hand: after adding, renaming or
 removing a `##` or `###` heading, run `mise run toc` to regenerate every list.
 `mise run toc-check`, part of `check`, fails on a list that is out of date. To give a new file
-one, run `mise exec -- uv run --no-sync python tools/markdown_toc.py --add <file>`.
+one, run `mise exec -- uv run --no-sync python src/iglootools/docs/toc.py --add <file>`.
 
 The script's tests are in `tests/` and run with `mise run test`. The expected anchors in them
 come from [github-slugger](https://github.com/Flet/github-slugger), which reproduces GitHub's
