@@ -93,6 +93,9 @@ changelog to `ncipollo/release-action`, which creates the GitHub release:
     body: ${{ steps.tag-version.outputs.changelog }}
 ```
 
+Those steps are the shared `reusable-release.yml`, so a project's `release.yml` is a stub that
+calls it — see [shared-workflows.md](shared-workflows.md#call-the-shared-release-workflow).
+
 Three things this depends on that nothing checks:
 
 - **Commit messages are the input.** The action's `default_bump` is `patch`, so a range of

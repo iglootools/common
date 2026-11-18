@@ -1,7 +1,9 @@
 # Shared Workflow Guidelines
 
-Three workflows are identical in every project, so they live in this repository as reusable
-workflows and each project calls them with a thin stub. The general rules a workflow has to
+Five workflows are identical across projects, so they live in this repository as reusable
+workflows and each project calls them with a thin stub. Publishing to PyPI is the exception
+that stays in each project: see
+[Keep publishing in the project](#keep-publishing-in-the-project). The general rules a workflow has to
 follow — pinning, concurrency, timeouts, naming — are in
 [workflows.md](workflows.md).
 
@@ -11,6 +13,9 @@ follow — pinning, concurrency, timeouts, naming — are in
 - [Call the shared link checker instead of copying it](#call-the-shared-link-checker-instead-of-copying-it)
 - [Call the shared lock regenerator too](#call-the-shared-lock-regenerator-too)
 - [A uv project must submit its own dependency graph](#a-uv-project-must-submit-its-own-dependency-graph)
+- [Call the shared release workflow](#call-the-shared-release-workflow)
+- [Call the shared demo recorder](#call-the-shared-demo-recorder)
+- [Keep publishing in the project](#keep-publishing-in-the-project)
 <!-- tocstop -->
 
 ### Call the shared link checker instead of copying it
@@ -183,3 +188,80 @@ the action's own sources between the two commits, and treat a new network call, 
 added dependency, or a change in how the token is passed as a reason to stop rather than a
 detail. The pin living in this repository rather than in each project is deliberate — it makes
 that review happen once, here, instead of once per consumer.
+
+### Call the shared release workflow
+
+Python projects that release from conventional commits (see
+[pypi-publishing.md](pypi-publishing.md#let-the-release-workflow-pick-the-bump-from-conventional-commits))
+call it from a `release.yml` stub:
+
+```yaml
+name: release
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    uses: iglootools/common/.github/workflows/reusable-release.yml@<sha> # v<version>
+```
+
+- **Keep the stub named `release`.** The tag is pushed with `GITHUB_TOKEN`, which triggers no
+  other workflow, so `publish.yml` and `demo.yml` start on `workflow_run` of the workflow named
+  `release`: the caller's name, not the reusable workflow's.
+- **The concurrency group queues**, never cancels, as for any workflow that pushes a tag
+  ([workflows.md](workflows.md)). It stays in the caller for the same reason as the link
+  checker's.
+- **Rehearse with `dry-run: true`** under `with:`: it computes the next version and changelog,
+  writes them to the run summary, and pushes nothing.
+
+### Call the shared demo recorder
+
+CLI projects with an asciinema demo ([cli-demo.md](cli-demo.md)) call it from `demo.yml`:
+
+```yaml
+name: demo
+
+on:
+  push:
+    tags: ['v*']
+  workflow_run:
+    workflows: ["release"]
+    types: [completed]
+  workflow_dispatch:
+  repository_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.event.workflow_run.head_sha || github.sha) || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  demo:
+    permissions:
+      contents: read
+    uses: iglootools/common/.github/workflows/reusable-demo.yml@<sha> # v<version>
+    with:
+      # renovate: datasource=github-releases depName=jdx/mise
+      version: <the version mise.lock was generated with>
+      apt-packages: pv tree
+```
+
+The job runs `mise run ci-demo-record` and uploads the cast as the `demo-recording` artifact.
+It skips a `workflow_run` whose release failed. `apt-packages` lists what the session needs
+beyond mise's tools; `pv` is demo-magic's and stays in the list.
+
+### Keep publishing in the project
+
+`publish.yml` and `publish-test.yml` are near-identical across projects and still are not
+shared. Trusted publishing ties a PyPI project to a workflow file in the publishing repository,
+and `pypa/gh-action-pypi-publish` does not support running inside a reusable workflow, so the
+upload has to happen in the project's own workflow. Keep them as the project's files, written as
+[pypi-publishing.md](pypi-publishing.md) describes.
+

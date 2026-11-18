@@ -1,0 +1,58 @@
+name: reusable-release
+
+# Tags a release from the conventional commits since the last tag and creates the GitHub
+# release, for iglootools Python projects. The caller keeps its trigger (workflow_dispatch),
+# its queueing concurrency group, and the `contents: write` grant; this holds the steps, so a
+# fix reaches every project through one version bump.
+#
+# The tag is pushed with GITHUB_TOKEN, and a tag pushed that way triggers no other workflow,
+# which is why publish.yml and demo.yml listen for this workflow's completion through
+# `workflow_run`. That trigger names the *caller*: keep the caller named `release`.
+#
+# Publishing to PyPI is deliberately not shared: pypa/gh-action-pypi-publish does not support
+# running inside a reusable workflow, since PyPI's trusted publisher is bound to a workflow file
+# in the project's own repository. publish.yml stays in each project.
+
+on:
+  workflow_call:
+    inputs:
+      dry-run:
+        description: >-
+          Compute the next version and changelog without pushing a tag or creating a release.
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # Write: github-tag-action pushes the release tag through the API, and release-action
+      # creates the GitHub release. A ceiling on what the caller grants, not a grant.
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Full history and tags, so github-tag-action finds the previous tag and builds the
+          # changelog from the commits since.
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Bump version and push tag
+        id: tag-version
+        uses: mathieudutour/github-tag-action@af99e60ce8132224b8e6ebab5023449fe256ed46 # v7.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          fetch_all_tags: true
+          dry_run: ${{ inputs.dry-run }}
+      - name: Report the release
+        env:
+          NEW_TAG: ${{ steps.tag-version.outputs.new_tag }}
+          CHANGELOG: ${{ steps.tag-version.outputs.changelog }}
+        run: printf 'Release %s\n\n%s\n' "$NEW_TAG" "$CHANGELOG" >> "$GITHUB_STEP_SUMMARY"
+      - name: Create a GitHub release
+        if: ${{ !inputs.dry-run }}
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
+        with:
+          tag: ${{ steps.tag-version.outputs.new_tag }}
+          name: ${{ steps.tag-version.outputs.new_tag }}
+          body: ${{ steps.tag-version.outputs.changelog }}
