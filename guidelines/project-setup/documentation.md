@@ -2,11 +2,11 @@
 
 Where an iglootools project keeps its documentation, which documents it writes and under what
 names, and how agents are pointed at them. Read this when adding, renaming or restructuring
-`README.md`, `CONTRIBUTING.md`, `CLAUDE.md` or anything under `docs/`.
+`README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md` or anything under `docs/`.
 
 The principle behind every rule here is in
 [Documentation for people first, agent configuration for the gaps](../../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps):
-the documentation is written for people, in the project's docs, and `CLAUDE.md`, skills and
+the documentation is written for people, in the project's docs, and `AGENTS.md`, skills and
 hooks only decide when an agent reads it. A rule that exists only in agent configuration is
 invisible to the people reviewing the agent's work, so nobody notices when it goes stale.
 
@@ -18,7 +18,7 @@ invisible to the people reviewing the agent's work, so nobody notices when it go
   - [Keep `docs/guidelines.md` lean, and index area conventions from it](#keep-docsguidelinesmd-lean-and-index-area-conventions-from-it)
   - [Split `README.md`, `CONTRIBUTING.md` and `docs/` by reader](#split-readmemd-contributingmd-and-docs-by-reader)
   - [Scaffold `CONTRIBUTING.md` as the documentation index](#scaffold-contributingmd-as-the-documentation-index)
-  - [Make `CLAUDE.md` a list of imports](#make-claudemd-a-list-of-imports)
+  - [Keep `AGENTS.md` a short map, and `CLAUDE.md` a single import](#keep-agentsmd-a-short-map-and-claudemd-a-single-import)
 - [What to write](#what-to-write)
   - [Write the documents the project's shape calls for](#write-the-documents-the-projects-shape-calls-for)
   - [Use one name per role](#use-one-name-per-role)
@@ -176,47 +176,59 @@ describes.
 A repository with no `docs/` — this one — still has the `CONTRIBUTING.md`, indexing whatever
 plays those roles, and says why its shape differs.
 
-### Make `CLAUDE.md` a list of imports
+### Keep `AGENTS.md` a short map, and `CLAUDE.md` a single import
 
-A project's `CLAUDE.md` holds `@` imports of the project's own documents, one line each saying
-what the document covers, plus only what an agent needs and a person does not — for example,
-which MCP server to ask about a framework that moves faster than any model's training data. It
-does not restate the shared guidelines, nor anything the plugin already delivers, nor the
-documents it imports. A rule written there instead of in `docs/` is the only copy of that rule,
-and no human contributor ever reads it.
+`AGENTS.md` at the project root is what every coding agent reads first, Claude Code included. It
+is a map, not a manual: what the project is, the commands that build and check it, and where each
+kind of knowledge lives, linked so an agent opens a document when its task reaches it. It
+also holds what only an agent needs, such as which MCP server answers questions about a framework
+that moves faster than any model's training data. It does not restate the shared guidelines or
+the project's documents: a rule written there instead of in `docs/` is the only copy of that
+rule, and no human contributor reads it.
+
+`CLAUDE.md` holds one line, `@AGENTS.md`. Claude Code reads `AGENTS.md` natively only when no
+`CLAUDE.md` exists, and only in recent versions; the import works everywhere, without a second
+copy of anything.
 
 ```markdown
-# CLAUDE.md
+# AGENTS.md
 
-## Architecture
+nbkp is an rsync-based backup tool for sources and destinations that come and go.
 
-Module dependency graph and layering: @docs/architecture.md
+## Commands
 
-Domain concepts (…): @docs/domain.md
+- `mise run check-all`: every check and test CI runs. `mise tasks` lists the rest.
+- Run tools through `uv run --no-sync <tool>`, never bare.
 
 ## Guidelines
 
-Shared iglootools guidelines come from the `iglootools` plugin, enabled in
-`.claude/settings.json` and installed once per machine: @docs/setup-development-environment.md
+The shared iglootools guidelines govern every change: Claude Code gets them from the `iglootools`
+plugin, other agents read them at https://github.com/iglootools/common/tree/main/guidelines,
+starting from its README. Read [docs/guidelines.md](docs/guidelines.md) before any change: it
+holds this project's deviations and its own rules.
 
-## Build & Test Commands
+## Where things are
 
-@docs/building-and-testing.md
+Read a document when the task reaches it, not up front:
 
-## Releasing and Publishing
-
-@docs/releasing-and-publishing.md
+- [CONTRIBUTING.md](CONTRIBUTING.md): the index of every document below, and how to set up.
+- [docs/architecture.md](docs/architecture.md): modules and layering, for any structural change.
+- [docs/domain.md](docs/domain.md): volumes, endpoints, syncs, snapshots.
+- [docs/building-and-testing.md](docs/building-and-testing.md): test suites and their tasks.
 ```
 
-- **Do not import `docs/guidelines.md`.** The `SessionStart` hook already emits it, so an import
-  loads it twice.
-- **Import what most changes need, not everything.** Every import is loaded into every session.
-  The documents nearly any change needs — domain, architecture, build and test — earn it. A
-  generated reference that runs to a thousand lines does not: `CONTRIBUTING.md` lists it, and the
-  agent reads it when the change reaches it.
-- **Rename the import with the file.** An `@` import of a file that no longer exists does not
-  produce an error; the session simply starts without that document.
-- A project with nothing to import may have no `CLAUDE.md` at all.
+- **Link, do not `@`-import.** An import is loaded into every session before any work starts, so
+  importing the architecture, domain and internals documents spends thousands of lines of context
+  on each session whether the task needs them or not. A link with a one-line description of when
+  to read it lets the agent load the document when it is relevant. Write paths as links or in
+  backticks: Claude Code treats a bare `@path` as an import.
+- **Keep it under a screen.** Everything in `AGENTS.md` is read every session. What applies only
+  to some files belongs in the document that covers them, linked from here; what applies to a
+  whole area belongs in its area conventions, linked from `docs/guidelines.md`.
+- **Do not repeat `docs/guidelines.md`.** In Claude Code the plugin's `SessionStart` hook already
+  emits it; telling other agents to read it is enough.
+- **Rename the link with the file.** A link to a file that no longer exists fails only when the
+  link checker runs, and an agent that follows it finds nothing.
 
 ## What to write
 
@@ -273,10 +285,10 @@ names the same role the same way.
 | area conventions | `<area>-conventions.md` | |
 
 Renaming a document is a change to every file that points at it: the `CONTRIBUTING.md` line,
-the `CLAUDE.md` import, cross-links between documents, the README's absolute URLs, and any
+the `AGENTS.md` link, cross-links between documents, the README's absolute URLs, and any
 `description` in `mise.toml` that names the file. Search for the old name rather than relying on
-the link checker: it runs on a schedule rather than on the pull request, it does not read
-`CLAUDE.md` imports, and it cannot see a file name mentioned without a link.
+the link checker: it runs on a schedule rather than on the pull request, and it cannot see a file
+name mentioned without a link.
 
 ### Record architectural decisions in an append-only log
 

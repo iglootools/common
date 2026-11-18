@@ -10,6 +10,10 @@ guidelines themselves are the reference.
 - [Getting started](#getting-started)
 - [Guidelines](#guidelines)
 - [The `iglootools` command](#the-iglootools-command)
+- [Working on what other repositories pin](#working-on-what-other-repositories-pin)
+  - [The plugin](#the-plugin)
+  - [The `iglootools` command](#the-iglootools-command-1)
+  - [The shared workflows](#the-shared-workflows)
 - [Understanding the repository](#understanding-the-repository)
 - [Reference](#reference)
 - [Repository settings](#repository-settings)
@@ -22,8 +26,8 @@ the pinned Python and uv, and the first `mise run` creates `.venv` with the dev 
 `mise run check-all` runs every check and test, which is what the `test` workflow runs on each
 pull request; `mise tasks` lists the rest.
 
-- [CLAUDE.md](CLAUDE.md) — loading the plugin from the working tree, validating it, and running
-  the `SessionStart` hook by hand
+- [Working on what other repositories pin](#working-on-what-other-repositories-pin) — loading the
+  plugin from the working tree, validating it, and running the `SessionStart` hook by hand
 - [README.md#usage-with-claude-code](README.md#usage-with-claude-code) — how the skill and the hook
   deliver the guidelines, and working on them
 
@@ -54,6 +58,69 @@ are under `tests/`. How projects install, configure and pin it, and how to try a
 one of them before releasing, is in
 [guidelines/project-setup/iglootools-cli.md](guidelines/project-setup/iglootools-cli.md).
 
+## Working on what other repositories pin
+
+The plugin, the `iglootools` command and the shared workflows are consumed by every other
+iglootools project, each pinned to a release. A change to one is a change to an interface.
+
+### The plugin
+
+This repository does not consume its own plugin: `${CLAUDE_PLUGIN_ROOT}` resolves to the
+installed copy, so an agent here would be pointed at whatever commit was last installed rather
+than at the files in front of it. Load it from the working tree instead, which is what makes
+`${CLAUDE_PLUGIN_ROOT}` resolve here:
+
+```bash
+claude --plugin-dir .
+claude plugin validate .
+```
+
+Keep it in step with the guidelines. Renaming or moving a guideline file, changing which files
+trigger it, or adding a new one leaves `skills/guidelines/SKILL.md`,
+`hooks/load-always-on-guidelines.sh`, `agents/auditor.md` or the audit skills pointing at
+something that is no longer there — and a
+dispatch table that fails to fire fails silently, which is the failure mode this repository
+exists to prevent. All of them spell the paths out from the plugin root
+(`${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md`, `$plugin_root/guidelines/coding/general.md`),
+so no amount
+of moving files is picked up for you. The hook is runnable, which is the cheapest check:
+
+```bash
+CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PROJECT_DIR="$PWD" bash hooks/load-always-on-guidelines.sh
+```
+
+It prints a loud `ERROR:` line per file it cannot read rather than falling silent, so an empty
+error count means every always-on path still resolves.
+
+### The `iglootools` command
+
+Like the shared workflows, it is an interface other repositories pin: its command and option
+names, the `[tool.iglootools]` settings and their defaults, and the markers and headers it
+writes into generated files. Renaming any of them breaks every project still on the old pin,
+and a changed marker rewrites their generated documents. Change them deliberately, and document
+the consumer side in `guidelines/project-setup/iglootools-cli.md` in the same change.
+
+Core modules return data and raise errors with a kind; only the `cli` modules print, and the
+import-linter contracts in `pyproject.toml` hold that. Before merging a change, run it against
+a consumer from this checkout, as the guideline describes:
+
+```bash
+cd ../nbkp && uv run --no-sync --with-editable ../common iglootools docs depgraph --check
+```
+
+### The shared workflows
+
+`.github/workflows/reusable-check-links.yml` is consumed by the other iglootools repositories,
+which pin it by commit SHA. It is therefore an interface: changing its inputs, or what a caller
+has to declare for it to work, breaks every caller that has not been updated. Document the
+consumer side in `guidelines/project-setup/shared-workflows.md` in the same change, and remember
+that consumers do not move
+until someone repoints their pin.
+
+`check-links.yml` here calls it through a local path ref, so this repository exercises the
+workflow as changed rather than as last released. Use that: dispatch it on the branch
+(`gh workflow run check-links.yml --ref <branch>`) before merging a change to it.
+
 ## Understanding the repository
 
 - [README.md](README.md) — what is here, and which guideline is triggered by which file
@@ -66,7 +133,7 @@ one of them before releasing, is in
 
 - [guidelines/project-setup/shared-workflows.md](guidelines/project-setup/shared-workflows.md) —
   the reusable workflows this repository hosts, and what a caller must declare. Changing one is
-  an interface change: see [CLAUDE.md](CLAUDE.md#working-on-the-shared-workflows).
+  an interface change: see [The shared workflows](#the-shared-workflows).
 
 ## Repository settings
 
