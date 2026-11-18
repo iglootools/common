@@ -19,6 +19,8 @@ on:
       dry-run:
         description: >-
           Compute the next version and changelog without pushing a tag or creating a release.
+          The run still completes successfully, so workflows listening for its completion
+          (publish, demo) start anyway and must check that the commit carries a v* tag.
         type: boolean
         default: false
 
