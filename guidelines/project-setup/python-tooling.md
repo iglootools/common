@@ -335,13 +335,16 @@ ignore-names = [
 - **Exceptions sit on the line they excuse**, with their reason: `# noqa: DC04 -- Paramiko
   calls it on an unknown host key`. The config holds only patterns that recur across the code,
   each with its comment, so a reader of the config learns which frameworks call code by name.
+  Ruff reports a `noqa` code it does not know as unused (`RUF100`), so declare deadcode's codes
+  to it under `[tool.ruff.lint]`: `external = ["DC"]`.
 - **What deadcode reports is deleted**, unless it is one of those exceptions. A commented-out
   line that is really prose (`# SSH: StrictHostKeyChecking`) is rephrased or marked, not kept
   as code.
 - **Review `deadcode --fix` like any other diff**, and commit it on its own with the command in
   the message ([git.md](../coding/git.md#keep-refactoring-apart-from-behaviour-changes)).
   It reports a definition used only by other dead code in the same run, so one pass removes a
-  whole cascade.
+  whole cascade, but it can also cut a multi-line function short and leave a file that does not
+  parse: run the checks after it, and remove what it mangles by hand.
 
 ## Tests
 
