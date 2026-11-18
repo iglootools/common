@@ -6,6 +6,7 @@ import typer
 
 from iglootools.cliwiring import Invocation, say
 from iglootools.docs import cli as docs_cli
+from iglootools.python import cli as python_cli
 
 app = typer.Typer(
     name="iglootools",
@@ -14,6 +15,7 @@ app = typer.Typer(
     add_completion=False,
 )
 app.add_typer(docs_cli.app, name="docs")
+app.add_typer(python_cli.app, name="python")
 
 
 def _print_version(requested: bool) -> None:
