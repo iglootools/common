@@ -7,6 +7,31 @@ A branch is therefore reviewed and kept one commit at a time, and should read as
 sequence of steps to the final change, not as a record of how the author got there. See
 [Small, reviewable changes](../../philosophy.md#small-reviewable-changes) for the reasoning.
 
+## A new commit or a new pull request
+
+A pull request has one intent, which a reviewer approves or rejects as a whole. A commit is one
+step towards it.
+
+- **A commit on the branch** for whatever the pull request needs to be correct and complete:
+  the preparatory refactoring, tests, docs, a fix for a problem the change exposes.
+- **A pull request of its own** for work that could merge to `main` alone, or that a reviewer
+  could approve while rejecting the rest: an unrelated bug fix, a dependency or tooling update,
+  a rule change that needs its own discussion.
+- **Split one intent** when its parts differ in risk (an event schema next to a read model, a
+  destructive operation next to a safe one —
+  [People and AI Agents](general.md#people-and-ai-agents)), touch an interface other
+  repositories consume, or need to land at different times.
+- **Split when it outgrows one review sitting**, roughly a few hundred hand-written lines.
+  Mechanical changes count for less. The preparatory refactoring is usually the part that can
+  merge first.
+- **Stack a pull request that depends on another**: base its branch on the other's, and say so
+  in the description ([merge commits](#merge-with-a-merge-commit-not-a-squash-or-a-rebase) keep
+  the stack intact).
+- **Decide about work found along the way when you find it.** A small fix in code the branch
+  touches is a commit before the change that needed it. Anything else branches from `main`,
+  with the current branch stacked on it if it depends on it. Moving it later means rewriting
+  both branches.
+
 ## Keep refactoring apart from behaviour changes
 
 - A commit either changes behaviour or restructures code, never both. A refactoring is checked
@@ -20,8 +45,8 @@ sequence of steps to the final change, not as a record of how the author got the
   meaningful. Readability wins when the two conflict: an interface change in one commit and its
   callers in the next can be clearer than both together. Say in the message that the build is
   broken until the next commit, so whoever bisects knows to `git bisect skip` it.
-- A fix made along the way that is unrelated to the pull request gets its own commit, or its
-  own pull request if it needs its own discussion.
+- A fix made along the way gets its own commit, or its own pull request when it is an intent of
+  its own ([above](#a-new-commit-or-a-new-pull-request)).
 
 ## Fold rework into the commit it corrects
 
