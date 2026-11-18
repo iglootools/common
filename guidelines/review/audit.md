@@ -8,6 +8,13 @@ categories below as a checklist just as well.
 An audit reports problems. It does not fix them. Fixing is a separate step that you ask for
 finding by finding, so each fix is a change you chose (see [Fixing findings](#fixing-findings)).
 
+Run `audit-pr` before a pull request is reviewed, and again before it merges if the branch has
+changed much. It is a judgment call, not a gate. When Claude is about to open a pull request,
+mark it ready or merge it, the plugin's
+[remind-audit-pr.sh](../../hooks/remind-audit-pr.sh) hook reminds you if no report under
+`.iglootools/audits/` covers the current commit. It does not block the command, and pull
+requests opened outside Claude get no reminder.
+
 ## Categories
 
 Every finding has exactly one category. The ID prefix is the category's short name, and the
