@@ -145,10 +145,13 @@ nbkp is an rsync-based backup tool for sources and destinations that come and go
 
 ## Guidelines
 
-The shared iglootools guidelines govern every change: Claude Code gets them from the `iglootools`
-plugin, other agents read them at https://github.com/iglootools/common/tree/main/guidelines,
-starting from its README. Read [docs/guidelines.md](docs/guidelines.md) before any change: it
-holds this project's deviations and its own rules.
+The shared iglootools guidelines govern every change. Claude Code loads them through the
+`iglootools` plugin. Other agents: read `coding/general.md`, `coding/python.md` and
+`coding/git.md` before any change, and the `project-setup/` guideline whose trigger matches the
+files you are changing, using the tables in [iglootools/common's
+README](https://github.com/iglootools/common#contents). Read
+[docs/guidelines.md](docs/guidelines.md) before any change too: it holds this project's deviations
+and its own rules.
 
 ## Where things are
 
