@@ -8,6 +8,15 @@ The workflow that regenerates `mise.lock` and `uv.lock` on Renovate branches is 
   updates by 14 days (`minimumReleaseAge`) to avoid adopting broken
   releases and limit risk of supply chain attacks
 
+<!-- toc -->
+**On this page**
+
+- [Committing `renovate.json` does not turn Renovate on](#committing-renovatejson-does-not-turn-renovate-on)
+- [Turn on the dependency graph, alerts and security updates](#turn-on-the-dependency-graph-alerts-and-security-updates)
+- [Split Renovate and Dependabot by job, not by ecosystem](#split-renovate-and-dependabot-by-job-not-by-ecosystem)
+- [Give every copy of a pin the same datasource](#give-every-copy-of-a-pin-the-same-datasource)
+<!-- tocstop -->
+
 ### Committing `renovate.json` does not turn Renovate on
 
 The config is inert until the Renovate GitHub App is granted access to the repository, and

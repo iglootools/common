@@ -5,6 +5,16 @@ its language. Python projects add uv and `[deps.uv]` on top — see
 [python-tooling.md](python-tooling.md#mise-and-uv) — and how CI installs mise is in
 [workflows.md](workflows.md).
 
+<!-- toc -->
+**On this page**
+
+- [Tasks](#tasks)
+  - [One `ci-*` task per workflow job](#one-ci--task-per-workflow-job)
+  - [Put a multi-line task body in a file task under `mise-tasks/`](#put-a-multi-line-task-body-in-a-file-task-under-mise-tasks)
+- [Lint every shell script with shellcheck](#lint-every-shell-script-with-shellcheck)
+- [Check `mise.lock` in a scratch copy](#check-miselock-in-a-scratch-copy)
+<!-- tocstop -->
+
 ## Tasks
 
 ### One `ci-*` task per workflow job

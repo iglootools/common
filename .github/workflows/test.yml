@@ -1,0 +1,41 @@
+name: test
+
+on:
+  # Manually trigger the workflow using
+  # gh workflow run test.yml # --ref <branch>
+  # gh run list --workflow test.yml # --branch <branch>
+  workflow_dispatch:
+  repository_dispatch:
+  pull_request:
+  push:
+    branches:
+      - "main"
+
+concurrency:
+  # On main the group carries the commit sha, so every push gets a run of its own; elsewhere
+  # the group is the ref, so a new push cancels the run in flight. See the concurrency rule in
+  # guidelines/project-setup/workflows.md.
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.event.workflow_run.head_sha || github.sha) || github.ref }}
+  cancel-in-progress: true
+
+env:
+  MISE_EXPERIMENTAL: true
+  # Fail on a stale uv.lock instead of re-resolving it on the runner. An environment variable
+  # rather than --locked, so the [deps.uv] command stays identical to local runs.
+  UV_LOCKED: 1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Checkout only. Declared so the job does not inherit the repository's read-write default.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Locked install of the committed pins (the action's default `mise install --locked`).
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5
+        with:
+          # renovate: datasource=github-releases depName=jdx/mise
+          version: 2026.11.9
+      - run: mise run ci-test

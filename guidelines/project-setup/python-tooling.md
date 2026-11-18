@@ -5,6 +5,29 @@ exposes. For the language itself â€” what to write, rather than what builds it â
 [python.md](../coding/python.md). Editor configuration is in [ide.md](ide.md), and what every repository
 carries regardless of language is in [repository.md](repository.md).
 
+<!-- toc -->
+**On this page**
+
+- [Build and Packaging](#build-and-packaging)
+  - [Build backend](#build-backend)
+  - [Pin the build backend explicitly](#pin-the-build-backend-explicitly)
+  - [Guard against a `0.0.0` release](#guard-against-a-000-release)
+  - [Know what hatchling packages by default](#know-what-hatchling-packages-by-default)
+  - [Keep the version honest in editable installs](#keep-the-version-honest-in-editable-installs)
+- [Mise and uv](#mise-and-uv)
+  - [Configuration](#configuration)
+  - [Invoke tools through `uv run --no-sync <tool>` in mise tasks, not bare](#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare)
+  - [Adding and removing dependencies](#adding-and-removing-dependencies)
+- [Code Quality Tools](#code-quality-tools)
+  - [Module boundaries (import-linter)](#module-boundaries-import-linter)
+- [Tests](#tests)
+  - [Run test suites in parallel with pytest-xdist](#run-test-suites-in-parallel-with-pytest-xdist)
+  - [Enforce the patching rule](#enforce-the-patching-rule)
+- [Mise Tasks](#mise-tasks)
+  - [Lock checks](#lock-checks)
+  - [Reinstalling the environment](#reinstalling-the-environment)
+<!-- tocstop -->
+
 ## Build and Packaging
 
 ### Build backend

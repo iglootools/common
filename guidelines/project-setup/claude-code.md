@@ -5,6 +5,15 @@ what has to be committed for the team to get them. The editor half is in
 [ide.md](ide.md), and the two are not interchangeable — VSCode runs Pylance for the
 squiggles while the plugin runs its own pyright for Claude.
 
+<!-- toc -->
+**On this page**
+
+- [Pyright LSP plugin](#pyright-lsp-plugin)
+- [Multi-project workspaces](#multi-project-workspaces)
+- [Picking up configuration changes](#picking-up-configuration-changes)
+- [Sharing the plugin set with the team](#sharing-the-plugin-set-with-the-team)
+<!-- tocstop -->
+
 ## Pyright LSP plugin
 
 Install it in every Python project so Claude resolves symbols instead of grepping for them:

@@ -1,0 +1,93 @@
+[tools]
+python = "3.15.2"
+uv = "0.13.6"
+
+[env]
+# Pin uv to the interpreter mise installed, by absolute path: a bare version number does not
+# guarantee uv uses it, and may fall back to a system or uv-managed Python of the same
+# version. This is also what makes a raised [tools] python pin recreate .venv. See
+# guidelines/project-setup/python-tooling.md "Configuration".
+UV_PYTHON = { value = "{{ tools.python.path }}", tools = true }
+UV_PYTHON_DOWNLOADS = "never"
+UV_PYTHON_PREFERENCE = "only-system"
+
+[settings]
+lockfile = true
+# `mise deps` is experimental. Set here rather than in each developer's shell, so a fresh
+# clone behaves the same everywhere.
+experimental = true
+# "source", not "create|source": with [deps.uv] enabled, creating the venv is the deps
+# provider's job, and the two collide when both try.
+python.uv_venv_auto = "source"
+
+# Runs `uv sync` before every `mise run`, only when uv.lock or pyproject.toml changed or
+# .venv is missing. Tasks invoke tools through `uv run --no-sync`, which ignores any other
+# project's venv on PATH and leaves installing to this provider.
+[deps.uv]
+auto = true
+
+[tasks.install]
+description = "Install dependencies"
+# Delegates to [deps.uv] so there is one definition of how dependencies get installed, and
+# one place to change if the experimental deps engine has to be abandoned.
+run = "mise deps install uv"
+
+[tasks.check]
+description = "Run all checks (format-check, lint, type-check, lock-check, lock-check-uv, toc-check)"
+run = [
+  { task = "format-check" },
+  { task = "lint" },
+  { task = "type-check" },
+  { task = "lock-check" },
+  { task = "lock-check-uv" },
+  { task = "toc-check" },
+]
+
+[tasks.check-all]
+description = "Run all checks and tests"
+run = [
+  { task = "check" },
+  { task = "test" },
+]
+
+[tasks.ci-test]
+description = "Install, then run every check and test (what the test workflow runs)"
+run = [
+  { task = "install" },
+  { task = "check-all" },
+]
+
+[tasks.test]
+description = "Run the tests for tools/"
+# -n auto: the tests are isolated (tmp_path, plain values), so they parallelize cleanly.
+run = "uv run --no-sync pytest -n auto -v"
+
+[tasks.format]
+description = "Format code with ruff (rewrites files; see format-check to verify only)"
+run = "uv run --no-sync ruff format ."
+
+# `ruff format` exits 0 whether or not it changed anything, so it cannot be the gate.
+[tasks.format-check]
+description = "Check that code is formatted (fails instead of reformatting; fix with `mise run format`)"
+run = "uv run --no-sync ruff format --check ."
+
+[tasks.lint]
+description = "Run ruff linting"
+run = "uv run --no-sync ruff check ."
+
+[tasks.type-check]
+description = "Run pyright type checking"
+run = "uv run --no-sync pyright"
+
+# Asserts uv.lock is consistent with pyproject.toml. --check does not write.
+[tasks.lock-check-uv]
+description = "Check that uv.lock is up to date with pyproject.toml"
+run = "uv lock --check"
+
+[tasks.toc]
+description = "Regenerate the tables of contents in the Markdown files"
+run = "uv run --no-sync python tools/markdown_toc.py"
+
+[tasks.toc-check]
+description = "Check that the Markdown tables of contents are up to date (fix with `mise run toc`)"
+run = "uv run --no-sync python tools/markdown_toc.py --check"

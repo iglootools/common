@@ -10,6 +10,25 @@ the documentation is written for people, in the project's docs, and `CLAUDE.md`,
 hooks only decide when an agent reads it. A rule that exists only in agent configuration is
 invisible to the people reviewing the agent's work, so nobody notices when it goes stale.
 
+<!-- toc -->
+**On this page**
+
+- [Where documentation lives](#where-documentation-lives)
+  - [Keep project documentation at the conventional paths](#keep-project-documentation-at-the-conventional-paths)
+  - [Keep `docs/guidelines.md` lean, and index area conventions from it](#keep-docsguidelinesmd-lean-and-index-area-conventions-from-it)
+  - [Split `README.md`, `CONTRIBUTING.md` and `docs/` by reader](#split-readmemd-contributingmd-and-docs-by-reader)
+  - [Scaffold `CONTRIBUTING.md` as the documentation index](#scaffold-contributingmd-as-the-documentation-index)
+  - [Make `CLAUDE.md` a list of imports](#make-claudemd-a-list-of-imports)
+- [What to write](#what-to-write)
+  - [Write the documents the project's shape calls for](#write-the-documents-the-projects-shape-calls-for)
+  - [Use one name per role](#use-one-name-per-role)
+  - [Record architectural decisions in an append-only log](#record-architectural-decisions-in-an-append-only-log)
+  - [Record repository settings as commands in one place](#record-repository-settings-as-commands-in-one-place)
+- [Keeping it true](#keeping-it-true)
+  - [Generate references from the code, and check them](#generate-references-from-the-code-and-check-them)
+  - [Name which document each kind of change updates](#name-which-document-each-kind-of-change-updates)
+<!-- tocstop -->
+
 ## Where documentation lives
 
 ### Keep project documentation at the conventional paths

@@ -5,6 +5,14 @@ workflows and each project calls them with a thin stub. The general rules a work
 follow — pinning, concurrency, timeouts, naming — are in
 [workflows.md](workflows.md).
 
+<!-- toc -->
+**On this page**
+
+- [Call the shared link checker instead of copying it](#call-the-shared-link-checker-instead-of-copying-it)
+- [Call the shared lock regenerator too](#call-the-shared-lock-regenerator-too)
+- [A uv project must submit its own dependency graph](#a-uv-project-must-submit-its-own-dependency-graph)
+<!-- tocstop -->
+
 ### Call the shared link checker instead of copying it
 
 Link checking is identical in every project, so it lives here as a reusable workflow rather

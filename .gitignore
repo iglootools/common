@@ -11,3 +11,7 @@
 # so they are valid only on the machine that created them. Ignoring them is a condition
 # of sharing .vscode/settings.json, which references them by path.
 .vscode/mise-tools/
+
+# The uv environment and Python bytecode for tools/ and tests/.
+.venv/
+__pycache__/

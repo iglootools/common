@@ -1,0 +1,26 @@
+name: renovate-mise-lock
+
+on:
+  push:
+    branches:
+      - 'renovate/**'
+
+# Avoid overlapping runs racing to push to the same branch. Stays here rather than in the shared
+# workflow because concurrency governs the run these triggers create.
+concurrency:
+  group: renovate-mise-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mise-lock:
+    permissions:
+      # Must be granted here: `permissions` in the called workflow is a ceiling on what the
+      # caller allowed, not a grant of its own, so without it the job cannot push the lock.
+      contents: write
+    # A local path rather than a pinned SHA, as in check-links.yml: this repository exercises
+    # the shared workflow as changed rather than as last released. Consuming projects pin it.
+    uses: ./.github/workflows/reusable-renovate-mise-lock.yml
+    with:
+      # The version mise.lock was generated with (guidelines/project-setup/workflows.md).
+      # renovate: datasource=github-releases depName=jdx/mise
+      version: 2026.11.9

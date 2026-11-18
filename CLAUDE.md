@@ -3,7 +3,9 @@
 Shared coding guidelines for iglootools projects. This repository is the source: the files in
 [guidelines/](guidelines/) are what every other iglootools project consumes. Everything at the
 root supports them — `philosophy.md` for the reasoning, `skills/` and `hooks/` for delivery,
-`scripts/` for the guidelines that ship as working code.
+`scripts/` for the guidelines that ship as working code, `tools/` for maintaining this repository.
+After changing a heading in a Markdown file, run `mise run toc`; `mise run check-all` runs
+everything CI runs (see [CONTRIBUTING.md](CONTRIBUTING.md#getting-started)).
 
 @guidelines/coding/general.md
 @guidelines/coding/python.md
@@ -12,9 +14,11 @@ root supports them — `philosophy.md` for the reasoning, `skills/` and `hooks/`
 These three govern every edit, including edits to the guidelines themselves, so they are imported.
 `coding/general.md` carries the "defaults, not dogma" clause, so the exception rule arrives with it.
 
-`guidelines/project-setup/python-tooling.md`, `guidelines/project-setup/ide.md` and
-`guidelines/project-setup/claude-code.md` are triggered by files this repository does not have —
-no `pyproject.toml`, no `.vscode/`, no `.claude/settings.json`. Read one when you are editing it, and read the whole file:
+`guidelines/project-setup/ide.md` and `guidelines/project-setup/claude-code.md` are triggered
+by files this repository does not have — no `.vscode/`, no `.claude/settings.json`.
+`guidelines/project-setup/python-tooling.md` and `guidelines/project-setup/mise.md` do apply:
+`pyproject.toml` and `mise.toml` set up the environment `tools/` and `tests/` run in. Read one
+when you are editing what it governs, and read the whole file:
 these guidelines are mostly about failures that are silent, so the part you would have skipped
 is usually the part that names the failure.
 

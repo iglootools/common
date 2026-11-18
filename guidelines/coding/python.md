@@ -1,5 +1,27 @@
 # Python Guidelines
 
+<!-- toc -->
+**On this page**
+
+- [Functional Style](#functional-style)
+- [String Literals](#string-literals)
+- [Typing](#typing)
+- [Data Classes](#data-classes)
+- [Errors](#errors)
+- [Imports](#imports)
+- [Formatting](#formatting)
+- [Python Version](#python-version)
+- [Control Flow](#control-flow)
+- [Console Output](#console-output)
+- [Module Boundaries](#module-boundaries)
+- [Tests](#tests)
+- [Python Version Policy](#python-version-policy)
+  - [Why the latest, and only the latest](#why-the-latest-and-only-the-latest)
+  - [The knobs](#the-knobs)
+  - [Moving to a new release](#moving-to-a-new-release)
+  - [When a dependency lags](#when-a-dependency-lags)
+<!-- tocstop -->
+
 ## Functional Style
 
 - Avoid mutable accumulator lists (`errors = []; errors.append(...)`). Instead, build lists as single expressions using `[*(...), *(...)]` unpacking, conditional `[item] if cond else []` fragments, and helper functions that return lists.

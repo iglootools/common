@@ -4,6 +4,18 @@ Editor configuration. For the agent side — the Claude Code plugin set and how 
 symbols — see [claude-code.md](claude-code.md). For the toolchain the editor points at, see
 [python-tooling.md](python-tooling.md).
 
+<!-- toc -->
+**On this page**
+
+- [Pyright environment resolution](#pyright-environment-resolution)
+- [VSCode](#vscode)
+  - [Commit the extension set to `.vscode/extensions.json`](#commit-the-extension-set-to-vscodeextensionsjson)
+  - [Check the in-project venv into `.vscode/settings.json`](#check-the-in-project-venv-into-vscodesettingsjson)
+  - [Let `hverlin.mise-vscode` write the other tools' paths, but fence it in](#let-hverlinmise-vscode-write-the-other-tools-paths-but-fence-it-in)
+  - [Reload after changing interpreter or pyright settings](#reload-after-changing-interpreter-or-pyright-settings)
+  - [Multi-root workspaces](#multi-root-workspaces)
+<!-- tocstop -->
+
 ## Pyright environment resolution
 
 Pin the project's virtualenv in `pyproject.toml`, so pyright resolves third-party imports the same

@@ -6,6 +6,23 @@ easier to ship as than to describe, and the Claude Code plugin that delivers all
 
 Renamed from `common-guidelines`, which described only the first of those.
 
+<!-- toc -->
+**On this page**
+
+- [Contents](#contents)
+- [Applying these guidelines](#applying-these-guidelines)
+- [Usage with Claude Code](#usage-with-claude-code)
+  - [The plugin](#the-plugin)
+  - [Auditing](#auditing)
+  - [Install it per project, not per user](#install-it-per-project-not-per-user)
+  - [Pinned versions](#pinned-versions)
+  - [Releasing](#releasing)
+  - [Updating one project](#updating-one-project)
+  - [Updating every project](#updating-every-project)
+  - [The ones that load in every session](#the-ones-that-load-in-every-session)
+  - [Working on the guidelines themselves](#working-on-the-guidelines-themselves)
+<!-- tocstop -->
+
 ## Contents
 
 The rules themselves live in [**`guidelines/`**](guidelines/), split into
