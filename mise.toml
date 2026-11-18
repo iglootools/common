@@ -1,6 +1,7 @@
 [tools]
-python = "3.15.2"
+python = "3.14.10"
 uv = "0.13.7"
+shellcheck = "0.11.0"
 
 [env]
 # Pin uv to the interpreter mise installed, by absolute path: a bare version number does not
@@ -33,11 +34,13 @@ description = "Install dependencies"
 run = "mise deps install uv"
 
 [tasks.check]
-description = "Run all checks (format-check, lint, type-check, lock-check, lock-check-uv, toc-check)"
+description = "Run all checks (format-check, lint, lint-shell, type-check, boundaries-check, lock-check, lock-check-uv, toc-check)"
 run = [
   { task = "format-check" },
   { task = "lint" },
+  { task = "lint-shell" },
   { task = "type-check" },
+  { task = "boundaries-check" },
   { task = "lock-check" },
   { task = "lock-check-uv" },
   { task = "toc-check" },
@@ -58,7 +61,7 @@ run = [
 ]
 
 [tasks.test]
-description = "Run the tests for tools/"
+description = "Run the tests"
 # -n auto: the tests are isolated (tmp_path, plain values), so they parallelize cleanly.
 run = "uv run --no-sync pytest -n auto -v"
 
@@ -79,15 +82,27 @@ run = "uv run --no-sync ruff check ."
 description = "Run pyright type checking"
 run = "uv run --no-sync pyright"
 
+[tasks.lint-shell]
+description = "Lint the tracked shell scripts with shellcheck"
+run = "uv run --no-sync iglootools shell lint"
+
+[tasks.lock-check]
+description = "Check that mise.lock is up to date with mise.toml"
+run = "uv run --no-sync iglootools mise lock-check"
+
 # Asserts uv.lock is consistent with pyproject.toml. --check does not write.
 [tasks.lock-check-uv]
 description = "Check that uv.lock is up to date with pyproject.toml"
 run = "uv lock --check"
 
+[tasks.boundaries-check]
+description = "Check module boundaries (import-linter contracts in pyproject.toml)"
+run = "uv run --no-sync lint-imports"
+
 [tasks.toc]
 description = "Regenerate the tables of contents in the Markdown files"
-run = "uv run --no-sync python tools/markdown_toc.py"
+run = "uv run --no-sync iglootools docs toc"
 
 [tasks.toc-check]
 description = "Check that the Markdown tables of contents are up to date (fix with `mise run toc`)"
-run = "uv run --no-sync python tools/markdown_toc.py --check"
+run = "uv run --no-sync iglootools docs toc --check"

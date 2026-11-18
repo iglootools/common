@@ -12,6 +12,6 @@
 # of sharing .vscode/settings.json, which references them by path.
 .vscode/mise-tools/
 
-# The uv environment and Python bytecode for tools/ and tests/.
+# The uv environment and Python bytecode.
 .venv/
 __pycache__/

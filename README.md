@@ -49,6 +49,7 @@ they govern:
 | [`project-setup/repository.md`](guidelines/project-setup/repository.md) | `.gitignore`, setting up a new repository, repository rulesets and merge settings, the code of conduct and security policy |
 | [`project-setup/documentation.md`](guidelines/project-setup/documentation.md) | `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `docs/**` |
 | [`project-setup/pypi-publishing.md`](guidelines/project-setup/pypi-publishing.md) | the release and publish workflows, cutting a release |
+| [`project-setup/iglootools-cli.md`](guidelines/project-setup/iglootools-cli.md) | `[tool.iglootools]`, the `iglootools` pin, a task that calls `iglootools` |
 | [`project-setup/cli-demo.md`](guidelines/project-setup/cli-demo.md) | `demo/**`, the demo workflow and tasks |
 | [`project-setup/ide.md`](guidelines/project-setup/ide.md) | `.vscode/**`, `*.code-workspace`, `[tool.pyright]` |
 | [`project-setup/claude-code.md`](guidelines/project-setup/claude-code.md) | `.claude/settings.json` |
@@ -77,9 +78,10 @@ work. The rest of the repository supports the guidelines rather than stating any
 - [hooks/](hooks/) — the `SessionStart` hook that loads the always-on guidelines into every
   session, and the `PreToolUse` hook that reminds the user to run `audit-pr` before a pull
   request is opened, marked ready or merged.
-- [scripts/](scripts/) — reference implementations to copy into a project, for the few cases where
-  a guideline is easier to ship as working code than to describe. The guideline that motivates each
-  one links to it, and explains why every line is there.
+- [src/iglootools/](src/iglootools/) — the `iglootools` command, for the guidelines that are easier
+  to ship as working code than to describe: generated docs, build checks, the demo, the mise and
+  shell checks. Projects install it pinned to a release tag; see
+  [iglootools-cli.md](guidelines/project-setup/iglootools-cli.md).
 
 To change any of it, start from [CONTRIBUTING.md](CONTRIBUTING.md).
 

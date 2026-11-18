@@ -9,6 +9,7 @@ guidelines themselves are the reference.
 
 - [Getting started](#getting-started)
 - [Guidelines](#guidelines)
+- [The `iglootools` command](#the-iglootools-command)
 - [Understanding the repository](#understanding-the-repository)
 - [Reference](#reference)
 - [Repository settings](#repository-settings)
@@ -38,12 +39,20 @@ Each guideline file, `philosophy.md`, `README.md` and this file open with a tabl
 between `<!-- toc -->` and `<!-- tocstop -->`. Do not edit it by hand: after adding, renaming or
 removing a `##` or `###` heading, run `mise run toc` to regenerate every list.
 `mise run toc-check`, part of `check`, fails on a list that is out of date. To give a new file
-one, run `mise exec -- uv run --no-sync python tools/markdown_toc.py --add <file>`.
+one, run `mise run toc --add <file>`.
 
 The script's tests are in `tests/` and run with `mise run test`. The expected anchors in them
 come from [github-slugger](https://github.com/Flet/github-slugger), which reproduces GitHub's
 rules: when a heading's anchor seems wrong, compare against it again rather than editing the
 expected values.
+
+## The `iglootools` command
+
+The shared command lives in `src/iglootools/`, one package per domain (`docs`, `python`,
+`demo`, `mise`, `shell`), each with a `cli` module that is the only place it prints. Its tests
+are under `tests/`. How projects install, configure and pin it, and how to try a change against
+one of them before releasing, is in
+[guidelines/project-setup/iglootools-cli.md](guidelines/project-setup/iglootools-cli.md).
 
 ## Understanding the repository
 

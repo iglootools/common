@@ -1,20 +1,15 @@
-"""Keep the tables of contents in this repository's Markdown files up to date.
+"""Tables of contents in Markdown files, generated from their headings.
 
-A file opts in with a `<!-- toc -->` ... `<!-- tocstop -->` block; everything between
-the markers is regenerated from the file's `##` and `###` headings. `--add` puts an
-empty block before the first of those headings in a file that has none.
-
-    mise run toc                     # rewrite every block that is out of date
-    mise run toc-check               # list stale files and exit 1; changes nothing
-    mise exec -- uv run --no-sync python tools/markdown_toc.py --add <file>...
+A file opts in with a `<!-- toc -->` ... `<!-- tocstop -->` block; everything between the
+markers is regenerated from the file's `##` and `###` headings, with anchors that follow
+GitHub's rules.
 """
 
-import argparse
 import re
 import subprocess
-import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from itertools import accumulate, count, islice
 from pathlib import Path
 
@@ -118,7 +113,24 @@ def with_toc(markdown: str) -> str:
     return TOC_BLOCK.sub(lambda _: render_toc(headings(markdown)), markdown, count=1)
 
 
+class TocErrorKind(StrEnum):
+    NO_SECTIONS = "no-sections"
+
+
+class TocError(ValueError):
+    """A file the table of contents cannot be generated for."""
+
+    def __init__(self, kind: TocErrorKind, path: Path | None = None) -> None:
+        super().__init__(f"{kind}: {path}")
+        self.kind = kind
+        self.path = path
+
+
 def with_empty_block(markdown: str) -> str:
+    """Insert an empty block before the first `##` or `###` heading.
+
+    Raises TocError(NO_SECTIONS) when there is no such heading outside code blocks.
+    """
     lines = markdown.splitlines(keepends=True)
     visible = outside_fences([line.rstrip("\n") for line in lines])
     first = next(
@@ -130,12 +142,21 @@ def with_empty_block(markdown: str) -> str:
         None,
     )
     if first is None:
-        raise ValueError("no ## or ### heading to put a table of contents before")
+        raise TocError(TocErrorKind.NO_SECTIONS)
     block = f"{TOC_START}\n{TOC_END}\n\n"
     return "".join([*lines[:first], block, *lines[first:]])
 
 
+def add_block(path: Path) -> None:
+    """Give *path* an empty block; regenerate() fills it in."""
+    try:
+        path.write_text(with_empty_block(_read(path)), encoding="utf-8")
+    except TocError as error:
+        raise TocError(error.kind, path) from None
+
+
 def files_with_toc(root: Path) -> list[Path]:
+    """The Markdown files git tracks under *root* that carry a block."""
     tracked = subprocess.run(
         ["git", "ls-files", "-z", "--", "*.md"],
         cwd=root,
@@ -143,46 +164,20 @@ def files_with_toc(root: Path) -> list[Path]:
         capture_output=True,
         text=True,
     ).stdout.split("\0")
-    return [
-        root / name
-        for name in tracked
-        if name and TOC_START in (root / name).read_text()
-    ]
+    return [root / name for name in tracked if name and TOC_START in _read(root / name)]
 
 
 def stale(paths: Iterable[Path]) -> list[Path]:
-    return [p for p in paths if with_toc(p.read_text()) != p.read_text()]
+    return [p for p in paths if with_toc(_read(p)) != _read(p)]
 
 
-def main(argv: Sequence[str]) -> int:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--check", action="store_true", help="report stale files, change nothing"
-    )
-    mode.add_argument(
-        "--add", nargs="+", type=Path, metavar="FILE", help="add a block to FILE"
-    )
-    args = parser.parse_args(argv)
-    root = Path(__file__).resolve().parent.parent
-
-    for path in args.add or []:
-        path.write_text(with_empty_block(path.read_text()))
-    out_of_date = stale(files_with_toc(root))
-
-    if args.check:
-        for path in out_of_date:
-            print(f"stale table of contents: {path.relative_to(root)}")
-        if out_of_date:
-            print("Run `mise run toc` to regenerate.")
-        return 1 if out_of_date else 0
-    for path in out_of_date:
-        path.write_text(with_toc(path.read_text()))
-        print(f"updated {path.relative_to(root)}")
-    return 0
+def regenerate(paths: Iterable[Path]) -> list[Path]:
+    """Rewrite the out-of-date blocks among *paths*; returns the files it changed."""
+    changed = stale(paths)
+    for path in changed:
+        path.write_text(with_toc(_read(path)), encoding="utf-8")
+    return changed
 
 
-if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
