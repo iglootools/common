@@ -10,7 +10,6 @@ Renamed from `common-guidelines`, which described only the first of those.
 **On this page**
 
 - [Contents](#contents)
-- [Applying these guidelines](#applying-these-guidelines)
 - [Usage with Claude Code](#usage-with-claude-code)
 <!-- tocstop -->
 
@@ -55,8 +54,8 @@ to a workflow pulled the Renovate rules and the editor settings into context alo
 **Two things hold for every file above, which is why none of them repeats them.** The reasoning
 behind the rules is in [philosophy.md](philosophy.md). And every rule is a default: deviating is
 allowed wherever the deviation and its reasoning are documented, on the terms in
-[Applying these guidelines](#applying-these-guidelines) below — where an exception goes, the bar
-its rationale has to meet, and naming the condition that would retire it.
+[general.md › Documented Exceptions](guidelines/coding/general.md#documented-exceptions): where an
+exception goes, the bar its rationale has to meet, and naming the condition that would retire it.
 
 [Usage with Claude Code](#usage-with-claude-code) covers how that split is delivered. The rest of
 the repository supports the guidelines rather than stating any:
@@ -75,54 +74,6 @@ the repository supports the guidelines rather than stating any:
   [iglootools-cli.md](guidelines/project-setup/iglootools-cli.md).
 
 To change any of it, start from [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Applying these guidelines
-
-These are defaults, not dogma. A project or module is free to deviate from any rule here, or to
-add rules of its own, where there is good reason to — a performance constraint, an ecosystem
-convention, a third-party library limitation, a platform or version still supported —
-**provided the deviation and the reasoning behind it are documented**: project-wide ones in the
-project's `docs/guidelines.md`, local ones in a comment at the point of deviation.
-
-Divergence for a good, documented reason is fine. Drift without one is not.
-
-**A major reason to write the rationale down is so the exception can be re-evaluated later.**
-Almost every exception answers a condition that is true at the time: a library that lacks a
-feature, a performance constraint, an ecosystem convention, a platform or version still
-supported. Those conditions expire. When the library ships the feature, the bottleneck moves, or
-the version is dropped, a documented exception can be revisited and removed — an undocumented
-one silently becomes permanent, because nobody is left who remembers what it was working
-around. Undocumented exceptions are how a codebase accumulates rules that everyone follows and
-no one can explain.
-
-So where the exception depends on a condition, **name the condition that would make it
-unnecessary**, not just the reason it exists today. "Revisit when X supports Y" or "drop this
-once we no longer support Z" gives the exception an expiry criterion someone can actually check,
-instead of leaving a future reader to guess whether the justification still holds. The
-[Python version policy](guidelines/coding/python.md#python-version-policy) is the shape to copy: it records the
-constraint, what it costs, and the specific event that would retire it.
-
-**Where to document an exception** — put it where a reader will hit it, not in a separate log:
-
-- **Project-wide deviations** go in the project's `docs/guidelines.md`, stated against the rule
-  they override.
-- **Local or config-level deviations** go in a comment at the point of deviation — a
-  `[tool.ruff.lint] ignore` entry paired with the design decision that motivates it, a `# noqa`
-  with its reason beside it, a comment above the constraint in `pyproject.toml`.
-
-**The bar is a rationale a reviewer would accept**, not merely a note that the deviation exists.
-"We ignore this rule" is drift. "We ignore this rule because X, and here is what we do instead"
-is an exception. If the reason is "we have not gotten around to it", that is debt to track, not
-an exception to document.
-
-This applies to [philosophy.md](philosophy.md) as much as to the concrete rules, and is easier
-to neglect there: nothing fails when a principle is quietly dropped, whereas a rule at least has
-a file to be missing from. A project may reach a different conclusion about layering, error
-handling or event sourcing than the one argued there — the same standard covers it.
-
-The same standard applies between projects: two iglootools projects may legitimately differ, but
-the difference should be traceable to a decision someone made, not to one of them having quietly
-fallen behind.
 
 ## Usage with Claude Code
 

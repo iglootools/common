@@ -19,7 +19,7 @@ themselves are the reference, so `docs/` holds only how this repository is built
 Edits here follow [guidelines/coding/general.md](guidelines/coding/general.md),
 [guidelines/coding/python.md](guidelines/coding/python.md) and
 [guidelines/coding/git.md](guidelines/coding/git.md), like any other iglootools project.
-[Applying these guidelines](README.md#applying-these-guidelines) is the bar a documented
+[Documented Exceptions](guidelines/coding/general.md#documented-exceptions) is the bar a documented
 exception has to meet.
 
 ## Understanding the repository

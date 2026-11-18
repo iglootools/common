@@ -31,13 +31,12 @@ printf 'Shared across iglootools projects and delivered by the iglootools plugin
 printf 'govern every edit. Where the project documents a deviation in its own docs/guidelines.md\n'
 printf '(emitted at the end of this context when it exists), the project wins; undocumented\n'
 printf 'divergence is drift, not an override.\n\n'
-# The guideline files no longer repeat, one per file, that they are defaults and where the
-# reasoning lives. Stating it here is the always-on equivalent of stating it once in the
-# README, which a consumer session never sees.
+# The guideline files do not repeat, one per file, that they are defaults and where the
+# reasoning lives: stating it once here reaches every session.
 printf 'The reasoning behind these rules is in %s/philosophy.md, and the terms for departing\n' "$plugin_root"
-printf 'from one are in %s/README.md#applying-these-guidelines.\n\n' "$plugin_root"
+printf 'from one are in coding/general.md, Documented Exceptions, below.\n\n'
 # guidelines/, not the plugin root: these files sit one directory down, and a relative link such
-# as general.md's ../../README.md only resolves if you know that.
+# as general.md's ../../philosophy.md only resolves if you know that.
 printf 'These files live in %s/guidelines/coding/, where the relative links inside them resolve.\n\n' "$plugin_root"
 
 emit "$plugin_root/guidelines/coding/general.md"
