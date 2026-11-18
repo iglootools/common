@@ -1,7 +1,11 @@
 [project]
-name = "iglootools-common"
-description = "Maintenance tools for the iglootools shared guidelines repository"
-version = "0"
+name = "iglootools"
+description = "Shared build and documentation tools for iglootools projects"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+# One version for the plugin and the package: read from .claude-plugin/plugin.json below, so
+# a release bumps it in one place and the two can never disagree.
+dynamic = ["version"]
 # Floor is the same version as local development (mise.toml [tools] python); the upper
 # bound keeps the environment off an untested Python. See
 # guidelines/coding/python.md "Python Version Policy".
@@ -16,11 +20,45 @@ dev = [
   "pytest-xdist>=3.5.0,<4.0",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Not uv-dynamic-versioning, unlike nbkp and photree: the version is the plugin's, set by
+# hand in the release pull request, so there is no git-derived version and no 0.0.0
+# fallback for build-verify to guard against.
+[tool.hatch.version]
+path = ".claude-plugin/plugin.json"
+pattern = '"version": "(?P<version>[^"]+)"'
+
+# Explicit rather than hatchling's <NAME>/__init__.py heuristic, which misses a src layout
+# silently and builds an empty wheel.
+[tool.hatch.build.targets.wheel]
+packages = ["src/iglootools"]
+
+# Hatchling's sdist default is every file git does not ignore: the guidelines, skills and
+# workflows. Projects install from git, which builds from the source tree, so the sdist only
+# needs the package.
+[tool.hatch.build.targets.sdist]
+only-include = ["src/iglootools", ".claude-plugin/plugin.json"]
+
 [tool.uv]
-# Not a package: nothing here is built or published, so there is no build backend, no
-# VCS-derived version and none of the build guards guidelines/project-setup/python-tooling.md
-# asks of a published project. uv only manages the environment the tools run in.
-package = false
+# Replaces the default [{ file = "pyproject.toml" }]: the version lives in plugin.json, so
+# without it a version bump leaves the editable install reporting the old one.
+cache-keys = [{ file = "pyproject.toml" }, { file = ".claude-plugin/plugin.json" }]
+
+# uv.lock does not resolve PEP 517 build dependencies, so these constraints are the only pin
+# on the build backend. Regenerate with:
+#   printf '%s\n' hatchling | uv pip compile - --no-annotate --no-header --quiet
+# [build-system].requires is left unpinned so the two can never contradict each other.
+build-constraint-dependencies = [
+  "hatchling==1.33.0",
+  "packaging==26.3",
+  "pathspec==1.1.1",
+  "pluggy==1.7.0",
+  "tomlkit==0.15.2",
+  "trove-classifiers==2026.9.21.13",
+]
 
 [tool.ruff]
 target-version = "py315"
@@ -37,8 +75,6 @@ extend-select = ["RUF100", "TID251"]
 "pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (guidelines/coding/general.md, Mocks)."
 
 [tool.pytest.ini_options]
-# Not an installed package yet, so the tests import it from src/.
-pythonpath = ["src"]
 testpaths = ["tests"]
 
 [tool.pyright]
@@ -48,5 +84,3 @@ include = ["src", "tests"]
 # language servers resolve imports against it, since they inherit no shell activation.
 venvPath = "."
 venv = ".venv"
-# The tests import the package the way pytest's pythonpath does.
-extraPaths = ["src"]

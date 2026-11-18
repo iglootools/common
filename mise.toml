@@ -86,8 +86,8 @@ run = "uv lock --check"
 
 [tasks.toc]
 description = "Regenerate the tables of contents in the Markdown files"
-run = "uv run --no-sync python src/iglootools/docs/toc.py"
+run = "uv run --no-sync python -m iglootools.docs.toc"
 
 [tasks.toc-check]
 description = "Check that the Markdown tables of contents are up to date (fix with `mise run toc`)"
-run = "uv run --no-sync python src/iglootools/docs/toc.py --check"
+run = "uv run --no-sync python -m iglootools.docs.toc --check"

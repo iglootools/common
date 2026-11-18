@@ -6,7 +6,7 @@ empty block before the first of those headings in a file that has none.
 
     mise run toc                     # rewrite every block that is out of date
     mise run toc-check               # list stale files and exit 1; changes nothing
-    mise exec -- uv run --no-sync python src/iglootools/docs/toc.py --add <file>...
+    mise exec -- uv run --no-sync python -m iglootools.docs.toc --add <file>...
 """
 
 import argparse
