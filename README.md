@@ -58,7 +58,8 @@ work. The rest of the repository supports the guidelines rather than stating any
   a branch or the whole codebase. None restates guidance of its own.
 - [agents/](agents/) — the `auditor` agent the audit skills start, several at a time.
 - [hooks/](hooks/) — the `SessionStart` hook that loads the always-on guidelines into every
-  session.
+  session, and the `PreToolUse` hook that reminds the user to run `audit-pr` before a pull
+  request is opened, marked ready or merged.
 - [scripts/](scripts/) — reference implementations to copy into a project, for the few cases where
   a guideline is easier to ship as working code than to describe. The guideline that motivates each
   one links to it, and explains why every line is there.
