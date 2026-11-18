@@ -90,7 +90,7 @@ silent, so the part that looks skippable is usually the part that names the fail
 
 | Read | When the change touches |
 |---|---|
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Python building, packaging and dependencies, `uv.lock`, the import-linter setup, the patching checks (ruff `TID251`, the failing `monkeypatch` fixture), the Python settings in `mise.toml` (`[deps.uv]`, the `python` and `uv` pins), or the Python task set. Adding a dependency counts wherever the edit lands. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Python building, packaging and dependencies, `uv.lock`, the import-linter setup, the dead-code check, the patching checks (ruff `TID251`, the failing `monkeypatch` fixture), the Python settings in `mise.toml` (`[deps.uv]`, the `python` and `uv` pins), or the Python task set. Adding a dependency counts wherever the edit lands. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/mise.md` | `mise.toml`, anything under `mise-tasks/`, `mise.lock`, or a shell script, in any project. Adding or changing a mise task counts wherever the edit lands. Read it *with* `python-tooling.md` when the edit is to a Python project's mise settings. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |

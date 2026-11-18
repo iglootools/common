@@ -41,7 +41,7 @@ they govern:
 
 | Read when a change reaches it | Triggered by |
 |---|---|
-| [`project-setup/python-tooling.md`](guidelines/project-setup/python-tooling.md) | `pyproject.toml` (including the import-linter setup), the Python settings in `mise.toml`, `uv.lock`, the Python version policy |
+| [`project-setup/python-tooling.md`](guidelines/project-setup/python-tooling.md) | `pyproject.toml` (including the import-linter and dead-code checks), the Python settings in `mise.toml`, `uv.lock`, the Python version policy |
 | [`project-setup/mise.md`](guidelines/project-setup/mise.md) | `mise.toml`, `mise-tasks/**`, `mise.lock`, a shell script, adding a mise task |
 | [`project-setup/workflows.md`](guidelines/project-setup/workflows.md) | `.github/workflows/**` |
 | [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
