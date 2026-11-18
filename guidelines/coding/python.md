@@ -66,8 +66,10 @@ the same way:
 - A result is `<Subject>Result`; a plan a decider returns is `<Subject>Plan`; configuration a
   user writes is `<Subject>Config`.
 - An exception is `<Subject>Error`, and only an exception is: an enum listing kinds of problems
-  is `<Subject>ErrorKind` (or `WarningKind`), never `<Subject>Error`. The exception carries that
-  kind ([Errors](#errors)).
+  is never `<Subject>Error`. It is `<Subject>ErrorKind` for a problem found before an operation
+  runs (a missing volume, an invalid config), `<Subject>FailureKind` for how an operation that
+  ran went wrong (`MountFailureKind`), and `<Subject>WarningKind` for one that does not stop it.
+  The exception carries that kind ([Errors](#errors)).
 - Enums subclass `StrEnum`, not `(str, Enum)`. Their values are stable tokens, kebab-case or a
   single lowercase word (`"no-metadata"`, `"mounted"`), never prose: the value is data that
   scripts match on, and the sentence a user reads is rendered at the edge
