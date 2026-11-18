@@ -47,7 +47,7 @@ they govern:
 | [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
 | [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, and the repository settings both depend on |
 | [`project-setup/repository.md`](guidelines/project-setup/repository.md) | `.gitignore`, setting up a new repository, repository rulesets and merge settings, the code of conduct and security policy |
-| [`project-setup/documentation.md`](guidelines/project-setup/documentation.md) | `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `docs/**` |
+| [`project-setup/documentation.md`](guidelines/project-setup/documentation.md) | `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, `docs/**` |
 | [`project-setup/pypi-publishing.md`](guidelines/project-setup/pypi-publishing.md) | the release and publish workflows, cutting a release |
 | [`project-setup/iglootools-cli.md`](guidelines/project-setup/iglootools-cli.md) | `[tool.iglootools]`, the `iglootools` pin, a task that calls `iglootools` |
 | [`project-setup/cli-demo.md`](guidelines/project-setup/cli-demo.md) | `demo/**`, the demo workflow and tasks |
@@ -324,9 +324,9 @@ be indistinguishable from one that does not apply.
 ### Working on the guidelines themselves
 
 This repository does not consume its own plugin: `${CLAUDE_PLUGIN_ROOT}` would resolve to the
-installed copy rather than the file being edited. Its [CLAUDE.md](CLAUDE.md) imports
-`coding/general.md`, `coding/python.md` and `coding/git.md` directly instead, which needs no
-plugin at all.
+installed copy rather than the file being edited. Its [AGENTS.md](AGENTS.md) points every agent
+at `coding/general.md`, `coding/python.md` and `coding/git.md` directly instead, and its
+`CLAUDE.md` imports them, which needs no plugin at all.
 
 To work on the plugin, load it from the working tree without installing it, which is what makes
 `${CLAUDE_PLUGIN_ROOT}` resolve here:
