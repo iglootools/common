@@ -15,6 +15,7 @@ def test_defaults_come_from_the_project_name(tmp_path: Path) -> None:
     project = load_project(write_pyproject(tmp_path, '[project]\nname = "my-tool"\n'))
     assert project.package == "my_tool"
     assert project.docs.cli_module == "my_tool.cli"
+    assert project.docs.cli_name == "my-tool"
     assert project.docs.cli_reference == tmp_path / "docs/cli-reference.md"
     assert project.docs.architecture == tmp_path / "docs/architecture.md"
     assert project.docs.depgraph_exclude == ()

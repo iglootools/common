@@ -5,6 +5,7 @@ from typing import Annotated
 import typer
 
 from iglootools.cliwiring import display_path, invocation, project, say, warn
+from iglootools.docs import clidocs
 from iglootools.docs import depgraph as depgraphs
 from iglootools.docs import toc as tocs
 
@@ -161,3 +162,45 @@ def depgraph(
         say(f"Updated the Module Overview in {shown}")
     else:
         say(f"The Module Overview in {shown} is already up to date.")
+
+
+@app.command("cli")
+def cli_reference(
+    ctx: typer.Context,
+    check: Annotated[
+        bool,
+        typer.Option(
+            "--check",
+            help="Exit 1 if the CLI reference is out of date; change nothing.",
+        ),
+    ] = False,
+) -> None:
+    """Regenerate the CLI reference from the project's Typer app.
+
+    Runs `typer <cli-module> utils docs` in the project's environment, so the module must
+    be importable there.
+    """
+    proj = project(ctx)
+    document = proj.docs.cli_reference
+    shown = display_path(document, proj.root)
+    try:
+        expected = clidocs.generate(
+            clidocs.typer_docs_command(proj.docs.cli_module, proj.docs.cli_name)
+        )
+    except clidocs.ClidocsError as error:
+        warn(f"typer utils docs failed for {proj.docs.cli_module}:\n{error.detail}")
+        raise typer.Exit(1) from None
+    current = document.read_text(encoding="utf-8") if document.exists() else ""
+
+    if check:
+        if current != expected:
+            warn(f"The CLI reference in {shown} is out of date.")
+            warn("Run `iglootools docs cli` to regenerate.")
+            raise typer.Exit(1)
+        say(f"The CLI reference in {shown} is up to date.")
+    elif current != expected:
+        document.parent.mkdir(parents=True, exist_ok=True)
+        document.write_text(expected, encoding="utf-8")
+        say(f"Updated {shown}")
+    else:
+        say(f"{shown} is already up to date.")

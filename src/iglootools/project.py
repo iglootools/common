@@ -8,6 +8,7 @@ Every setting has a default that fits nbkp and photree, so a project only writes
 
     [tool.iglootools.docs]
     cli-module = "nbkp.cli"                     # default: <package>.cli
+    cli-name = "nbkp"                           # default: [project] name
     cli-reference = "docs/cli-reference.md"
     architecture = "docs/architecture.md"
     depgraph-exclude = ["nbkp.templates"]       # default: none
@@ -48,6 +49,8 @@ class ProjectError(ValueError):
 @dataclass(frozen=True)
 class DocsSettings:
     cli_module: str
+    cli_name: str
+    """The program name the CLI reference documents."""
     cli_reference: Path
     architecture: Path
     depgraph_exclude: tuple[str, ...]
@@ -84,8 +87,9 @@ def load_project(root: Path) -> Project:
     project_table: dict[str, Any] = pyproject.get("project", {})
     tool: dict[str, Any] = pyproject.get("tool", {})
     settings: dict[str, Any] = tool.get("iglootools", {})
-    package = _string(settings, "package", path, None) or _import_name(
-        project_table, path
+    name = _project_name(project_table, path)
+    package = (
+        _string(settings, "package", path, None) or re.sub(r"[-.]+", "_", name).lower()
     )
     return Project(
         root=root,
@@ -99,24 +103,25 @@ def load_project(root: Path) -> Project:
             ),
         ),
         fallback_version=tool.get("uv-dynamic-versioning", {}).get("fallback-version"),
-        docs=_docs_settings(settings.get("docs", {}), root, package, path),
+        docs=_docs_settings(settings.get("docs", {}), root, package, name, path),
         demo=_demo_settings(settings.get("demo", {}), root, path),
     )
 
 
-def _import_name(project_table: dict[str, Any], path: Path) -> str:
+def _project_name(project_table: dict[str, Any], path: Path) -> str:
     match project_table.get("name"):
         case str(name) if name:
-            return re.sub(r"[-.]+", "_", name).lower()
+            return name
         case _:
             raise ProjectError(ProjectErrorKind.NO_PROJECT_NAME, path)
 
 
 def _docs_settings(
-    table: dict[str, Any], root: Path, package: str, path: Path
+    table: dict[str, Any], root: Path, package: str, name: str, path: Path
 ) -> DocsSettings:
     return DocsSettings(
         cli_module=_string(table, "cli-module", path, f"{package}.cli"),
+        cli_name=_string(table, "cli-name", path, name),
         cli_reference=root
         / _string(table, "cli-reference", path, "docs/cli-reference.md"),
         architecture=root
