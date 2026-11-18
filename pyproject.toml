@@ -1,0 +1,47 @@
+[project]
+name = "iglootools-common"
+description = "Maintenance tools for the iglootools shared guidelines repository"
+version = "0"
+# Floor is the same version as local development (mise.toml [tools] python); the upper
+# bound keeps the environment off an untested Python. See
+# guidelines/coding/python.md "Python Version Policy".
+requires-python = ">=3.15,<3.16"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "ruff>=0.17,<0.18",
+  "pyright>=1.1,<2.0",
+  "pytest>=9.2.0,<10.0",
+  "pytest-xdist>=3.5.0,<4.0",
+]
+
+[tool.uv]
+# Not a package: nothing here is built or published, so there is no build backend, no
+# VCS-derived version and none of the build guards guidelines/project-setup/python-tooling.md
+# asks of a published project. uv only manages the environment the tools run in.
+package = false
+
+[tool.ruff]
+target-version = "py315"
+
+[tool.ruff.lint]
+# TID251: tests inject fakes through parameters instead of patching
+# (guidelines/coding/general.md, Mocks). unittest.mock is banned, and so is
+# pytest.MonkeyPatch: tests/conftest.py replaces the monkeypatch fixture with one that
+# fails. RUF100 reports a noqa that is no longer needed.
+extend-select = ["RUF100", "TID251"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"unittest.mock".msg = "Inject a fake through a parameter instead of patching (guidelines/coding/general.md, Mocks)."
+"pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (guidelines/coding/general.md, Mocks)."
+
+[tool.pyright]
+pythonVersion = "3.15"
+include = ["tools", "tests"]
+# uv creates the project venv at .venv; restating it here is what lets editors and
+# language servers resolve imports against it, since they inherit no shell activation.
+venvPath = "."
+venv = ".venv"
+# The tests import the tools the way pytest's pythonpath does.
+extraPaths = ["tools"]
