@@ -6,10 +6,13 @@ license-files = ["LICENSE"]
 # One version for the plugin and the package: read from .claude-plugin/plugin.json below, so
 # a release bumps it in one place and the two can never disagree.
 dynamic = ["version"]
-# Floor is the same version as local development (mise.toml [tools] python); the upper
-# bound keeps the environment off an untested Python. See
-# guidelines/coding/python.md "Python Version Policy".
-requires-python = ">=3.15,<3.16"
+# Documented exception to guidelines/coding/python.md "Python Version Policy": a range, not
+# one version, because the package installs into each consumer's environment, and photree is
+# held on 3.14 by onnxruntime (no cp315 wheels). The floor is what mise.toml develops and CI
+# tests on, and what ruff and pyright target, so nothing newer than 3.14 slips in; nbkp runs
+# it on 3.15. Narrow to ">=3.15,<3.16", and move the three other pins, when photree moves to
+# 3.15.
+requires-python = ">=3.14,<3.16"
 dependencies = [
   "typer>=0.27.0,<1.0.0",
   # Imported directly for console output, not only through typer, so its major is bounded
@@ -74,7 +77,7 @@ build-constraint-dependencies = [
 ]
 
 [tool.ruff]
-target-version = "py315"
+target-version = "py314"
 
 [tool.ruff.lint]
 # TID251: tests inject fakes through parameters instead of patching
@@ -91,7 +94,7 @@ extend-select = ["RUF100", "TID251"]
 testpaths = ["tests"]
 
 [tool.pyright]
-pythonVersion = "3.15"
+pythonVersion = "3.14"
 include = ["src", "tests"]
 # uv creates the project venv at .venv; restating it here is what lets editors and
 # language servers resolve imports against it, since they inherit no shell activation.
