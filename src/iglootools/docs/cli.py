@@ -1,9 +1,11 @@
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from iglootools.cliwiring import display_path, invocation, say, warn
+from iglootools.cliwiring import display_path, invocation, project, say, warn
+from iglootools.docs import depgraph as depgraphs
 from iglootools.docs import toc as tocs
 
 app = typer.Typer(
@@ -70,3 +72,92 @@ def toc(
             say(f"Updated {display_path(path, root)}")
         if not changed:
             say(f"{len(files)} table(s) of contents already up to date.")
+
+
+class GraphFormat(StrEnum):
+    MERMAID = "mermaid"
+    ASCII = "ascii"
+
+
+def _describe_depgraph_error(error: depgraphs.DepgraphError, document: str) -> str:
+    match error.kind:
+        case depgraphs.DepgraphErrorKind.GRAPHVIZ_MISSING:
+            return (
+                "graphviz is not installed; pydeps needs its `dot`.\n"
+                "  macOS:  brew install graphviz\n"
+                "  Linux:  apt install graphviz"
+            )
+        case depgraphs.DepgraphErrorKind.PACKAGE_NOT_FOUND:
+            return (
+                f"Package {error.detail} is not importable here. Run iglootools in the "
+                "project's environment (uv run), or set [tool.iglootools] package."
+            )
+        case depgraphs.DepgraphErrorKind.PYDEPS_FAILED:
+            return f"pydeps failed:\n{error.detail}"
+        case depgraphs.DepgraphErrorKind.MARKERS_MISSING:
+            return (
+                f"{document} has no Module Overview markers. Add these two lines where "
+                f"the section goes:\n  {depgraphs.BEGIN_MARKER}\n  {depgraphs.END_MARKER}"
+            )
+
+
+@app.command()
+def depgraph(
+    ctx: typer.Context,
+    check: Annotated[
+        bool,
+        typer.Option(
+            "--check",
+            help="Exit 1 if the Module Overview is out of date; change nothing.",
+        ),
+    ] = False,
+    fmt: Annotated[
+        GraphFormat | None,
+        typer.Option("--format", "-f", help="Print the graph in this format instead."),
+    ] = None,
+) -> None:
+    """Regenerate the Module Overview graph in the architecture document from pydeps.
+
+    Needs graphviz installed, and runs in the project's environment so that pydeps can
+    import the package.
+    """
+    proj = project(ctx)
+    document = proj.docs.architecture
+    shown = display_path(document, proj.root)
+    try:
+        package_dir = depgraphs.package_directory(proj.package)
+        excludes = [
+            *proj.docs.depgraph_exclude,
+            *depgraphs.third_party_imports(proj.requirements),
+        ]
+        dot = depgraphs.run_pydeps(depgraphs.pydeps_command(package_dir, excludes))
+        mermaid = depgraphs.to_mermaid(
+            depgraphs.parse_dot(dot),
+            is_package=lambda label: (package_dir / label / "__init__.py").exists(),
+        )
+        match fmt:
+            case GraphFormat.MERMAID:
+                say(mermaid)
+                return
+            case GraphFormat.ASCII:
+                say(depgraphs.to_ascii(mermaid))
+                return
+            case None:
+                pass
+        current = document.read_text(encoding="utf-8") if document.exists() else ""
+        expected = depgraphs.splice(current, depgraphs.module_overview(mermaid))
+    except depgraphs.DepgraphError as error:
+        warn(_describe_depgraph_error(error, shown))
+        raise typer.Exit(1) from None
+
+    if check:
+        if current != expected:
+            warn(f"The Module Overview in {shown} is out of date.")
+            warn("Run `iglootools docs depgraph` to regenerate.")
+            raise typer.Exit(1)
+        say(f"The Module Overview in {shown} is up to date.")
+    elif current != expected:
+        document.write_text(expected, encoding="utf-8")
+        say(f"Updated the Module Overview in {shown}")
+    else:
+        say(f"The Module Overview in {shown} is already up to date.")

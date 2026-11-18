@@ -4,6 +4,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from iglootools.project import Project, ProjectError, ProjectErrorKind, load_project
+
 console = Console(highlight=False)
 err_console = Console(stderr=True, highlight=False)
 
@@ -40,3 +42,27 @@ def say(text: str) -> None:
 
 def warn(text: str) -> None:
     err_console.print(text, markup=False, soft_wrap=True)
+
+
+def project(ctx: typer.Context) -> Project:
+    """The project under --root, or exit 1 saying what is wrong with its pyproject.toml."""
+    root = invocation(ctx).root
+    try:
+        return load_project(root)
+    except ProjectError as error:
+        warn(_describe_project_error(error, root))
+        raise typer.Exit(1) from None
+
+
+def _describe_project_error(error: ProjectError, root: Path) -> str:
+    where = display_path(error.path, root)
+    match error.kind:
+        case ProjectErrorKind.NO_PYPROJECT:
+            return f"{where} not found. Run iglootools from the project root, or pass --root."
+        case ProjectErrorKind.NO_PROJECT_NAME:
+            return (
+                f"{where} has no [project] name. Set [tool.iglootools] package to the "
+                "import name of the project's package."
+            )
+        case ProjectErrorKind.INVALID_SETTING:
+            return f"{where}: {error.setting} in [tool.iglootools] has the wrong type."
