@@ -34,6 +34,7 @@ dev = [
   "pytest>=9.2.0,<10.0",
   "pytest-xdist>=3.5.0,<4.0",
   "import-linter>=2.15,<3.0",
+  "deadcode>=2.7.0,<3.0",
 ]
 
 [build-system]
@@ -118,3 +119,14 @@ name = "Only the CLI modules use the shared CLI wiring"
 type = "protected"
 protected_modules = ["iglootools.cliwiring"]
 allowed_importers = ["iglootools.cli", "iglootools.*.cli"]
+
+# Unused code, enforced by `mise run dead-code-check` (part of `check`). Each entry is code
+# that runs without being named in the project, so the scan cannot see it used.
+[tool.deadcode]
+ignore-names-if-decorated-with = [
+  "@*.command", "@*.callback", # Typer registers commands by decorator
+  "@pytest.fixture",           # pytest injects fixtures by parameter name
+]
+ignore-names = [
+  "main", # the [project.scripts] entry point
+]
