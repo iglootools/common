@@ -10,7 +10,15 @@ dynamic = ["version"]
 # bound keeps the environment off an untested Python. See
 # guidelines/coding/python.md "Python Version Policy".
 requires-python = ">=3.15,<3.16"
-dependencies = []
+dependencies = [
+  "typer>=0.27.0,<1.0.0",
+  # Imported directly for console output, not only through typer, so its major is bounded
+  # here rather than left to whatever typer allows.
+  "rich>=14.0,<15.0",
+]
+
+[project.scripts]
+iglootools = "iglootools.cli:main"
 
 [dependency-groups]
 dev = [
@@ -18,6 +26,7 @@ dev = [
   "pyright>=1.1,<2.0",
   "pytest>=9.2.0,<10.0",
   "pytest-xdist>=3.5.0,<4.0",
+  "import-linter>=2.15,<3.0",
 ]
 
 [build-system]
@@ -84,3 +93,21 @@ include = ["src", "tests"]
 # language servers resolve imports against it, since they inherit no shell activation.
 venvPath = "."
 venv = ".venv"
+
+# Module boundaries, enforced by `mise run boundaries-check` (part of `check`). The core
+# modules return data and raise structured errors; only the cli modules present them.
+[tool.importlinter]
+root_package = "iglootools"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Only the CLI modules use Typer and Rich"
+type = "protected"
+protected_modules = ["typer", "rich"]
+allowed_importers = ["iglootools.cli", "iglootools.cliwiring", "iglootools.*.cli"]
+
+[[tool.importlinter.contracts]]
+name = "Only the CLI modules use the shared CLI wiring"
+type = "protected"
+protected_modules = ["iglootools.cliwiring"]
+allowed_importers = ["iglootools.cli", "iglootools.*.cli"]

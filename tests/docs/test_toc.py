@@ -142,8 +142,9 @@ def test_add_puts_the_block_before_the_first_listed_heading() -> None:
 
 
 def test_add_refuses_a_file_without_sections() -> None:
-    with pytest.raises(ValueError, match="no ## or ### heading"):
+    with pytest.raises(markdown_toc.TocError) as raised:
         markdown_toc.with_empty_block("# Title only\n\n```\n## In code\n```\n")
+    assert raised.value.kind == markdown_toc.TocErrorKind.NO_SECTIONS
 
 
 def test_stale_reports_only_files_whose_toc_is_out_of_date(tmp_path: Path) -> None:

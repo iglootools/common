@@ -33,11 +33,12 @@ description = "Install dependencies"
 run = "mise deps install uv"
 
 [tasks.check]
-description = "Run all checks (format-check, lint, type-check, lock-check, lock-check-uv, toc-check)"
+description = "Run all checks (format-check, lint, type-check, boundaries-check, lock-check, lock-check-uv, toc-check)"
 run = [
   { task = "format-check" },
   { task = "lint" },
   { task = "type-check" },
+  { task = "boundaries-check" },
   { task = "lock-check" },
   { task = "lock-check-uv" },
   { task = "toc-check" },
@@ -84,10 +85,14 @@ run = "uv run --no-sync pyright"
 description = "Check that uv.lock is up to date with pyproject.toml"
 run = "uv lock --check"
 
+[tasks.boundaries-check]
+description = "Check module boundaries (import-linter contracts in pyproject.toml)"
+run = "uv run --no-sync lint-imports"
+
 [tasks.toc]
 description = "Regenerate the tables of contents in the Markdown files"
-run = "uv run --no-sync python -m iglootools.docs.toc"
+run = "uv run --no-sync iglootools docs toc"
 
 [tasks.toc-check]
 description = "Check that the Markdown tables of contents are up to date (fix with `mise run toc`)"
-run = "uv run --no-sync python -m iglootools.docs.toc --check"
+run = "uv run --no-sync iglootools docs toc --check"
