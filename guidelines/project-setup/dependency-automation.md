@@ -6,16 +6,61 @@ The workflow that regenerates `mise.lock` and `uv.lock` on Renovate branches is 
 
 - `renovate.json`: group all dependency updates into a single PR, delay
   updates by 14 days (`minimumReleaseAge`) to avoid adopting broken
-  releases and limit risk of supply chain attacks
+  releases and limit risk of supply chain attacks. The shared rules come from
+  [the presets in iglootools/common](#extend-the-shared-renovate-presets).
 
 <!-- toc -->
 **On this page**
 
+- [Extend the shared Renovate presets](#extend-the-shared-renovate-presets)
 - [Committing `renovate.json` does not turn Renovate on](#committing-renovatejson-does-not-turn-renovate-on)
 - [Turn on the dependency graph, alerts and security updates](#turn-on-the-dependency-graph-alerts-and-security-updates)
 - [Split Renovate and Dependabot by job, not by ecosystem](#split-renovate-and-dependabot-by-job-not-by-ecosystem)
 - [Give every copy of a pin the same datasource](#give-every-copy-of-a-pin-the-same-datasource)
 <!-- tocstop -->
+
+### Extend the shared Renovate presets
+
+The rules every iglootools project needs live once, as presets in
+[iglootools/common](https://github.com/iglootools/common/tree/main/renovate):
+
+| Preset | Holds |
+|---|---|
+| `renovate/base` | `helpers:pinGitHubActionDigests`, the 14-day `minimumReleaseAge` with `timestamp-optional`, and the custom manager for the mise version pinned in workflows |
+| `renovate/python` | the custom manager for `[tool.uv] build-constraint-dependencies` |
+
+A project extends them pinned to the release tag, and keeps only what is its own: its grouping
+and schedule, its holds, and its own custom managers.
+
+```json
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "github>iglootools/common//renovate/base#v<version>",
+    "github>iglootools/common//renovate/python#v<version>"
+  ],
+  "separateMajorMinor": false,
+  "packageRules": [
+    {
+      "groupName": "all dependencies",
+      "matchManagers": ["*"],
+      "schedule": ["at any time"],
+      "automerge": false
+    }
+  ],
+  "dependencyDashboard": true
+}
+```
+
+- **Pin the tag**, for the same reason the shared workflows are pinned: an unpinned preset
+  changes every project's dependency updates at once, with no diff in any of them. Move the
+  pin with the rest of the iglootools pins when a release lands.
+- **A key the project sets overrides the preset's**, and arrays such as `customManagers` and
+  `packageRules` are concatenated. Add a project's own manager or hold in its `renovate.json`;
+  never copy a preset's entry, which would run it twice.
+- `config:recommended` and grouping stay in the project because they differ: one project
+  extends a framework's preset with `group:all` instead.
 
 ### Committing `renovate.json` does not turn Renovate on
 

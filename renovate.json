@@ -1,43 +1,16 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "description": [
-        "Dependencies: the actions in .github/workflows (including those inside the reusable workflows every other iglootools project calls), the tools pinned in mise.toml and locked in mise.lock, the dev dependencies in pyproject.toml locked in uv.lock, and the mise version pinned in test.yml and renovate-mise-lock.yml.",
-        "helpers:pinGitHubActionDigests keeps the digest pinning in .github/workflows self-enforcing. Every `uses:` there is pinned to a commit SHA with the tag kept in a trailing comment; without this preset a newly added action written as `@v1` would silently stay unpinned and the sweep would decay one workflow at a time. It ships in config:best-practices rather than config:recommended, so it has to be listed here.",
-        "minimumReleaseAgeBehaviour: timestamp-optional is what stops those digest pins from freezing. minimumReleaseAge applies to digest updates too, and when Renovate cannot date one it treats it as pending forever under the default timestamp-required. That covers the `pin` updates this config invites: pinning a newly added `@v1` ref carries no release timestamp of its own, so under the default it would stay pending indefinitely and the pin would never land.",
-        "The custom manager reads the `# renovate:` marker above each literal `version:` input of jdx/mise-action, which the github-actions manager does not read. It is keyed on the marker rather than on `version:` alone, which would also match other actions' inputs. The reusable workflows' `version: ${{ inputs.version }}` carries no marker: each caller pins it in its own repository. mise.lock is regenerated on Renovate branches by renovate-mise-lock.yml, since Renovate's runner has no mise.",
-        "[tool.uv] build-constraint-dependencies pins the hatchling build closure, which uv.lock does not resolve and no built-in manager reads. The two matchStrings run under the recursive strategy: the first isolates the array, the second captures every pin in it; a single anchored regex extracts only the first. Renovate does not re-lock for a regex manager's bump, so renovate-mise-lock.yml runs uv lock on the branch."
+        "Dependencies: the actions in .github/workflows (including those inside the reusable workflows every other iglootools project calls), the tools pinned in mise.toml and locked in mise.lock, the dependencies in pyproject.toml locked in uv.lock, the hatchling build constraints, and the mise version pinned in the workflows.",
+        "The shared rules come from this repository's own presets, renovate/base.json and renovate/python.json, which every iglootools project extends pinned to a release tag. This repository extends them with local>, which reads them from the default branch, so a change to a preset is exercised here once merged rather than at the next release, as check-links.yml does with the shared workflow.",
+        "mise.lock and uv.lock are regenerated on Renovate branches by renovate-mise-lock.yml, since Renovate's runner has no mise and does not re-lock for a regex manager's bump."
     ],
     "extends": [
         "config:recommended",
-        "helpers:pinGitHubActionDigests"
+        "local>iglootools/common//renovate/base",
+        "local>iglootools/common//renovate/python"
     ],
-    "minimumReleaseAge": "14 days",
-    "minimumReleaseAgeBehaviour": "timestamp-optional",
     "separateMajorMinor": false,
-    "customManagers": [
-        {
-            "customType": "regex",
-            "managerFilePatterns": [
-                "/^\\.github/workflows/.+\\.ya?ml$/"
-            ],
-            "matchStrings": [
-                "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+version: (?<currentValue>\\S+)"
-            ],
-            "extractVersionTemplate": "^v?(?<version>.+)$"
-        },
-        {
-            "customType": "regex",
-            "managerFilePatterns": [
-                "/pyproject.toml/"
-            ],
-            "matchStrings": [
-                "build-constraint-dependencies = \\[[^\\]]*\\]",
-                "\"(?<depName>[a-zA-Z0-9._-]+)==(?<currentValue>[^\"]+)\""
-            ],
-            "matchStringsStrategy": "recursive",
-            "datasourceTemplate": "pypi"
-        }
-    ],
     "packageRules": [
         {
             "groupName": "all dependencies",

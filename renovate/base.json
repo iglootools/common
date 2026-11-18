@@ -1,0 +1,22 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "description": [
+        "Shared by every iglootools project: extend it as github>iglootools/common//renovate/base#v<version>. Grouping and schedules stay in each project, since they differ (config:recommended with one group in most, Nuxt's preset with group:all in alberta-hiking-resources). The reasoning is in guidelines/project-setup/dependency-automation.md and workflows.md.",
+        "helpers:pinGitHubActionDigests keeps every `uses:` pinned to a commit SHA with the tag in a trailing comment; without it a newly added `@v1` would silently stay unpinned. It ships in config:best-practices rather than config:recommended, so it is listed here.",
+        "minimumReleaseAge holds updates 14 days, to avoid adopting broken releases and to limit supply-chain attacks. timestamp-optional is what stops digest pins from freezing: an update Renovate cannot date, such as pinning a newly added `@v1`, would otherwise stay pending forever."
+    ],
+    "extends": ["helpers:pinGitHubActionDigests"],
+    "minimumReleaseAge": "14 days",
+    "minimumReleaseAgeBehaviour": "timestamp-optional",
+    "customManagers": [
+        {
+            "description": "jdx/mise-action's `version:` input pins the mise CLI that CI runs. Renovate's github-actions manager reads no action inputs, so without this the pin would rot silently. Keyed on the `# renovate:` marker rather than on `version:` alone, which would catch every other action's input; mise tags releases vYYYY.M.PATCH, and extractVersionTemplate drops the v the input does not take.",
+            "customType": "regex",
+            "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+version: (?<currentValue>\\S+)"
+            ],
+            "extractVersionTemplate": "^v?(?<version>.+)$"
+        }
+    ]
+}

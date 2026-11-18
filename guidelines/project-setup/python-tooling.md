@@ -87,6 +87,9 @@ matched. That fails quietly, since Renovate keeps updating one dependency and th
 closure looks maintained. In photree it extracted one of ten pins, and it went unnoticed in
 two iglootools projects until an audit.
 
+The shared `python` Renovate preset carries this entry, so extend it rather than copying the
+entry ([dependency-automation.md](dependency-automation.md#extend-the-shared-renovate-presets)).
+
 That entry only gets the bump halfway. `uv.lock` does not resolve the build closure, but it does
 record the constraints themselves, in its `[manifest]`, and Renovate regenerates the lock only for
 dependencies its built-in managers extracted. A regex-manager bump therefore arrives with
