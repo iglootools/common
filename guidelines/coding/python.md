@@ -6,6 +6,7 @@
 - [Functional Style](#functional-style)
 - [String Literals](#string-literals)
 - [Typing](#typing)
+- [Naming](#naming)
 - [Data Classes](#data-classes)
 - [Errors](#errors)
 - [Imports](#imports)
@@ -35,6 +36,80 @@
 ## Typing
 
 Use type annotations for all functions and methods, including return types. Use `pyright` for static type checking.
+
+## Naming
+
+The Python form of [Naming](general.md#naming) in general.md: PEP 8 casing (`snake_case`
+functions, modules and variables, `CamelCase` classes, `UPPER_SNAKE` constants and enum
+members), and a leading `_` for anything private to its module. A model read from or written
+to a file a user edits keeps snake_case fields and maps them to kebab keys through Pydantic's
+`alias_generator`, not with an alias per field.
+
+**Machine-readable output** (JSON, CSV headers) uses snake_case keys, the fields' own names, so
+a consumer can write `.failure_reason` in `jq` or `row["album_id"]` without quoting. A command
+that echoes configuration back (`config show`) keeps the configuration's own kebab keys.
+
+**Modules and packages.** A package is named after the slice of the domain it owns, in the
+domain's own noun (`disks/`, `album/`). Layers inside it keep fixed names, so every package reads
+the same way:
+
+| Name | Holds |
+|---|---|
+| `cli/` | the Typer commands, one per `<command>_cmd.py` |
+| `output.py` / `output/` | presentation: turning results into text, tables or JSON |
+| `protocol.py` / `protocol/` | an on-disk or wire format (not `typing.Protocol`) |
+| `models.py` | the domain's data types, when they outgrow the module that uses them |
+| `testkit.py` / `testkit/` | factories and sample values the tests share |
+
+**Classes.**
+
+- A result is `<Subject>Result`; a plan a decider returns is `<Subject>Plan`; configuration a
+  user writes is `<Subject>Config`.
+- An exception is `<Subject>Error`, and only an exception is: an enum listing kinds of problems
+  is `<Subject>ErrorKind` (or `WarningKind`), never `<Subject>Error`. The exception carries that
+  kind ([Errors](#errors)).
+- Enums subclass `StrEnum`, not `(str, Enum)`. Their values are stable tokens, kebab-case or a
+  single lowercase word (`"no-metadata"`, `"mounted"`), never prose: the value is data that
+  scripts match on, and the sentence a user reads is rendered at the edge
+  ([Presentation at the Edges](general.md#presentation-at-the-edges)).
+- A `typing.Protocol` is named by the role it plays (`VolumeCommandRunner`, `ConvertFile`); a
+  callable type alias ends in `Fn` (`PromptFn`, `WhichFn`). Write aliases with `type X = ...`.
+- A test double is `Fake<Thing>` when it is a class and `fake_<thing>()` when it is a factory.
+
+**Functions.** The verb says what the caller gets back:
+
+| Verb | Means |
+|---|---|
+| `load_` / `save_` | read or write a persisted file as a model |
+| `read_` / `write_` | read or write raw content |
+| `parse_` | text to a value, raising on malformed input |
+| `resolve_` | derive a value from configuration or the environment |
+| `find_` / `scan_` / `discover_` | search the filesystem |
+| `build_` | assemble a structure from parts |
+| `compute_` | a pure calculation |
+| `check_` | run a check and return its result, without raising for a failed check |
+| `validate_` | raise when input is invalid |
+| `require_` | raise, or exit at the CLI, when a precondition is missing |
+| `plan_` / `classify_` | a decider: plain values in, a decision out |
+| `format_` | return the text for a value; never prints |
+| `print_` | print; only in `cli/` modules |
+| `is_` / `has_` | a boolean predicate |
+
+- `_or_exit` marks a CLI helper that exits the process on failure, and only those.
+- A Typer command function is `<command>_cmd` (`detect_faces_cmd`), so it never shadows a
+  builtin or the domain function it calls (`mount`, `run`). A Typer sub-app is `app` in its own
+  module, which the code that mounts it reads as `<scope>.app`; it is `<scope>_app` only where
+  the module name does not already say which app it is, such as several apps in one module.
+- An option two commands share is an `Annotated` constant named `<NAME>_OPTION` in one module.
+
+**Parameters.** A boolean field or flag uses the word the CLI option uses (`dry_run`, `force`);
+a negative one starts with `skip_`. A collection is a plural noun, and a mapping `<values>_by_<key>`.
+A directory is `<name>_dir`, any other path `<name>_path`. An injected seam is named for what it
+does (`run`, `which`, `now`), a callback `on_<event>`, and a function parameter `<role>_fn`.
+
+**Tests.** `test_<module>.py` files mirror the package. Tests are grouped in `Test<Subject>`
+classes, and each test name states the behaviour: `test_<subject>_<outcome>[_when_<condition>]`
+(`test_failed_open_is_not_kept`).
 
 ## Data Classes
 

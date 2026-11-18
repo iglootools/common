@@ -17,6 +17,7 @@
 - [Mocks](#mocks)
 - [Presentation at the Edges](#presentation-at-the-edges)
 - [Version Management](#version-management)
+- [Naming](#naming)
 - [Command Line](#command-line)
 - [Testability](#testability)
 - [No Silent Failures](#no-silent-failures)
@@ -166,6 +167,19 @@ See [Presentation at the edges](../../philosophy.md#presentation-at-the-edges) f
   example: `uv.lock` does not cover PEP 517 build dependencies, and no built-in Renovate or
   Dependabot manager parses that field, so those pins rot silently unless a custom manager is
   added for them. A pin nothing updates is a pin nothing tells you about.
+
+## Naming
+
+Names follow what the reader already knows: the domain's vocabulary, then the conventions of the
+surface the name appears on. The Python layer is in [python.md](python.md#naming).
+
+- **kebab-case on every surface a user types**: CLI commands, sub-commands and long options,
+  configuration keys, user-defined slugs, mise tasks, and file names under `docs/`.
+- **A duration uses the language's duration type.** Where there is none, the name ends with its
+  unit (seconds, milliseconds), so a bare timeout does not leave the reader to guess.
+- **Abbreviate only what the domain abbreviates**, and list those abbreviations in the project's
+  `docs/domain.md` glossary (`ms` for media source, `src`/`dst`). An abbreviation nobody
+  defined is a word the next reader has to reverse-engineer.
 
 ## Command Line
 
