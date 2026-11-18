@@ -52,15 +52,25 @@ Neither works from an isolated tool environment.
 
 A project without Python, such as a site or an infrastructure repository, runs the commands that
 do not need its environment (`shell lint`, `mise lock-check`) through uvx, with uv pinned in
-`[tools]`:
+`[tools]` and the release named once, in `[env]`:
 
 ```toml
+[tools]
+uv = "0.13.7"
+
+[env]
+# renovate: datasource=github-tags depName=iglootools/common
+IGLOOTOOLS_VERSION = "v1.24.0"
+IGLOOTOOLS = "uvx --from git+https://github.com/iglootools/common@{{ env.IGLOOTOOLS_VERSION }} iglootools"
+
 [tasks.lint-shell]
 description = "Lint the tracked shell scripts with shellcheck"
-run = "uvx --from git+https://github.com/iglootools/common@v1.24.0 iglootools shell lint"
+run = "$IGLOOTOOLS shell lint"
 ```
 
-uv caches the build, so only the first run after a pin moves builds anything.
+The `# renovate:` comment is what keeps the version current: the shared `base` preset reads it,
+since no built-in manager reads `[env]`. Without it the version is a pin nothing updates. uv
+caches the build, so only the first run after the version moves builds anything.
 
 ## Call it from one-line mise tasks
 

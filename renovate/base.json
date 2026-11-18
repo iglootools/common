@@ -5,18 +5,32 @@
         "helpers:pinGitHubActionDigests keeps every `uses:` pinned to a commit SHA with the tag in a trailing comment; without it a newly added `@v1` would silently stay unpinned. It ships in config:best-practices rather than config:recommended, so it is listed here.",
         "minimumReleaseAge holds updates 14 days, to avoid adopting broken releases and to limit supply-chain attacks. timestamp-optional is what stops digest pins from freezing: an update Renovate cannot date, such as pinning a newly added `@v1`, would otherwise stay pending forever."
     ],
-    "extends": ["helpers:pinGitHubActionDigests"],
+    "extends": [
+        "helpers:pinGitHubActionDigests"
+    ],
     "minimumReleaseAge": "14 days",
     "minimumReleaseAgeBehaviour": "timestamp-optional",
     "customManagers": [
         {
             "description": "jdx/mise-action's `version:` input pins the mise CLI that CI runs. Renovate's github-actions manager reads no action inputs, so without this the pin would rot silently. Keyed on the `# renovate:` marker rather than on `version:` alone, which would catch every other action's input; mise tags releases vYYYY.M.PATCH, and extractVersionTemplate drops the v the input does not take.",
             "customType": "regex",
-            "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+            "managerFilePatterns": [
+                "/^\\.github/workflows/.+\\.ya?ml$/"
+            ],
             "matchStrings": [
                 "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+version: (?<currentValue>\\S+)"
             ],
             "extractVersionTemplate": "^v?(?<version>.+)$"
+        },
+        {
+            "description": "A version a mise.toml names outside [tools], such as the iglootools release a project without Python runs through uvx, set in [env] under a `# renovate: datasource=… depName=…` comment. No built-in manager reads [env], so without this the pin would rot silently.",
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)mise\\.toml$/"
+            ],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+[A-Z0-9_]+ = \"(?<currentValue>[^\"]+)\""
+            ]
         }
     ]
 }
