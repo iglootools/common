@@ -127,7 +127,12 @@ class TocError(ValueError):
 
 
 def with_empty_block(markdown: str) -> str:
-    """Insert an empty block before the first `##` or `###` heading.
+    """Insert an empty block before the first `##` or `###` heading, and above any HTML
+    comments directly on top of it.
+
+    A comment there is usually the BEGIN marker of a generated section, such as depgraph's
+    Module Overview; a block placed under it would sit inside the section, and the next
+    regeneration would delete it.
 
     Raises TocError(NO_SECTIONS) when there is no such heading outside code blocks.
     """
@@ -143,8 +148,15 @@ def with_empty_block(markdown: str) -> str:
     )
     if first is None:
         raise TocError(TocErrorKind.NO_SECTIONS)
+    comments_above = next(
+        i for i in range(first, -1, -1) if i == 0 or not _is_comment(visible[i - 1])
+    )
     block = f"{TOC_START}\n{TOC_END}\n\n"
-    return "".join([*lines[:first], block, *lines[first:]])
+    return "".join([*lines[:comments_above], block, *lines[comments_above:]])
+
+
+def _is_comment(line: str) -> bool:
+    return line.lstrip().startswith("<!--")
 
 
 def add_block(path: Path) -> None:
