@@ -50,6 +50,10 @@ jobs:
     uses: iglootools/common/.github/workflows/reusable-check-links.yml@<sha> # v<version>
 ```
 
+The workflow keeps one report open at a time: a run that finds broken links updates the open
+issue with the caller's `issue-title`, or files one when there is none, and a run that finds
+none closes it. So an open report is always current, and closing one by hand is safe.
+
 Four things about that stub are load-bearing:
 
 - **Pin the `uses:` ref to a full commit SHA, with the version in a trailing comment**, for the
