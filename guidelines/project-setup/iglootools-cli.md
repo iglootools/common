@@ -74,7 +74,7 @@ run = "uv run --no-sync iglootools docs depgraph --check"
 ```
 
 A task that only calls one command needs no file under `mise-tasks/`. Arguments after the task
-name reach the command: `mise run toc --add docs/new.md`.
+name reach the command: `mise run toc --add docs/new.md`, with `--add` repeated for each file.
 
 ## Configure it in `[tool.iglootools]`, only where the defaults do not fit
 
