@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 
 from iglootools.cliwiring import display_path, project, say, warn
-from iglootools.python import verifyversion
+from iglootools.python import environment, verifyversion
 
 app = typer.Typer(
     help="Build and check a Python project managed with uv.", no_args_is_help=True
@@ -70,3 +70,47 @@ def verify_version(
             "(fetch-depth: 0, fetch-tags: true)."
         )
         raise typer.Exit(1)
+
+
+def _failed(error: environment.EnvironmentCommandError) -> typer.Exit:
+    warn(f"{' '.join(error.command)} failed with exit status {error.status}.")
+    return typer.Exit(1)
+
+
+@app.command()
+def build(ctx: typer.Context) -> None:
+    """Build the sdist and wheel into an emptied dist/.
+
+    Check the result with `iglootools python verify-version`.
+    """
+    proj = project(ctx)
+    try:
+        built = environment.build(proj.root)
+    except environment.EnvironmentCommandError as error:
+        raise _failed(error) from None
+    for path in built:
+        say(f"Built {display_path(path, proj.root)}")
+
+
+@app.command()
+def clean(ctx: typer.Context) -> None:
+    """Delete build/, dist/, *.egg-info and Python bytecode outside .venv."""
+    root = project(ctx).root
+    artifacts = environment.build_artifacts(root)
+    environment.remove(artifacts)
+    say(f"Removed {len(artifacts)} build artifact(s).")
+
+
+@app.command()
+def reinstall(ctx: typer.Context) -> None:
+    """Delete .venv and reinstall the locked dependencies from scratch.
+
+    Only needed for an environment changed by hand, such as with `uv pip install`; mise
+    already re-syncs whenever uv.lock or pyproject.toml changes.
+    """
+    proj = project(ctx)
+    try:
+        environment.reinstall(proj.root)
+    except environment.EnvironmentCommandError as error:
+        raise _failed(error) from None
+    say("Reinstalled .venv from uv.lock.")
