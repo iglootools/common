@@ -1,0 +1,19 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "description": [
+        "For iglootools Python projects, on top of base: extend it as github>iglootools/common//renovate/python#v<version>. See guidelines/project-setup/python-tooling.md, Pin the build backend explicitly."
+    ],
+    "customManagers": [
+        {
+            "description": "[tool.uv] build-constraint-dependencies pins the PEP 517 build backend closure, which uv.lock does not resolve and no built-in manager reads. The two matchStrings run under the recursive strategy: the first isolates the array, the second captures every pin in it; a single anchored regex extracts only the first. Renovate does not re-lock for a regex manager's bump, so the shared renovate-mise-lock workflow runs uv lock on the branch.",
+            "customType": "regex",
+            "managerFilePatterns": ["/pyproject.toml/"],
+            "matchStrings": [
+                "build-constraint-dependencies = \\[[^\\]]*\\]",
+                "\"(?<depName>[a-zA-Z0-9._-]+)==(?<currentValue>[^\"]+)\""
+            ],
+            "matchStringsStrategy": "recursive",
+            "datasourceTemplate": "pypi"
+        }
+    ]
+}

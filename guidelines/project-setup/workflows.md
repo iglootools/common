@@ -109,7 +109,9 @@ Renovate and Dependabot.
   ```
 
   `extractVersionTemplate` is what reconciles the two spellings: mise tags releases `vYYYY.M.PATCH`
-  while the action's input wants the bare version.
+  while the action's input wants the bare version. The shared `base` Renovate preset carries this
+  entry, so extend it rather than copying the entry
+  ([dependency-automation.md](dependency-automation.md#extend-the-shared-renovate-presets)).
 
 - **Prefer tools whose mise backend is lockable.** Check with `mise registry <tool>`: a backend
   such as `aqua:` records per-platform URLs and checksums in `mise.lock`, while `vfox:` records
