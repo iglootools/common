@@ -16,6 +16,11 @@ guidelines themselves are the reference.
 
 ## Getting started
 
+Install [mise](https://mise.jdx.dev/), then run `mise install` in the repository. It installs
+the pinned Python and uv, and the first `mise run` creates `.venv` with the dev dependencies.
+`mise run check-all` runs every check and test, which is what the `test` workflow runs on each
+pull request; `mise tasks` lists the rest.
+
 - [CLAUDE.md](CLAUDE.md) — loading the plugin from the working tree, validating it, and running
   the `SessionStart` hook by hand
 - [README.md#usage-with-claude-code](README.md#usage-with-claude-code) — how the skill and the hook
@@ -28,6 +33,17 @@ Edits here follow [guidelines/coding/general.md](guidelines/coding/general.md),
 [guidelines/coding/git.md](guidelines/coding/git.md), like any other iglootools project.
 [README.md#applying-these-guidelines](README.md#applying-these-guidelines) is the bar a documented
 exception has to meet.
+
+Each guideline file, `philosophy.md`, `README.md` and this file open with a table of contents
+between `<!-- toc -->` and `<!-- tocstop -->`. Do not edit it by hand: after adding, renaming or
+removing a `##` or `###` heading, run `mise run toc` to regenerate every list.
+`mise run toc-check`, part of `check`, fails on a list that is out of date. To give a new file
+one, run `mise exec -- uv run --no-sync python tools/markdown_toc.py --add <file>`.
+
+The script's tests are in `tests/` and run with `mise run test`. The expected anchors in them
+come from [github-slugger](https://github.com/Flet/github-slugger), which reproduces GitHub's
+rules: when a heading's anchor seems wrong, compare against it again rather than editing the
+expected values.
 
 ## Understanding the repository
 
