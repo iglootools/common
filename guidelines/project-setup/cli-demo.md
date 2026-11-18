@@ -151,8 +151,10 @@ for no reader: the README embeds the copy on asciinema.org, and CI keeps the one
 
 ### Record the demo in CI on every release
 
-`.github/workflows/demo.yml` runs `mise run ci-demo-record` and uploads the cast as the
-`demo-recording` artifact, retained 90 days.
+`.github/workflows/demo.yml` calls the shared `reusable-demo.yml`
+([shared-workflows.md](shared-workflows.md#call-the-shared-demo-recorder)), which runs
+`mise run ci-demo-record` and uploads the cast as the `demo-recording` artifact, retained 90
+days.
 
 - **Triggers:** `push` of a `v*` tag, `workflow_run` on the `release` workflow completing,
   `workflow_dispatch` and `repository_dispatch`. The `workflow_run` trigger is not redundant with

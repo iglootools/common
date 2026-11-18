@@ -1,0 +1,81 @@
+name: reusable-demo
+
+# Records an iglootools project's asciinema demo on CI and keeps the cast as an artifact, for
+# a developer to publish with `iglootools demo upload` (guidelines/project-setup/cli-demo.md).
+# The caller keeps its triggers (the release's completion, version tags, dispatch), its
+# concurrency group, the `contents: read` grant and the mise version; this holds the steps.
+#
+# Publishing from CI is not done: GitHub-hosted runners cannot reach asciinema.org over either
+# address family (IPv6 has no route; the single A record times out at the TCP level while
+# answering from outside CI), and each attempt burned about two minutes of SYN retries before
+# failing an otherwise successful release.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: >-
+          mise version for jdx/mise-action, pinned by the caller to the version its mise.lock
+          was generated with. Named `version` so the caller's Renovate custom manager, which
+          matches a `# renovate:` marker followed by a literal `version:` line, keeps it
+          current.
+        type: string
+        required: true
+      apt-packages:
+        description: >-
+          System packages the demo needs beyond mise's tools, installed with apt-get: pv for
+          demo-magic's simulated typing, plus whatever the session itself calls.
+        type: string
+        default: pv
+      artifact:
+        description: Name of the artifact holding the cast, read by `iglootools demo upload`.
+        type: string
+        default: demo-recording
+      cast:
+        description: Path of the recorded cast.
+        type: string
+        default: demo/demo.cast
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # workflow_run fires whether the release succeeded or failed; record only after a success.
+    # The `github` context here is the caller's, so this sees the caller's event.
+    if: >-
+      github.event.workflow_run.conclusion == 'success'
+      || github.event_name != 'workflow_run'
+    permissions:
+      # Checkout only: upload-artifact authenticates with the runner's own token.
+      contents: read
+    env:
+      MISE_EXPERIMENTAL: true
+      UV_LOCKED: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # The demo is titled with the installed, git-derived version.
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5
+        with:
+          version: ${{ inputs.version }}
+      - name: Install system packages
+        env:
+          APT_PACKAGES: ${{ inputs.apt-packages }}
+        run: |
+          read -ra packages <<< "$APT_PACKAGES"
+          sudo apt-get update
+          sudo apt-get install -y "${packages[@]}"
+      - name: Record demo
+        run: mise run ci-demo-record
+      # Also on failure: the cast is the only record of what went wrong inside the session.
+      # `iglootools demo upload` only publishes from successful runs.
+      - name: Upload the recording
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ inputs.artifact }}
+          path: ${{ inputs.cast }}
+          if-no-files-found: error
+          retention-days: 90
