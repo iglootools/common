@@ -36,6 +36,11 @@ extend-select = ["RUF100", "TID251"]
 "unittest.mock".msg = "Inject a fake through a parameter instead of patching (guidelines/coding/general.md, Mocks)."
 "pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (guidelines/coding/general.md, Mocks)."
 
+[tool.pytest.ini_options]
+# The tools are scripts, not an installed package, so the tests import them from tools/.
+pythonpath = ["tools"]
+testpaths = ["tests"]
+
 [tool.pyright]
 pythonVersion = "3.15"
 include = ["tools", "tests"]

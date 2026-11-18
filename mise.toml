@@ -33,14 +33,27 @@ description = "Install dependencies"
 run = "mise deps install uv"
 
 [tasks.check]
-description = "Run all checks (format-check, lint, type-check, lock-check, lock-check-uv)"
+description = "Run all checks (format-check, lint, type-check, lock-check, lock-check-uv, toc-check)"
 run = [
   { task = "format-check" },
   { task = "lint" },
   { task = "type-check" },
   { task = "lock-check" },
   { task = "lock-check-uv" },
+  { task = "toc-check" },
 ]
+
+[tasks.check-all]
+description = "Run all checks and tests"
+run = [
+  { task = "check" },
+  { task = "test" },
+]
+
+[tasks.test]
+description = "Run the tests for tools/"
+# -n auto: the tests are isolated (tmp_path, plain values), so they parallelize cleanly.
+run = "uv run --no-sync pytest -n auto -v"
 
 [tasks.format]
 description = "Format code with ruff (rewrites files; see format-check to verify only)"
@@ -63,3 +76,11 @@ run = "uv run --no-sync pyright"
 [tasks.lock-check-uv]
 description = "Check that uv.lock is up to date with pyproject.toml"
 run = "uv lock --check"
+
+[tasks.toc]
+description = "Regenerate the tables of contents in the Markdown files"
+run = "uv run --no-sync python tools/markdown_toc.py"
+
+[tasks.toc-check]
+description = "Check that the Markdown tables of contents are up to date (fix with `mise run toc`)"
+run = "uv run --no-sync python tools/markdown_toc.py --check"
