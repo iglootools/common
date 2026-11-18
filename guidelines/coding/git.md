@@ -1,131 +1,100 @@
 # Git Guidelines
 
-A branch's commits are written for the person reviewing them, and after that for whoever reads
-the history. Pull requests merge with a merge commit
+Pull requests merge with a merge commit
 ([repository.md](../project-setup/repository.md#merge-pull-requests-with-a-merge-commit)), so
-every commit on the branch lands on `main` as it is and stays there for `git log`, `git blame`
-and `git bisect`. That means the branch is reviewed, and kept, one commit at a time. It should
-read as the clearest sequence of steps to the final change, not as a record of how the author
-got there. See [Small, reviewable changes](../../philosophy.md#small-reviewable-changes) for the
-reasoning.
+every commit on a branch lands on `main` as it is, for `git log`, `git blame` and `git bisect`.
+A branch is therefore reviewed and kept one commit at a time, and should read as the clearest
+sequence of steps to the final change, not as a record of how the author got there. See
+[Small, reviewable changes](../../philosophy.md#small-reviewable-changes) for the reasoning.
 
 ## Keep refactoring apart from behaviour changes
 
-- A commit either changes behaviour or restructures code without changing it. It never does
-  both. A reviewer checks a refactoring for one thing: that nothing changed, which the
-  unchanged tests confirm. A reviewer reads a behaviour change line by line, so it has to be
-  small. Mix the two and the behaviour change is hidden among a hundred renamed lines.
-- Mechanical changes go in their own commits: renames, moves, formatting, regenerated files,
-  lock file updates. Put the command that produced the change in the message (`ruff format`,
-  `uv lock --upgrade-package httpx`), so the reviewer can run it again instead of reading the
-  diff.
+- A commit either changes behaviour or restructures code, never both. A refactoring is checked
+  only for the absence of change, which the unchanged tests confirm. A behaviour change is read
+  line by line. Mixed together, the behaviour change hides among a hundred renamed lines.
+- Mechanical changes (renames, moves, formatting, regenerated files, lock file updates) get
+  their own commits, with the command that produced them in the message (`ruff format`,
+  `uv lock --upgrade-package httpx`) so the reviewer can re-run it instead of reading the diff.
 - Put the preparatory refactoring first, then the change it makes easy.
-- Ideally each commit builds and passes the checks on its own, so that `git bisect` stops on a
-  commit that means something. That is a goal, not a hard rule, and readability wins when the
-  two conflict. Sometimes a commit that leaves the build broken makes the change easier to
-  follow. For example, one commit changes an interface and the next updates its callers, where
-  combining them would bury the interface change under the call sites. In that case keep the
-  split, and say in the message that the build is broken until the next commit, so whoever
-  bisects knows to `git bisect skip` it.
-- If you fix something unrelated to the pull request's intent along the way, give the fix its
-  own commit. If it needs its own discussion, give it its own pull request.
+- Aim for every commit to build and pass the checks, so `git bisect` stops somewhere
+  meaningful. Readability wins when the two conflict: an interface change in one commit and its
+  callers in the next can be clearer than both together. Say in the message that the build is
+  broken until the next commit, so whoever bisects knows to `git bisect skip` it.
+- A fix made along the way that is unrelated to the pull request gets its own commit, or its
+  own pull request if it needs its own discussion.
 
 ## Fold rework into the commit it corrects
 
-- The branch shows each step as it finally is, not the way you got there. A bug fixed later in
-  the branch, a decision reversed, a name improved after the fact: each one is folded into the
-  commit that introduced the code. Otherwise the reviewer, reading commit by commit, reviews
-  code that a later commit deletes.
-- Feedback goes through the same process, whether it comes from a tool or a person: the
-  linter, the type checker, a failing test, CI, a review comment. A branch has no
-  `fix lint`, `fix tests` or `address review` commits for problems the branch introduced. The
-  exception is feedback that asks for a genuinely new step ("also handle the empty case"). That
-  becomes a commit of its own, placed where it belongs in the sequence.
-- Fold a fix only into a commit that owns the problem, meaning the commit introduced it. A move,
-  rename or extraction carries existing code along, and the problems come with it: a lint
-  finding that appears because the file now sits where the linter looks, a type error on a line
-  the diff touched only to re-indent it. The commit did not create these. Fixing them inside it
-  turns a mechanical commit the reviewer could check by re-running a command into one they
-  have to read line by line. Give the cleanup a commit of its own (`style:`, `refactor:`), with
-  the moved code untouched in the move commit. The test is whether the problem already exists
-  at the base: run the same check there, or look at the line with `git blame <base>`.
-- Prefer to put that cleanup *before* the move, done in place. Then the move stays purely
-  mechanical, and each commit still passes the checks that the moved location triggers. If the
-  problem only becomes visible after the move, put the cleanup right after it.
-- This overrides the default of adding a new commit for every change, including when an agent
-  is the one committing. Until the branch is merged, its history is a draft.
-- Mechanics: `git commit --fixup=<sha>` records the correction, and
-  `git rebase --autosquash <base>` folds it into its target. Since Git 2.44 this works without
-  `-i`, so it also runs where no interactive editor is available. For the latest commit,
-  `git commit --amend --no-edit` does the same in one step. `--fixup=amend:<sha>` also rewrites
-  the target's message, for when the correction changes what the commit does.
-- Push the rewritten branch with `git push --force-with-lease`, which refuses to overwrite
-  commits you have not seen. Rewriting a feature branch is expected, and the default-branch
-  ruleset keeps `main` itself out of reach. Rewrite only branches you own. If someone else has
-  built on the branch, coordinate with them first.
-- Rewriting does not take away the reviewer's view of what changed since their last look:
-  GitHub links each force-push in the timeline to a comparison. Before you push,
-  `git range-diff @{upstream}...HEAD` shows the same thing commit by commit. When you push in
-  answer to a review, reply on the pull request with what changed.
-- Bring in new commits from `main` by rebasing onto it, not by merging `main` into the branch.
-  A merge from `main` puts a commit in the branch that is not a step of the change.
-- When branches are stacked, rebase with `--update-refs` (Git 2.38+), so a fold into a lower
-  branch also moves every branch stacked on it. Push each branch that moved.
+- A bug fixed later in the branch, a decision reversed, a name improved: each is folded into
+  the commit that introduced the code, so the reviewer never reads code a later commit deletes.
+  Until the branch is merged, its history is a draft. This overrides the habit of adding a new
+  commit for every change, for agents as much as for people.
+- Feedback is folded the same way, from a linter, type checker, test, CI or reviewer: no
+  `fix lint`, `fix tests` or `address review` commits for problems the branch introduced.
+  Feedback that asks for a genuinely new step ("also handle the empty case") becomes its own
+  commit, placed where it belongs in the sequence.
+- Fold a fix only into the commit that introduced the problem. A move, rename or extraction
+  carries existing problems along: a lint finding that appears because the file now sits where
+  the linter looks, a type error on a re-indented line. Fixing them inside it turns a commit
+  the reviewer could check by re-running a command into one they must read line by line. Give
+  the cleanup its own commit (`style:`, `refactor:`), preferably *before* the move, done in
+  place, or right after it if the problem only shows up there. To tell which case it is, run
+  the same check at the base, or `git blame <base>` the line.
+- Mechanics: `git commit --fixup=<sha>`, then `git rebase --autosquash <base>` (no `-i` needed
+  since Git 2.44). `git commit --amend --no-edit` for the latest commit; `--fixup=amend:<sha>`
+  when the correction also changes the target's message. With stacked branches, add
+  `--update-refs` (Git 2.38+) so every branch above moves too, and push each one.
+- Push with `git push --force-with-lease`, which refuses to overwrite commits you have not
+  seen. Rewrite only branches you own; coordinate with anyone who built on yours. The reviewer
+  keeps their view of what changed: GitHub links each force-push to a comparison, and
+  `git range-diff @{upstream}...HEAD` shows it commit by commit before you push. After pushing
+  in answer to a review, say on the pull request what changed.
 
 ## Merge with a merge commit, not a squash or a rebase
 
+The repository ruleset enforces merge commits
+([repository.md](../project-setup/repository.md#merge-pull-requests-with-a-merge-commit)).
+Squash and rebase merges write new commits, so the reviewed ones never reach `main`, which
+breaks three things:
 
-By default a pull request lands with a merge commit. The repository ruleset enforces this
-([repository.md](../project-setup/repository.md#merge-pull-requests-with-a-merge-commit)). A
-squash merge or a rebase merge writes new commits, so the commits that were reviewed never
-reach `main`, and three things break:
-- **History.** A merge keeps every reviewed commit and records where the branch joined.
-  `git log --first-parent` still reads as one entry per pull request, so the summary is always
-  available. A squash throws away the individual steps for good, and every `blame` and `bisect`
-  after that lands on one large commit.
-- **Deleting branches safely.** After a merge, the branch's commits are part of `main`, so
-  `git branch -d` deletes the branch and `git branch --merged` lists it. After a squash or
-  rebase merge, Git sees the branch as unmerged. Cleaning up then takes `git branch -D`, which
-  deletes just as readily a branch that really does hold unmerged work.
-- **Stacked pull requests.** Suppose a pull request is based on another branch. Once the lower
-  branch is merged, the upper pull request's base moves to `main` and its diff stays the same:
-  the lower commits are already in `main`, under the same hashes. After a squash merge, those
-  commits exist in `main` only as one copy with a new hash, so the upper branch still carries
-  the originals. Its diff then shows the lower change a second time, and rebasing it brings
-  conflicts with the copy.
+- **History.** A merge keeps every reviewed commit, and `git log --first-parent` still reads as
+  one entry per pull request. A squash leaves `blame` and `bisect` one large commit for good.
+- **Safe branch deletion.** After a merge, `git branch -d` and `git branch --merged` see the
+  branch as merged. After a squash, only `git branch -D` deletes it, and that deletes a branch
+  with real unmerged work just as readily.
+- **Stacked pull requests.** After a merge, the lower commits are in `main` under the same
+  hashes, so the upper pull request's diff is unchanged. After a squash, the upper branch still
+  carries the originals, its diff shows the lower change again, and rebasing it conflicts with
+  the copy.
 
-Squash merging is often a way to hide a messy branch. This guideline cleans the branch up
-before review instead, so the merge has something worth keeping. A project that wants a
-different merge method records the reason in its `docs/guidelines.md`.
+Squash merging often hides a messy branch; this guideline cleans the branch up before review
+instead. A project that wants another merge method records why in its `docs/guidelines.md`.
 
 ## Commit messages
 
-- Start the subject with a [Conventional Commits](https://www.conventionalcommits.org/) type
-  (`feat:`, `fix:`, `refactor:`, `perf:`, `test:`, `docs:`, `build:`, `ci:`, `chore:`), followed
-  by what the commit does, in the imperative. The type tells the reviewer what kind of commit to
-  expect. `refactor:` promises no change in behaviour. The release workflow reads the types to
-  choose the version bump
+- The subject starts with a [Conventional Commits](https://www.conventionalcommits.org/) type
+  (`feat:`, `fix:`, `refactor:`, `perf:`, `test:`, `docs:`, `build:`, `ci:`, `chore:`) and says
+  what the commit does, in the imperative. The type tells the reviewer what to expect
+  (`refactor:` promises no change in behaviour), and the release workflow reads it to choose
+  the version bump
   ([pypi-publishing.md](../project-setup/pypi-publishing.md#let-the-release-workflow-pick-the-bump-from-conventional-commits)).
-- The body explains *why*, under the same rule as [code comments](general.md#code-comments): the diff already
-  shows what changed. Include the alternative you rejected, the constraint that forced the
-  approach, and the command that produced a mechanical change.
-- The message describes the commit as it finally is. When a fold changes what a commit does,
-  update its message too.
+- The body explains *why*, as [code comments](general.md#code-comments) do: the rejected
+  alternative, the constraint that forced the approach, the command behind a mechanical change.
+- The message describes the commit as it finally is: when a fold changes what a commit does,
+  update the message too.
 
 ## Rebase and clean up before asking for review
 
-- While you work, commit however is useful: checkpoints, experiments, `wip`. Before you open
-  the pull request, or before you mark a draft ready, turn those commits into the sequence
-  described above. That is the moment the branch stops being yours alone.
-- First rebase onto the current `main` (`git fetch && git rebase origin/main`), so the
-  reviewer reads the change against the code it will actually merge into, and any conflicts
-  are resolved by the person who knows the change.
-- Then restructure: reorder, split, fold and reword until each commit is one step with a
-  message that fits it. `git rebase -i origin/main` is the usual tool. Without an interactive
-  editor, `git reset origin/main` keeps the final tree in the working directory, and you can
-  commit it again step by step, staging by path.
-- Read the branch the way the reviewer will: `git log --reverse --stat <base>..`, then each
-  commit's diff. Check each commit for one concern, whether its message matches its diff, and
-  whether a later commit undoes part of an earlier one.
-- `git log --format=%s <base>.. | grep -E '^(fixup|squash|amend)! '` must print nothing. A
-  fixup that was never folded in looks like a finished commit until someone reads the subject.
+- While you work, commit however is useful: checkpoints, experiments, `wip`. Before opening the
+  pull request or marking a draft ready, turn them into the sequence described above.
+- Rebase onto the current `main` (`git fetch && git rebase origin/main`), so the change is
+  reviewed against what it will merge into and its author resolves the conflicts. Bring in
+  later `main` commits the same way, never by merging `main` into the branch.
+- Reorder, split, fold and reword until each commit is one step with a fitting message:
+  `git rebase -i origin/main`, or without an interactive editor, `git reset origin/main` and
+  commit again step by step, staging by path.
+- Read the branch as the reviewer will (`git log --reverse --stat <base>..`, then each diff):
+  one concern per commit, messages that match their diffs, no commit undoing part of an earlier
+  one.
+- `git log --format=%s <base>.. | grep -E '^(fixup|squash|amend)! '` must print nothing: an
+  unfolded fixup looks finished until someone reads its subject.
