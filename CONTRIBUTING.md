@@ -9,6 +9,7 @@ guidelines themselves are the reference.
 
 - [Getting started](#getting-started)
 - [Guidelines](#guidelines)
+- [The `iglootools` command](#the-iglootools-command)
 - [Understanding the repository](#understanding-the-repository)
 - [Reference](#reference)
 - [Repository settings](#repository-settings)
@@ -44,6 +45,14 @@ The script's tests are in `tests/` and run with `mise run test`. The expected an
 come from [github-slugger](https://github.com/Flet/github-slugger), which reproduces GitHub's
 rules: when a heading's anchor seems wrong, compare against it again rather than editing the
 expected values.
+
+## The `iglootools` command
+
+The shared command lives in `src/iglootools/`, one package per domain (`docs`, `python`,
+`demo`, `mise`, `shell`), each with a `cli` module that is the only place it prints. Its tests
+are under `tests/`. How projects install, configure and pin it, and how to try a change against
+one of them before releasing, is in
+[guidelines/project-setup/iglootools-cli.md](guidelines/project-setup/iglootools-cli.md).
 
 ## Understanding the repository
 

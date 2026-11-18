@@ -13,11 +13,11 @@ The pieces, as `nbkp` and `photree` lay them out:
 |---|---|
 | `demo/demo.sh` | the scripted session: the commands the viewer watches, in order |
 | `demo/demo-magic.sh` | vendored [demo-magic](https://github.com/paxtonhare/demo-magic), which types each command out before running it. Marked `linguist-vendored` in `.gitattributes`, so the shellcheck task skips it — see [mise.md](mise.md#lint-every-shell-script-with-shellcheck) |
-| `demo/record-demo.sh` | runs `demo.sh` under `asciinema rec` and writes `demo/demo.cast` |
 | `<tool> demo seed` | a command the tool itself ships, which creates the data the demo runs against |
 | `mise.toml` | the `demo-*` tasks and the `asciinema`/`agg` pins |
 | `.github/workflows/demo.yml` | records the demo on every release and keeps the cast as an artifact |
-| `build-scripts/demoupload.py` | publishes the newest CI recording and repoints the README at it |
+| [`iglootools demo record`](iglootools-cli.md) | runs `demo.sh` under `asciinema rec` and writes `demo/demo.cast` |
+| [`iglootools demo upload`](iglootools-cli.md) | publishes the newest CI recording and repoints the README at it |
 
 <!-- toc -->
 **On this page**
@@ -42,10 +42,9 @@ real commands, colors and all, so it cannot show a screen the tool does not prod
 reviewable: `demo/demo.cast` is JSON lines, and a failed run's cast can be read to see exactly
 what the session printed before it died.
 
-`agg` converts a cast to a GIF, for places that cannot embed a player. It is pinned, and
-`record-demo.sh` carries the conversion, but the conversion is commented out in both projects and
-nothing consumes a GIF today. Re-enable it in the script and add the GIF to the workflow's
-artifact together, not one without the other.
+`agg` converts a cast to a GIF, for places that cannot embed a player. Nothing consumes a GIF
+today, so `iglootools demo record` does not make one. Add the conversion and the GIF in the
+workflow's artifact together, not one without the other.
 
 ### Script the session; do not record it by hand
 
@@ -69,8 +68,8 @@ the recording and as a failure that only reproduces sometimes:
 
 - Work in a fixed directory (`DEMO_DIR="/tmp/<tool>-demo"`) and `rm -rf` it first, so the paths
   on screen are the same on every recording and no earlier run leaves state behind.
-- Fix the terminal size in `record-demo.sh` (`--window-size 160x45`), so the output wraps the
-  same way on a developer's terminal and on a runner that has none.
+- Fix the terminal size (`iglootools demo record` passes `--window-size 160x45`), so the output
+  wraps the same way on a developer's terminal and on a runner that has none.
 - Make the script run on CI's Linux runner as well as a developer's Mac. A command the platform
   lacks gets a shim inside the script rather than a skipped step: photree's demo writes a fake
   `sips` when the real one is absent, which answers the same queries the tool makes.
@@ -103,8 +102,8 @@ looks like a successful recording to every check that does not watch it. Two set
 that, and both are needed:
 
 - `demo.sh` starts with `set -euo pipefail`, so the session stops at the first failing command.
-- `record-demo.sh` passes `--return` to `asciinema rec`. Without it asciinema exits 0 whatever
-  the recorded command did, which is how a demo that died on its first command once recorded and
+- `iglootools demo record` passes `--return` to `asciinema rec`. Without it asciinema exits 0
+  whatever the recorded command did, which is how a demo that died on its first command once recorded and
   "succeeded" on CI.
 
 ### Record through mise tasks, with the tools pinned
@@ -118,7 +117,10 @@ The demo is recorded by a mise task, so a developer and CI record it with the sa
 "aqua:asciinema/agg" = "1.9.0"
 
 [tasks.demo-record]
-run = "./demo/record-demo.sh \"$(uv run --no-sync python -c 'import <pkg>; print(<pkg>.__version__)')\""
+run = "uv run --no-sync iglootools demo record"
+
+[tasks.demo-upload-latest]
+run = "uv run --no-sync iglootools demo upload"
 
 [tasks.ci-demo-record]
 run = [{ task = "install" }, { task = "demo-record" }]
@@ -133,11 +135,11 @@ run = [{ task = "install" }, { task = "demo-record" }]
 | `ci-demo-record` | `install` then `demo-record`; what the workflow runs |
 | `ci-demo` | `install`, `demo-record`, `demo-upload`; for when CI can publish again |
 
-The version passed to `record-demo.sh` becomes the cast title, which is what names the recording
-on asciinema.org. It is read from the installed package rather than the build tool because a
-VCS-derived version only exists once installed. `record-demo.sh` also puts the project's
-`.venv/bin` on `PATH` explicitly: on a fresh clone mise resolves the environment before the venv
-exists, so the demo would otherwise run with no CLI on the `PATH` at all.
+The project's installed version becomes the cast title, which is what names the recording on
+asciinema.org. It is read from the installed package rather than the build tool because a
+VCS-derived version only exists once installed. The command also puts the project environment's
+`bin/` first on `PATH`: on a fresh clone mise resolves the environment before the venv exists,
+so the demo would otherwise run with no CLI on the `PATH` at all.
 
 `asciinema` and `agg` come from `mise.toml` like every other tool. What the demo itself calls
 beyond the CLI — `pv` for demo-magic's simulated typing, `tree` for directory listings — is a
@@ -183,17 +185,17 @@ for no reader: the README embeds the copy on asciinema.org, and CI keeps the one
 Publishing is manual, from a developer machine:
 
 ```bash
-mise run demo-upload-latest                  # newest successful run: upload, repoint README, commit
-mise run demo-upload-latest -- --dry-run     # fetch and report only
-mise run demo-upload-latest -- --no-commit   # update README, leave it uncommitted
-mise run demo-upload-latest -- --no-readme   # upload only
+mise run demo-upload-latest                # newest successful run: upload, repoint README, commit
+mise run demo-upload-latest --dry-run      # fetch and report only
+mise run demo-upload-latest --no-commit    # update README, leave it uncommitted
+mise run demo-upload-latest --no-readme    # upload only
 ```
 
 GitHub-hosted runners have no route to asciinema.org: IPv6 has no route and the A record times
 out at the TCP level, while the same address answers from outside CI. Each attempt burned about
 two minutes of SYN retries and then failed the workflow after an otherwise successful release.
 The upload steps are therefore commented out in `demo.yml`, with the reason above them, and
-`demoupload.py` does the publishing half instead: it downloads the `demo-recording` artifact from
+`iglootools demo upload` does the publishing half instead: it downloads the `demo-recording` artifact from
 the newest successful run (preferring `main`, falling back to tag-triggered runs), uploads it
 unchanged so the title CI recorded is kept, and commits the README change on its own.
 
@@ -216,7 +218,7 @@ section, so the first screen shows what the tool does:
 [![asciicast](https://asciinema.org/a/<id>.svg)](https://asciinema.org/a/<id>)
 ```
 
-Keep it on one line in exactly this shape. `demoupload.py` finds the embed with a regular
+Keep it on one line in exactly this shape. `iglootools demo upload` finds the embed with a regular
 expression and rewrites it in place, and it fails loudly when it cannot find one rather than
 appending a second.
 

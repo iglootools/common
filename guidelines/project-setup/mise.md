@@ -73,19 +73,22 @@ code, and has room for the comments that explain it.
 
 ## Lint every shell script with shellcheck
 
-Pin [shellcheck](https://www.shellcheck.net/) in `[tools]` and copy
-[`scripts/lint-shell.sh`](../../scripts/lint-shell.sh) into the project as the file task
-`mise-tasks/lint-shell`, executable. Make `check` depend on it, so CI runs it wherever it runs
-`check`:
+Pin [shellcheck](https://www.shellcheck.net/) in `[tools]` and add a `lint-shell` task that runs
+[`iglootools shell lint`](iglootools-cli.md). Make `check` depend on it, so CI runs it wherever
+it runs `check`:
 
 ```toml
 [tools]
 shellcheck = "0.11.0"
+
+[tasks.lint-shell]
+description = "Lint the tracked shell scripts with shellcheck"
+run = "uv run --no-sync iglootools shell lint"
 ```
 
-The task lints every tracked shell script: each `.sh` or `.bash` file, and each file whose
-shebang runs `sh` or `bash`, which is how it finds the file tasks under `mise-tasks/`. Moving a
-task body into a file is what makes it lintable, and this is the step that lints it.
+It lints every tracked shell script: each `.sh` or `.bash` file, and each file whose shebang
+runs `sh` or `bash`, which is how it finds the file tasks under `mise-tasks/`. Moving a task
+body into a file is what makes it lintable, and this is the step that lints it.
 
 - **Run shellcheck at its default severity**, which includes style findings. Fix a finding, or
   disable it on the line it concerns with the reason beside it, as for any other documented
@@ -100,7 +103,7 @@ task body into a file is what makes it lintable, and this is the step that lints
   command, it covers the whole file. Keep it next to the line it concerns. For the same reason,
   do not disable a check for the whole project in a `.shellcheckrc`: a broad disable hides the
   next instance along with this one.
-- **Point shellcheck at what a script sources.** The task runs shellcheck with
+- **Point shellcheck at what a script sources.** The command runs shellcheck with
   `--external-sources`, so a variable a script sets for a file it sources, such as demo-magic's
   `TYPE_SPEED`, is seen as used. A source path built from the script's directory needs a
   directive to resolve:
@@ -111,7 +114,7 @@ task body into a file is what makes it lintable, and this is the step that lints
   ```
 
 - **Mark vendored and generated scripts in `.gitattributes`**, with `linguist-vendored` or
-  `linguist-generated`, and the task skips them. A copied third-party script, such as the
+  `linguist-generated`, and the command skips them. A copied third-party script, such as the
   demo's `demo-magic.sh`, is not the project's to restyle, and a generated one is fixed in its
   generator. GitHub reads the same attributes to leave those files out of diffs and language
   statistics, so one marker serves both:
@@ -123,17 +126,22 @@ task body into a file is what makes it lintable, and this is the step that lints
 ## Check `mise.lock` in a scratch copy
 
 A `lock-check` task asserts that the committed `mise.lock` matches `mise.toml`. mise has no
-read-only check for that, so the task has to regenerate the lockfile and compare, and it must
-do so **in a scratch copy, never in place**. Copy
-[`scripts/lock-check.sh`](../../scripts/lock-check.sh) into the project as the file task
-`mise-tasks/lock-check`, executable, with no `[tasks.lock-check]` entry in `mise.toml`. Its
-`#MISE description` line is part of the copy.
+read-only check for that, so the check regenerates the lockfile and compares, and it must do so
+**in a scratch copy, never in place**. Run
+[`iglootools mise lock-check`](iglootools-cli.md), which does:
 
-Every line of that script is load-bearing, and the reasons are not guessable:
+```toml
+[tasks.lock-check]
+description = "Check that mise.lock is up to date with mise.toml"
+run = "uv run --no-sync iglootools mise lock-check"
+```
 
-| Detail | Why |
+Each of its guards was earned by a failure, and none is guessable, so know them before
+replacing it with something simpler:
+
+| Guard | Why |
 |---|---|
-| regenerate in `$tmp` | `mise lock` always writes. Letting it write the real lockfile means undoing it afterwards, and a `git checkout mise.lock` to do so **discards the regenerated file the error message just told you to commit** |
-| inputs from the index (`git show :<file>`) | mise rewrites `mise.lock` on its own: with `lockfile = true`, any tool-resolving command updates the version stanza and drops the per-platform checksums it can no longer vouch for — which is exactly the state that makes `mise install --locked` fail on a fresh runner. The working copy is therefore not a stable reference, so "up to date" can only mean "matches what is staged". It also makes the check immune to anything that rewrites the working `mise.toml`, such as a `mise use` in CI |
-| `env -u MISE_PYTHON_VERSION` | `mise lock` honours it, so an interpreter selected through the environment would otherwise be locked in place of the committed pin |
-| `set -euo pipefail` | without it a failing `mise lock` leaves the copied lockfile untouched, the `diff` finds no difference, and the check **passes** — the guard defeated by the situation it exists to catch |
+| regenerates in a scratch directory | `mise lock` always writes. Letting it write the real lockfile means undoing it afterwards, and a `git checkout mise.lock` to do so **discards the regenerated file the error message just told you to commit** |
+| reads both files from the index (`git show :<file>`) | mise rewrites `mise.lock` on its own: with `lockfile = true`, any tool-resolving command updates the version stanza and drops the per-platform checksums it can no longer vouch for — which is exactly the state that makes `mise install --locked` fail on a fresh runner. The working copy is therefore not a stable reference, so "up to date" can only mean "matches what is staged". Stage `mise.toml` and `mise.lock` before running it |
+| removes `MISE_PYTHON_VERSION` | `mise lock` honours it, so an interpreter selected through the environment would otherwise be locked in place of the committed pin |
+| a failing `mise lock` is an error | treated as "no difference", the check would **pass** in the very situation it exists to catch |

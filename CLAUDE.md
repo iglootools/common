@@ -3,7 +3,7 @@
 Shared coding guidelines for iglootools projects. This repository is the source: the files in
 [guidelines/](guidelines/) are what every other iglootools project consumes. Everything at the
 root supports them — `philosophy.md` for the reasoning, `skills/` and `hooks/` for delivery,
-`scripts/` for the guidelines that ship as working code, `src/iglootools/` for the command-line tools.
+`src/iglootools/` for the guidelines that ship as working code, as the `iglootools` command.
 After changing a heading in a Markdown file, run `mise run toc`; `mise run check-all` runs
 everything CI runs (see [CONTRIBUTING.md](CONTRIBUTING.md#getting-started)).
 
@@ -64,6 +64,22 @@ CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PROJECT_DIR="$PWD" bash hooks/load-always-on-gu
 
 It prints a loud `ERROR:` line per file it cannot read rather than falling silent, so an empty
 error count means every always-on path still resolves.
+
+## Working on the `iglootools` command
+
+Like the shared workflows, it is an interface other repositories pin: its command and option
+names, the `[tool.iglootools]` settings and their defaults, and the markers and headers it
+writes into generated files. Renaming any of them breaks every project still on the old pin,
+and a changed marker rewrites their generated documents. Change them deliberately, and document
+the consumer side in `guidelines/project-setup/iglootools-cli.md` in the same change.
+
+Core modules return data and raise errors with a kind; only the `cli` modules print, and the
+import-linter contracts in `pyproject.toml` hold that. Before merging a change, run it against
+a consumer from this checkout, as the guideline describes:
+
+```bash
+cd ../nbkp && uv run --no-sync --with-editable ../common iglootools docs depgraph --check
+```
 
 ## Working on the shared workflows
 

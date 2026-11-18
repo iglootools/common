@@ -340,11 +340,17 @@ A reference written by hand drifts the first time someone adds an option and for
 document, and nothing reports it. Generate what can be derived from the code, and fail the
 build when the committed copy differs:
 
-| Generated | From | Tasks |
-|---|---|---|
-| `docs/cli-reference.md` — the whole file | the Typer app | `clidocs` / `clidocs-check` |
-| the field tables in `docs/config-reference.md` | the config models | `configdocs` / `configdocs-check` |
-| the Module Overview in `docs/architecture.md` | the import graph | `depgraph` / `depgraph-check` |
+| Generated | From | Tasks | Command |
+|---|---|---|---|
+| `docs/cli-reference.md` — the whole file | the Typer app | `clidocs` / `clidocs-check` | `iglootools docs cli` |
+| the field tables in `docs/config-reference.md` | the config models | `configdocs` / `configdocs-check` | the project's own script, since the models are its own |
+| the Module Overview in `docs/architecture.md` | the import graph | `depgraph` / `depgraph-check` | `iglootools docs depgraph` |
+| the "On this page" list in each long document | its `##` and `###` headings | `toc` / `toc-check` | `iglootools docs toc` |
+
+The shared generators are [`iglootools`](iglootools-cli.md) commands, each with `--check`; the
+tasks are one-line calls to them. A table of contents goes in any document long enough to
+scroll: give it one with `mise run toc --add <file>`, and the list sits between
+`<!-- toc -->` and `<!-- tocstop -->` from then on.
 
 - **Every generator has a `-check` task, and `check` runs it.** A generator nobody is forced to
   run is a hand-maintained document with extra steps: it drifts just as silently. The generator

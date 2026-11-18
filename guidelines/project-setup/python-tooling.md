@@ -101,13 +101,21 @@ runs `uv lock --upgrade-package`, which builds with no git context, and without 
 such PR fails. The cost is that "no git history" becomes a *successful* build producing
 `0.0.0`: verified by building from a source tree with `.git` removed, which yields
 `<pkg>-0.0.0-py3-none-any.whl` and exits 0. Nothing else in the publish path catches this, and
-PyPI never allows a version to be re-uploaded. So provide a `build-verify` task that reads the
-built wheel's own `METADATA` and fails on the fallback version, and wire it into the CI build.
-Have it read the fallback version from `pyproject.toml` rather than keep its own copy: a copy
-nothing compares with the original lets fallback builds through as soon as the two differ.
-Read the metadata rather than pattern-matching filenames — a legitimate `1.0.0.dev0` contains
-`0.0.0` as a substring — and fail when the directory contains no wheel at all, or the guard is
-defeated by the very situation it exists to catch.
+PyPI never allows a version to be re-uploaded. So provide a `build-verify` task and wire it into
+the CI build:
+
+```toml
+[tasks.build-verify]
+description = "Fail if the built wheel carries the 0.0.0 fallback version"
+run = "uv run --no-sync iglootools python verify-version"
+```
+
+[`iglootools python verify-version`](iglootools-cli.md) reads the fallback version from
+`pyproject.toml` rather than keeping its own copy, which would let fallback builds through as
+soon as the two differed. It reads each wheel's `METADATA` rather than pattern-matching
+filenames, since a legitimate `1.0.0.dev0` contains `0.0.0` as a substring, and it fails when
+`dist/` holds no wheel at all, or the guard would be defeated by the very situation it exists
+to catch.
 
 Building the wheel *from an sdist* is safe, contrary to expectation: hatchling writes the
 resolved version into the sdist's `PKG-INFO` and reads it back, verified by building from an
@@ -387,7 +395,7 @@ is what lets the checks go in before the tests are converted.
 ## Mise Tasks
 
 Consider providing:
-- `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for config and dependency documentation, respectively
+- `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for config and dependency documentation, respectively; `depgraph` runs `iglootools docs depgraph`
 - `format`, `lint`, `type-check`, `boundaries-check` tasks for code quality checks
 
 The rules for tasks in any project — `ci-*` tasks, multi-line bodies as file tasks under
@@ -405,18 +413,18 @@ A `reinstall` task that deletes `.venv` and reinstalls from scratch. Most of wha
 to be for is gone: `uv sync` is exact by default, so it removes packages present in neither
 `pyproject.toml` nor `uv.lock`, and the `UV_PYTHON` pin above is what picks up a raised
 `[tools] python`. It survives for the one case `[deps.uv]`'s hashing cannot see — a venv that
-is *dirty* rather than *stale*, after someone ran `uv pip install` into it by hand. Its body
-is two commands, so it is a file task, `mise-tasks/reinstall`, as
-[mise.md](mise.md#put-a-multi-line-task-body-in-a-file-task-under-mise-tasks) asks:
+is *dirty* rather than *stale*, after someone ran `uv pip install` into it by hand.
+[`iglootools python reinstall`](iglootools-cli.md) deletes `.venv` and runs
+`mise deps install uv --force`:
 
-```bash
-#!/usr/bin/env bash
-#MISE description="Delete .venv and reinstall dependencies from scratch"
-set -euo pipefail
-
-rm -rf "$MISE_PROJECT_ROOT/.venv"
-mise deps install uv --force
+```toml
+[tasks.reinstall]
+description = "Delete .venv and reinstall dependencies from scratch"
+run = "uv run --no-sync iglootools python reinstall"
 ```
+
+`build` and `clean` are commands too, `iglootools python build` and
+`iglootools python clean`, so none of the Python tasks needs a file under `mise-tasks/`.
 
 Keep `install` as a named task delegating to `mise deps install uv`, rather than calling
 `uv sync` directly. `mise deps` is experimental, and that indirection is what makes reverting
