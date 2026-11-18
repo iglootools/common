@@ -20,6 +20,7 @@ carries regardless of language is in [repository.md](repository.md).
   - [Adding and removing dependencies](#adding-and-removing-dependencies)
 - [Code Quality Tools](#code-quality-tools)
   - [Module boundaries (import-linter)](#module-boundaries-import-linter)
+  - [Dead code (deadcode)](#dead-code-deadcode)
 - [Tests](#tests)
   - [Run test suites in parallel with pytest-xdist](#run-test-suites-in-parallel-with-pytest-xdist)
   - [Enforce the patching rule](#enforce-the-patching-rule)
@@ -220,8 +221,8 @@ aube, dart and flutter — so do not go looking for a mise verb.
 
 ## Code Quality Tools
 
-Use `ruff` for linting and formatting, `pyright` for type-checking, and `import-linter` for
-module boundaries. There is no compatibility check (`vermin`): projects support only the
+Use `ruff` for linting and formatting, `pyright` for type-checking, `import-linter` for
+module boundaries, and `deadcode` for code nothing uses. There is no compatibility check (`vermin`): projects support only the
 version they are developed on, so nothing can be too new (see the
 [Python Version Policy](../coding/python.md#python-version-policy)).
 
@@ -291,6 +292,56 @@ therefore not a contract. Check it with a test that imports the entry point and 
 ancestor, it reported cycles between each module's `cli/` subpackage and the shared CLI wiring
 below them, which is layering both projects intend. It suits a project whose packages are split
 by layer, not one where each package keeps its own `cli/`.
+
+### Dead code (deadcode)
+
+Ruff and pyright report an unused import or local variable within one file, but neither notices
+a function, method or class that nothing in the project calls any more.
+[deadcode](https://github.com/albertas/deadcode) does, across the package and its tests, and
+also reports commented-out code, which [general.md](../coding/general.md#code-comments) says to
+delete. Retire it once Ruff or ty detects unused definitions across files: that is a check the
+project already runs, with one tool fewer to pin.
+
+Add `deadcode>=2.7.0,<3.0` to the dev dependency group (2.6.0 is the first release that runs
+on Python 3.15), expose it as a `dead-code-check` task in `check`, and configure it in
+`pyproject.toml`:
+
+```toml
+[tasks.dead-code-check]
+description = "Check for unused code (deadcode, configured in pyproject.toml)"
+run = "uv run --no-sync deadcode <pkg> tests"
+```
+
+```toml
+# Unused code, enforced by `mise run dead-code-check` (part of `check`). Each entry is code
+# that runs without being named in the project, so the scan cannot see it used.
+[tool.deadcode]
+ignore-names-if-decorated-with = [
+  "@*.command", "@*.callback",                # Typer registers commands by decorator
+  "@pytest.fixture",                          # pytest injects fixtures by parameter name
+  "@field_validator", "@model_validator",     # Pydantic calls them while validating
+  "@field_serializer", "@model_serializer",
+]
+ignore-names = [
+  "main",                                     # the [project.scripts] entry point
+  "model_config",                             # read by Pydantic
+  "pytestmark", "pytest_plugins", "pytest_*", # read by pytest
+]
+```
+
+- **Scan the package and its tests together**, so a test helper or a `testkit` module counts as
+  used. Code only the tests use is then not reported; that is the price of not flagging every
+  helper the tests share.
+- **Exceptions sit on the line they excuse**, with their reason: `# noqa: DC04 -- Paramiko
+  calls it on an unknown host key`. The config holds only patterns that recur across the code,
+  each with its comment, so a reader of the config learns which frameworks call code by name.
+- **What deadcode reports is deleted**, unless it is one of those exceptions. A commented-out
+  line that is really prose (`# SSH: StrictHostKeyChecking`) is rephrased or marked, not kept
+  as code.
+- **Review `deadcode --fix` like any other diff**, and commit it on its own with the command in
+  the message ([git.md](../coding/git.md#keep-refactoring-apart-from-behaviour-changes)).
+  It reports a definition used only by other dead code in the same run, so one pass removes a
+  whole cascade.
 
 ## Tests
 
@@ -399,7 +450,7 @@ is what lets the checks go in before the tests are converted.
 
 Consider providing:
 - `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for config and dependency documentation, respectively; `depgraph` runs `iglootools docs depgraph`
-- `format`, `lint`, `type-check`, `boundaries-check` tasks for code quality checks
+- `format`, `lint`, `type-check`, `boundaries-check`, `dead-code-check` tasks for code quality checks
 
 The rules for tasks in any project — `ci-*` tasks, multi-line bodies as file tasks under
 `mise-tasks/`, and checking `mise.lock` — are in [mise.md](mise.md).
