@@ -75,8 +75,8 @@ as a testing strategy, in its own file under `docs/`:
 - **The README links out**: installation, usage and the feature list get one sentence and a
   link. It has no "Development" section, since that is `CONTRIBUTING.md`, but it does state
   non-goals and known limitations, which a prospective user needs before installing.
-- **Every project has a `CONTRIBUTING.md`**, even one with no `docs/` (this repository's indexes
-  whatever plays those roles, and says why its shape differs). GitHub links it from the pull
+- **Every project has a `CONTRIBUTING.md`**, even one with no `docs/`, where it indexes whatever
+  plays those roles and says why its shape differs. GitHub links it from the pull
   request and issue forms, and the skill reads it to find everything else. Start from the
   scaffold below, delete the lines for documents the project does not have, and add the ones
   only it has.
