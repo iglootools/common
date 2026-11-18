@@ -18,7 +18,7 @@ invisible to the people reviewing the agent's work, so nobody notices when it go
   - [Keep `docs/guidelines.md` lean, and index area conventions from it](#keep-docsguidelinesmd-lean-and-index-area-conventions-from-it)
   - [Split `README.md`, `CONTRIBUTING.md` and `docs/` by reader](#split-readmemd-contributingmd-and-docs-by-reader)
   - [Scaffold `CONTRIBUTING.md` as the documentation index](#scaffold-contributingmd-as-the-documentation-index)
-  - [Keep `AGENTS.md` a short map, and `CLAUDE.md` a single import](#keep-agentsmd-a-short-map-and-claudemd-a-single-import)
+  - [Keep `AGENTS.md` a short map, with no `CLAUDE.md` beside it](#keep-agentsmd-a-short-map-with-no-claudemd-beside-it)
 - [What to write](#what-to-write)
   - [Write the documents the project's shape calls for](#write-the-documents-the-projects-shape-calls-for)
   - [Use one name per role](#use-one-name-per-role)
@@ -176,7 +176,7 @@ describes.
 A repository with no `docs/` — this one — still has the `CONTRIBUTING.md`, indexing whatever
 plays those roles, and says why its shape differs.
 
-### Keep `AGENTS.md` a short map, and `CLAUDE.md` a single import
+### Keep `AGENTS.md` a short map, with no `CLAUDE.md` beside it
 
 `AGENTS.md` at the project root is what every coding agent reads first, Claude Code included. It
 is a map, not a manual: what the project is, the commands that build and check it, and where each
@@ -186,9 +186,9 @@ that moves faster than any model's training data. It does not restate the shared
 the project's documents: a rule written there instead of in `docs/` is the only copy of that
 rule, and no human contributor reads it.
 
-`CLAUDE.md` holds one line, `@AGENTS.md`. Claude Code reads `AGENTS.md` natively only when no
-`CLAUDE.md` exists, and only in recent versions; the import works everywhere, without a second
-copy of anything.
+Do not add a `CLAUDE.md`. Claude Code reads `AGENTS.md` itself (since 2.1.277), but only when
+there is no `CLAUDE.md`: one beside it replaces it for Claude, and whatever it holds is a second
+entry point that only one agent reads.
 
 ```markdown
 # AGENTS.md
