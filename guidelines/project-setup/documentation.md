@@ -172,7 +172,8 @@ nbkp is an rsync-based backup tool for sources and destinations that come and go
 ## Commands
 
 - `mise run check-all`: every check and test CI runs. `mise tasks` lists the rest.
-- Run tools through `uv run --no-sync <tool>`, never bare.
+- Run a mise task when one does the job, and `uv run --no-sync <tool>` otherwise, never a bare
+  tool.
 
 ## Guidelines
 
