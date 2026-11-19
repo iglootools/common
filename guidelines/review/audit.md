@@ -85,9 +85,11 @@ finding is fixed.
 
 ## The report
 
-An audit writes a Markdown report to `.iglootools/audits/<YYYY-MM-DD>-<scope>.md` at the project
-root, for example `.iglootools/audits/2026-11-14-pr-feat-sync-retries.md` or
-`.iglootools/audits/2026-11-14-full.md`. Reports are working documents, not project history.
+An audit writes a Markdown report to `.iglootools/audits/<timestamp>-<scope>.md` at the project
+root, for example `.iglootools/audits/20261114T093012Z-pr-feat-sync-retries.md` or
+`.iglootools/audits/20261114T161540Z-full.md`. The timestamp is UTC in ISO 8601 basic format, so
+the reports list in the order they were written. Reports are working documents, not project
+history.
 `.iglootools/` holds everything iglootools tools generate and is listed in the committed
 `.gitignore` (see
 [repository.md](../project-setup/repository.md#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore)). The conversation shows only the summary
