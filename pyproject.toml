@@ -17,7 +17,7 @@ dependencies = [
   "typer>=0.27.0,<1.0.0",
   # Imported directly for console output, not only through typer, so its major is bounded
   # here rather than left to whatever typer allows.
-  "rich>=14.0,<15.0",
+  "rich>=15,<15.1",
   # docs depgraph: pydeps analyses the imports, mermaid-ascii-diagrams renders --format ascii.
   # pydeps also needs graphviz's `dot`, a system package mise does not provide.
   "pydeps>=3.0.7,<4.0",
