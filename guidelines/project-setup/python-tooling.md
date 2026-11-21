@@ -218,27 +218,8 @@ commit.
 
 ## Mise and uv
 
-The settings, with placeholders for the versions
-([mise.toml](../../mise.toml) is a working example, with each line's reason):
-
-```toml
-[tools]
-python = "<version>"
-uv = "<version>"
-
-[env]
-UV_PYTHON = { value = "{{ tools.python.path }}", tools = true }
-UV_PYTHON_DOWNLOADS = "never"
-UV_PYTHON_PREFERENCE = "only-system"
-
-[settings]
-lockfile = true
-experimental = true                # required by `mise deps`
-python.uv_venv_auto = "source"     # creating the venv is [deps.uv]'s job
-
-[deps.uv]
-auto = true
-```
+Common's [mise.toml](../../mise.toml) is a working example of these settings,
+with each line's reason.
 
 ### Pin uv to mise's interpreter by absolute path
 
@@ -437,25 +418,12 @@ lingering as an exemption for code that has moved.
 ### Find unused code with deadcode
 
 Add `deadcode>=2.7.0,<3.0` to the dev dependency group, run it as
-`lint-dead-code` (`uv run --no-sync deadcode <pkg> tests`), and configure it in
-`pyproject.toml`:
-
-```toml
-# Unused code, enforced by `mise run lint-dead-code` (part of `lint`). Each entry is code
-# that runs without being named in the project, so the scan cannot see it used.
-[tool.deadcode]
-ignore-names-if-decorated-with = [
-  "@*.command", "@*.callback",                # Typer registers commands by decorator
-  "@pytest.fixture",                          # pytest injects fixtures by parameter name
-  "@field_validator", "@model_validator",     # Pydantic calls them while validating
-  "@field_serializer", "@model_serializer",
-]
-ignore-names = [
-  "main",                                     # the [project.scripts] entry point
-  "model_config",                             # read by Pydantic
-  "pytestmark", "pytest_plugins", "pytest_*", # read by pytest
-]
-```
+`lint-dead-code` (`uv run --no-sync deadcode <pkg> tests`), and list in
+`[tool.deadcode]` what runs without being named in the project: commands and
+fixtures registered by decorator, Pydantic validators and serializers, the
+entry point, and names pytest reads. nbkp's
+[pyproject.toml](https://github.com/iglootools/nbkp/blob/main/pyproject.toml)
+is a working example.
 
 **Why:** ruff and pyright report an unused import or variable within one file,
 but not a function, method or class nothing calls any more. deadcode also

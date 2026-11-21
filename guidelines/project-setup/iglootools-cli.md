@@ -62,19 +62,9 @@ from an isolated tool environment.
   release named once, in `[env]`, under a `# renovate:` comment, which the
   shared `base` preset reads. Without the comment, nothing updates the version.
 
-  ```toml
-  [tools]
-  uv = "<version>"
-
-  [env]
-  # renovate: datasource=github-tags depName=iglootools/common
-  IGLOOTOOLS_VERSION = "v<version>"
-  IGLOOTOOLS = "uvx --from git+https://github.com/iglootools/common@{{ env.IGLOOTOOLS_VERSION }} iglootools"
-
-  [tasks.lint-shell]
-  description = "Lint the tracked shell scripts with shellcheck"
-  run = "$IGLOOTOOLS shell lint"
-  ```
+  alberta-hiking-resources'
+  [mise.toml](https://github.com/iglootools/alberta-hiking-resources/blob/main/mise.toml)
+  is a working example: `IGLOOTOOLS` in `[env]`, and its `lint-shell` task.
 
   uv caches the build, so only the first run after the version moves builds
   anything.

@@ -132,25 +132,13 @@ gh release create v<version> --verify-tag --title v<version> --notes-file releas
 
 ### Chain publish to release with `workflow_run`, and also listen for `v*` tags
 
-`publish.yml` listens for both the `release` run completing and a pushed `v*`
-tag, and guards the job against a failed release:
-
-```yaml
-on:
-  push:
-    tags: ['v*']          # tags pushed by a person (the manual path above)
-  workflow_run:
-    workflows: ["release"] # tags pushed by release.yml
-    types: [completed]
-  workflow_dispatch:      # gh workflow run publish.yml --ref <tag>
-  repository_dispatch:
-
-jobs:
-  pypi-publish:
-    if: >-
-      github.event.workflow_run.conclusion == 'success'
-      || github.event_name != 'workflow_run'
-```
+`publish.yml` listens for both the `release` run completing
+(`workflow_run: {workflows: ["release"], types: [completed]}`) and a pushed `v*`
+tag, and guards the job against a failed release with
+`if: github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run'`,
+as nbkp's
+[publish.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/publish.yml)
+does.
 
 **Why:** a tag pushed with `GITHUB_TOKEN` triggers no other workflow, which
 GitHub does to prevent loops. A publish that listened only for tags would never
@@ -174,23 +162,11 @@ run after an automated release, and nothing would report it.
 ### Skip a release run that did not release
 
 Right after the checkout, check that the commit carries a `v*` tag, and skip the
-rest of the job when it does not:
-
-```yaml
-- name: Check that the release run released
-  id: released
-  if: github.event_name == 'workflow_run'
-  run: |
-    if tag=$(git describe --exact-match --tags --match 'v*' HEAD 2>/dev/null); then
-      echo "Publishing $tag"
-    else
-      echo "skip=true" >> "$GITHUB_OUTPUT"
-      echo "::notice::$(git rev-parse --short HEAD) carries no v* tag, so the release run did not release. Nothing to publish."
-    fi
-- uses: jdx/mise-action@<sha> # v5
-  if: steps.released.outputs.skip != 'true'
-# … every later step carries the same `if:`
-```
+rest of the job when it does not: a step that sets `skip=true` when
+`git describe --exact-match --tags --match 'v*' HEAD` fails, and
+`if: steps.released.outputs.skip != 'true'` on every later step, as nbkp's
+[publish.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/publish.yml)
+does.
 
 **Why:** a dry run (`dry-run: true`) and a run dispatched on another branch both
 complete successfully and push no tag, yet start the publish. It then builds an

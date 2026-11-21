@@ -60,33 +60,9 @@ and package versions are derived from tags. Rulesets cover tags as well as
 branches and are readable through the API.
 
 **The default branch**: no deletion, no force-push, changes only through a pull
-request merged with a merge commit, and the `preflight` job green first:
-
-```bash
-gh api --method POST repos/<owner>/<repo>/rulesets --input - <<'EOF'
-{
-  "name": "main",
-  "target": "branch",
-  "enforcement": "active",
-  "conditions": { "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] } },
-  "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    { "type": "pull_request", "parameters": {
-        "required_approving_review_count": 0,
-        "dismiss_stale_reviews_on_push": false,
-        "require_code_owner_review": false,
-        "require_last_push_approval": false,
-        "required_review_thread_resolution": false,
-        "allowed_merge_methods": ["merge"] } },
-    { "type": "required_status_checks", "parameters": {
-        "strict_required_status_checks_policy": false,
-        "do_not_enforce_on_create": false,
-        "required_status_checks": [{ "context": "preflight", "integration_id": 15368 }] } }
-  ]
-}
-EOF
-```
+request merged with a merge commit, and the `preflight` job green first.
+Common's [GitHub Config](../../docs/building-and-testing.md#github-config)
+applies it, and shows how to verify it.
 
 - `~DEFAULT_BRANCH`, not `refs/heads/main`, so a rename does not leave the
   ruleset guarding a branch that no longer exists.

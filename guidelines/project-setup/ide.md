@@ -58,22 +58,8 @@ passes.
 
 ### Commit the extension set to `.vscode/extensions.json`
 
-Recommend every extension a committed setting depends on:
-
-```json
-{
-    "recommendations": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-python.vscode-python-envs",
-        "charliermarsh.ruff",
-        "hverlin.mise-vscode",
-        "tombi-toml.tombi",
-        "dprint.dprint",
-        "rvben.rumdl"
-    ]
-}
-```
+Recommend every extension a committed setting depends on, as common's
+[.vscode/extensions.json](../../.vscode/extensions.json) does.
 
 **Why:** a setting whose extension is absent is not an error but a silent
 no-op, and a fresh clone is prompted for the extensions only if they are
@@ -94,19 +80,6 @@ listed.
 
 In `.vscode/settings.json`, name for each language the formatter the `fmt` task
 runs, and turn on `formatOnSave`:
-
-```json
-{
-    "editor.formatOnSave": true,
-    "[json]": { "editor.defaultFormatter": "dprint.dprint" },
-    "[jsonc]": { "editor.defaultFormatter": "dprint.dprint" },
-    "[toml]": { "editor.defaultFormatter": "dprint.dprint" },
-    "[yaml]": { "editor.defaultFormatter": "dprint.dprint" },
-    "[dockerfile]": { "editor.defaultFormatter": "dprint.dprint" },
-    "[markdown]": { "editor.defaultFormatter": "rvben.rumdl" },
-    "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
-}
-```
 
 **Why:** several extensions format the same file (tombi and dprint both format
 TOML, and VSCode has built-in JSON and Markdown formatters), so a file saved in
@@ -155,7 +128,9 @@ would point everyone who clones at the system interpreter.
 ### Let `hverlin.mise-vscode` write the other tools' paths, but fence it in
 
 Let the extension derive each extension's tool path from `mise.toml`, as
-symlinks, from the project's tools only, and never for `ms-python.python`:
+symlinks, from the project's tools only, and never for `ms-python.python`, as
+the `mise.*` keys in common's
+[.vscode/settings.json](../../.vscode/settings.json) do.
 
 ```json
 {

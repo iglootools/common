@@ -84,10 +84,14 @@ instead of restating it.
 ### Use real examples
 
 Take each example from a working setup or command: short, copyable, and shown
-with its real output. Link to the live file when it is long.
+with its real output. Keep an example of ten lines or fewer inline, where it
+reads as part of the text. Link a longer one to the live file it comes from, or,
+where none exists, to a template file beside the document.
 
 **Why:** a real example has been run, so it is correct the day it is written,
-and wrong in a way someone will notice later.
+and wrong in a way someone will notice later. A live file is checked and kept
+current by the project that uses it, while a long copy in prose is checked by
+nothing and costs every reader its length whether they need it or not.
 
 ## Map
 
@@ -110,9 +114,8 @@ Each line says when to go there with the verb of the destination's kind, from
 [the table](#the-kinds): *learn* for a tutorial, *follow* for a how-to guide,
 *look up* for a reference, *understand* for an explanation,
 *know what … must respect* for rules, *find out* for a record, and *find* for
-another map. The `CONTRIBUTING.md` scaffold in
-[layout.md](layout.md#split-readmemd-contributingmd-and-docs-by-reader) shows
-it:
+another map. The
+[`CONTRIBUTING.md` template](templates/CONTRIBUTING.md.template) shows it:
 
 ```markdown
 - [docs/domain.md](docs/domain.md) — understand the domain concepts and how they relate

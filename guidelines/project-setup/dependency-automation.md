@@ -35,26 +35,9 @@ managers.
 - iglootools' own releases skip the 14-day hold: the `base` preset exempts them,
   since the people who release them also review the update.
 
-```json
-{
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    "github>iglootools/common//renovate/base#v<version>",
-    "github>iglootools/common//renovate/python#v<version>"
-  ],
-  "separateMajorMinor": false,
-  "packageRules": [
-    {
-      "groupName": "all dependencies",
-      "matchManagers": ["*"],
-      "schedule": ["at any time"],
-      "automerge": false
-    }
-  ],
-  "dependencyDashboard": { "enabled": true }
-}
-```
+nbkp's
+[renovate.json](https://github.com/iglootools/nbkp/blob/main/renovate.json) is a
+working example.
 
 **Why:** the rules every project needs then live once, and a fix reaches every
 project by moving a pin.

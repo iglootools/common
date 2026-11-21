@@ -92,52 +92,15 @@ and a contributor needs more than the pitch.
 - **Every project has a `CONTRIBUTING.md`**, even one with no `docs/`, where it
   indexes whatever plays those roles and says why its shape differs. GitHub
   links it from the pull request and issue forms, and the skill reads it to find
-  everything else. Start from the scaffold below, delete the lines for documents
-  the project does not have, and add the ones only it has.
+  everything else. Start from
+  [templates/CONTRIBUTING.md.template](templates/CONTRIBUTING.md.template),
+  delete the lines for documents the project does not have, and add the ones
+  only it has.
 - **Link with relative paths**, so links resolve on GitHub, in the editor and in
   a fork alike. The one exception is a README that PyPI also renders
   ([below](#make-the-readme-a-pitch-that-links-out)). Link to the
   shared guidelines at `https://github.com/iglootools/common/...` rather than
   naming a file in prose, so the link checker notices when it is renamed.
-
-```markdown
-# Contributing
-
-## Getting started
-
-- [docs/setup-development-environment.md](docs/setup-development-environment.md) — follow to set
-  up the toolchain, the editor, and the iglootools Claude Code plugin
-- [docs/building-and-testing.md](docs/building-and-testing.md) — follow to build, test and lint,
-  and look up the checks CI runs and the GitHub settings the repository depends on
-- [docs/releasing-and-publishing.md](docs/releasing-and-publishing.md) — follow to cut a release
-  and publish it
-
-## Guidelines
-
-This project follows the shared
-[iglootools guidelines](https://github.com/iglootools/common/tree/main/guidelines).
-[docs/guidelines.md](docs/guidelines.md) records where it deviates from them, the rules it adds,
-the checklists to run for specific kinds of change, and the conventions for particular areas of
-the code. Contributors follow the iglootools
-[code of conduct](https://github.com/iglootools/.github/blob/main/CODE_OF_CONDUCT.md); report
-vulnerabilities as the [security policy](https://github.com/iglootools/.github/blob/main/SECURITY.md)
-describes.
-
-## Understanding the code
-
-- [docs/domain.md](docs/domain.md) — understand the domain concepts and how they relate
-- [docs/architecture.md](docs/architecture.md) — understand how the code is organized
-- [docs/internals.md](docs/internals.md) — understand the runtime behavior and the decisions
-  behind it
-- [docs/architecture-decision-record.md](docs/architecture-decision-record.md) — find out which
-  architectural decisions were taken, and why
-
-## Reference
-
-- [docs/cli-reference.md](docs/cli-reference.md) — look up every command and option (generated
-  by `mise run clidocs`)
-- [docs/config-reference.md](docs/config-reference.md) — look up every configuration field
-```
 
 ### Make the README a pitch that links out
 
@@ -175,34 +138,8 @@ faster than any model's training data.
 **Why:** it is read in every session, so every line costs, and a rule kept only
 there is invisible to the people who review the agent's work.
 
-```markdown
-# AGENTS.md
-
-nbkp is an rsync-based backup tool for sources and destinations that come and go.
-
-## Commands
-
-- `mise run preflight-quick`: every lint and the fast tests, before each commit.
-- `mise run preflight`: every lint and test CI runs, every few commits and before review.
-- `mise tasks` lists the rest.
-- Run a mise task when one does the job, and `uv run --no-sync <tool>` otherwise, never a bare
-  tool.
-
-## Guidelines
-
-The shared iglootools guidelines govern every change. Claude Code loads them through the
-`iglootools` plugin. Other agents: read `coding/general.md`, `coding/python.md` and
-`coding/git.md` before any change, and the guideline whose trigger matches the files you are
-changing, using [iglootools/common's
-index](https://github.com/iglootools/common/blob/main/guidelines/README.md). Read
-[docs/guidelines.md](docs/guidelines.md) before any change too: it holds this project's deviations
-and its own rules, and links to the project's other guidelines files.
-
-## Where things are
-
-[CONTRIBUTING.md](CONTRIBUTING.md) indexes every document, from setup to the domain and the
-architecture. Read a document when the task reaches it, not up front.
-```
+Start from [templates/AGENTS.md.template](templates/AGENTS.md.template),
+written for nbkp.
 
 - **Point at `CONTRIBUTING.md` instead of listing documents.** It is the one
   index of the documentation, and a second list drifts from it.

@@ -1,0 +1,41 @@
+# Audit: feat/sync-retries — 2026-11-14
+
+Scope: 7 commits, a1b2c3d..d4e5f6a · Categories: all · Auditors: 3 · Guidelines: iglootools <version>
+
+To address findings, see [Fixing findings](<link to this section>).
+
+## Summary
+
+| Category | critical | high | medium | low |
+|---|---|---|---|---|
+| [SEC — Security](#sec) | 1 | 1 | | |
+| [ERR — Error handling](#err) | | 2 | 1 | |
+
+No findings in: BUG, DATA, PERF, TEST, ARCH, DEPS, MAINT, OPS, DOC, GUIDE, HIST.
+Not audited: none.
+
+## Index
+
+| ID | Severity | Finding | Location | Status |
+|---|---|---|---|---|
+| [SEC-1](#SEC-1) | critical | `rsync` command built from a user path | [sync/rsync.py:88](../../sync/rsync.py#L88) | open |
+
+<a id="sec"></a>
+## SEC — Security
+
+<a id="SEC-1"></a>
+### SEC-1 — `rsync` command built as a string from a user-supplied path
+
+| | |
+|---|---|
+| Severity | critical · confirmed |
+| Location | [sync/rsync.py:88](../../sync/rsync.py#L88) |
+| Origin | introduced in `3f2a1c9` |
+| Rule | [coding/general.md › Escape interpolated text, or keep it apart from markup](https://github.com/iglootools/common/blob/iglootools--v<version>/guidelines/coding/general.md#escape-interpolated-text-or-keep-it-apart-from-markup) |
+| Status | open |
+
+**Scenario.** A volume named `x; rm -rf ~` runs the `rm`.
+
+**Fix.** Build the command as an argument list.
+
+[↑ Index](#index)

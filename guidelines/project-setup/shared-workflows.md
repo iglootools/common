@@ -63,8 +63,8 @@ granted, never a grant of its own.
 the job fails at the step that needed it, for the link checker only on a run
 that found a broken link.
 
-- Each stub below shows its block. The header of each `reusable-*.yml` says what
-  each grant is for.
+- Each working example linked below shows its block. The header of each
+  `reusable-*.yml` says what each grant is for.
 - Declare the whole block: omitted scopes become none, and `contents: read`
   fails only in private repositories, as
   [workflows.md › Declare `permissions` on every job](workflows.md#declare-permissions-on-every-job-at-least-privilege)
@@ -106,26 +106,9 @@ such as `mise-version`, silently freezes the pin.
 
 ### Call the shared link checker instead of copying it
 
-```yaml
-name: check-links
-
-on:
-  workflow_dispatch:
-  repository_dispatch:
-  schedule:
-    - cron: "00 18 * * 1"
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.event.workflow_run.head_sha || github.sha) || github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  check-links:
-    permissions:
-      contents: read
-      issues: write
-    uses: iglootools/common/.github/workflows/reusable-check-links.yml@<sha> # v<version>
-```
+nbkp's
+[check-links.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/check-links.yml)
+is a working example.
 
 **Why:** link checking is the same everywhere, so a fix to the lychee invocation
 or the report reaches every project through one version bump.
@@ -144,27 +127,9 @@ or the report reaches every project through one version bump.
 
 ### Call the shared lock regenerator on Renovate branches
 
-```yaml
-name: renovate-mise-lock
-
-on:
-  push:
-    branches:
-      - 'renovate/**'
-
-concurrency:
-  group: renovate-mise-lock-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  mise-lock:
-    permissions:
-      contents: write
-    uses: iglootools/common/.github/workflows/reusable-renovate-mise-lock.yml@<sha> # v<version>
-    with:
-      # renovate: datasource=github-releases depName=jdx/mise
-      version: <the version mise.lock was generated with>
-```
+nbkp's
+[renovate-mise-lock.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/renovate-mise-lock.yml)
+is a working example.
 
 **Why:** Renovate's hosted runner has no `mise`, so it bumps `mise.toml` but
 cannot regenerate `mise.lock`, and every tool bump stays red until someone runs
@@ -230,25 +195,9 @@ repository, so it is not a routine dependency update.
 
 Python projects that release from conventional commits
 ([pypi-publishing.md](pypi-publishing.md#let-the-release-workflow-pick-the-bump-from-conventional-commits))
-call it from `release.yml`:
-
-```yaml
-name: release
-
-on:
-  workflow_dispatch:
-  repository_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
-
-jobs:
-  release:
-    permissions:
-      contents: write
-    uses: iglootools/common/.github/workflows/reusable-release.yml@<sha> # v<version>
-```
+call it from `release.yml`, as nbkp's
+[release.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/release.yml)
+does.
 
 **Why:** the stub's name is what the publish and demo workflows listen for.
 
@@ -264,34 +213,9 @@ jobs:
 ### Call the shared demo recorder
 
 CLI projects with an asciinema demo ([cli-demo.md](cli-demo.md)) call it from
-`demo.yml`:
-
-```yaml
-name: demo
-
-on:
-  push:
-    tags: ['v*']
-  workflow_run:
-    workflows: ["release"]
-    types: [completed]
-  workflow_dispatch:
-  repository_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && format('main-{0}', github.event.workflow_run.head_sha || github.sha) || github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  demo:
-    permissions:
-      contents: read
-    uses: iglootools/common/.github/workflows/reusable-demo.yml@<sha> # v<version>
-    with:
-      # renovate: datasource=github-releases depName=jdx/mise
-      version: <the version mise.lock was generated with>
-      apt-packages: pv tree
-```
+`demo.yml`, as nbkp's
+[demo.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/demo.yml)
+does.
 
 **Why:** the recording steps and their release guards are the same in every CLI
 project.
