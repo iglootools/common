@@ -2,6 +2,8 @@
 python = "3.15.2"
 uv = "0.13.7"
 shellcheck = "0.11.0"
+dprint = "0.64.3"
+rumdl = "0.3.4"
 
 [env]
 # Pin uv to the interpreter mise installed, by absolute path: a bare version number does not

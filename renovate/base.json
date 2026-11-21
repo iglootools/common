@@ -32,6 +32,17 @@
             "matchStrings": [
                 "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+[A-Z0-9_]+ = \"(?<currentValue>[^\"]+)\""
             ]
+        },
+        {
+            "description": "dprint's plugins, pinned in dprint.json as npm: specifiers (\"npm:@dprint/json@0.26.0\"). They are the formatters themselves, versioned apart from the dprint binary mise pins, and no built-in manager is documented to read them, so without this they would rot silently.",
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)\\.?dprint\\.jsonc?$/"
+            ],
+            "matchStrings": [
+                "\"npm:(?<depName>(@[^/\"]+/)?[^@\"]+)@(?<currentValue>[^\"]+)\""
+            ],
+            "datasourceTemplate": "npm"
         }
     ],
     "packageRules": [
