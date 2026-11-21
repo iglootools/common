@@ -101,7 +101,7 @@ Two tasks run Renovate locally, from the project's own pinned copy:
 
 ```toml
 [tools]
-node = "24.22.3"
+node = "26.13.0"
 jq = "1.8.2"
 "npm:renovate" = { version = "44.239.1", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"], allow_builds = ["re2"] }
 
