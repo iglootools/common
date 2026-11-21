@@ -1,8 +1,9 @@
 # Philosophy
 
-This document describes the general philosophy that underpins the
-[coding guidelines](coding/). The guidelines are meant to be
-practical and actionable; this is the reasoning behind them.
+The reasoning behind every iglootools guideline and practice: how work flows,
+how systems are designed, how code and documentation are written, and how people
+and agents share a codebase. The guidelines say what to do, compactly, and link
+here for why; this document argues at length, and grows as the reasoning does.
 
 <!-- toc -->
 **On this page**
@@ -35,6 +36,10 @@ practical and actionable; this is the reasoning behind them.
   - [Make the right thing easy and the wrong thing hard](#make-the-right-thing-easy-and-the-wrong-thing-hard)
   - [Design for deletion](#design-for-deletion)
   - [Make everything inspectable](#make-everything-inspectable)
+- [Documentation](#documentation)
+  - [Write for one reader with one intent](#write-for-one-reader-with-one-intent)
+  - [State each fact once](#state-each-fact-once)
+  - [A rule carries its reason](#a-rule-carries-its-reason)
 - [People and AI agents](#people-and-ai-agents)
   - [Documentation for people first, agent configuration for the gaps](#documentation-for-people-first-agent-configuration-for-the-gaps)
   - [Practices that are good on their own and help agents](#practices-that-are-good-on-their-own-and-help-agents)
@@ -436,6 +441,49 @@ Further reading on coding philosophy:
   Rich Hickey (talk)
 - [Out of the Tar Pit](http://curtclifton.net/papers/MosesSchonworkerTarPit.pdf)
   by Moseley & Marks (paper)
+
+## Documentation
+
+Documentation is how a decision outlives the conversation it was made in, and
+how a convention reaches someone who was not there. It deserves the care code
+gets, because it fails the same way: silently, by drifting from what is true.
+
+### Write for one reader with one intent
+
+A reader opens a document to do one thing: learn the project, get a task done,
+look up an exact fact, understand why something works the way it does, find out
+what a change must respect, or recover what was decided. Each intent wants a
+different shape. A tutorial walks one path, a reference is complete and austere,
+an explanation argues. A document that serves two intents serves both badly: the
+person looking up an option wades through a story, and the person learning gets
+a table. So each document has one kind and opens by saying who it is for, and a
+document that grows a second intent is split, with the halves linked. The kinds
+are in [documentation/types.md](documentation/types.md). They follow
+[Diátaxis](https://diataxis.fr/), plus what a codebase adds to it: rules,
+records and maps.
+
+### State each fact once
+
+A fact written in two places will one day be true in only one of them, and
+nothing fails when that happens: the reader cannot tell which copy is current,
+and whoever edits one copy does not know the other exists. Give every fact one
+home, the document whose reader needs it most, and link to it from everywhere
+else. An index says where something is and when to read it, never
+what it says.
+A link costs the reader one click; a copy costs every future edit, made twice or
+not at all. Generating documentation from the code is the strongest form of
+this: the code is the home, and a check holds the document to it.
+
+### A rule carries its reason
+
+A rule without a reason can only be obeyed or broken. With its reason, a reader
+can tell when it applies, when it does not, and how firmly to hold it. A rule
+whose reason is a silent mechanical failure, such as a release that ships as
+`0.0.0`, is held rigidly. A rule whose reason is consistency or taste gives way
+to a documented reason. The reason is also what lets a rule be retired once the
+condition behind it is gone. So every guideline says why, in a sentence next to
+the rule, and the longer argument lives in this document, where it can be
+developed without burying the rules.
 
 ## People and AI agents
 
