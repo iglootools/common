@@ -124,8 +124,9 @@ allowed_importers = ["iglootools.cli", "iglootools.*.cli"]
 # that runs without being named in the project, so the scan cannot see it used.
 [tool.deadcode]
 ignore-names-if-decorated-with = [
-  "@*.command", "@*.callback", # Typer registers commands by decorator
-  "@pytest.fixture",           # pytest injects fixtures by parameter name
+  "@*.command", # Typer registers commands and callbacks by decorator
+  "@*.callback",
+  "@pytest.fixture", # pytest injects fixtures by parameter name
 ]
 ignore-names = [
   "main", # the [project.scripts] entry point
