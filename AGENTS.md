@@ -6,8 +6,11 @@ calls, and the `iglootools` command.
 
 ## Commands
 
-- `mise run preflight`: every lint and test CI runs. `mise tasks` lists the
-  rest.
+- `mise run preflight-quick`: every lint and the fast tests, before each
+  commit.
+- `mise run preflight`: every lint and test CI runs, every few commits and
+  before review.
+- `mise tasks` lists the rest.
 - `mise run toc` after adding, renaming or removing a heading in a Markdown
   file, and `mise run fmt` after editing any file.
 
@@ -31,16 +34,12 @@ what it governs:
   [dependency-automation.md](guidelines/project-setup/dependency-automation.md).
 - `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the format and
   Markdown lint tasks: [formatting.md](guidelines/project-setup/formatting.md).
-- Any document: [documentation.md](guidelines/project-setup/documentation.md).
+- Any document: [documentation/layout.md](guidelines/documentation/layout.md)
+  and [documentation/types.md](guidelines/documentation/types.md).
+- `guidelines/`:
+  [documentation/writing-guidelines.md](guidelines/documentation/writing-guidelines.md).
 
 ## Where things are
 
-- [CONTRIBUTING.md](CONTRIBUTING.md): the index of the documents below.
-- [docs/releasing-and-publishing.md](docs/releasing-and-publishing.md): how to
-  change what other repositories pin (the plugin, the `iglootools` command, the
-  shared workflows) without breaking them, and cutting a release.
-- [docs/internals.md](docs/internals.md): how the plugin's skill and hooks
-  deliver the guidelines. Read before changing `skills/`, `hooks/` or `agents/`.
-- [README.md](README.md): what is here, and which guideline each kind of file
-  triggers.
-- [philosophy.md](philosophy.md): the reasoning behind the guidelines.
+[CONTRIBUTING.md](CONTRIBUTING.md) indexes every document, including which to
+read before changing the plugin's skills, hooks or agents.

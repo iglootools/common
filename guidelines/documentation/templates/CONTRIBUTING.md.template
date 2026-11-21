@@ -1,0 +1,36 @@
+# Contributing
+
+## Getting started
+
+- [docs/setup-development-environment.md](docs/setup-development-environment.md) — follow to set
+  up the toolchain, the editor, and the iglootools Claude Code plugin
+- [docs/building-and-testing.md](docs/building-and-testing.md) — follow to build, test and lint,
+  and look up the checks CI runs and the GitHub settings the repository depends on
+- [docs/releasing-and-publishing.md](docs/releasing-and-publishing.md) — follow to cut a release
+  and publish it
+
+## Guidelines
+
+This project follows the shared
+[iglootools guidelines](https://github.com/iglootools/common/tree/main/guidelines).
+[docs/guidelines.md](docs/guidelines.md) records where it deviates from them, the rules it adds,
+the checklists to run for specific kinds of change, and the conventions for particular areas of
+the code. Contributors follow the iglootools
+[code of conduct](https://github.com/iglootools/.github/blob/main/CODE_OF_CONDUCT.md); report
+vulnerabilities as the [security policy](https://github.com/iglootools/.github/blob/main/SECURITY.md)
+describes.
+
+## Understanding the code
+
+- [docs/domain.md](docs/domain.md) — understand the domain concepts and how they relate
+- [docs/architecture.md](docs/architecture.md) — understand how the code is organized
+- [docs/internals.md](docs/internals.md) — understand the runtime behavior and the decisions
+  behind it
+- [docs/architecture-decision-record.md](docs/architecture-decision-record.md) — find out which
+  architectural decisions were taken, and why
+
+## Reference
+
+- [docs/cli-reference.md](docs/cli-reference.md) — look up every command and option (generated
+  by `mise run clidocs`)
+- [docs/config-reference.md](docs/config-reference.md) — look up every configuration field

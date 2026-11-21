@@ -1,26 +1,20 @@
 # Project Setup Guidelines
 
 How an iglootools repository is configured, as opposed to how its code is
-written. These are read **on demand**: the `guidelines` skill routes to the one
-file a change actually reaches, because each is long and stays in context for
-the rest of the session once read. One file per trigger is deliberate — this was
-a single 501-line file, so a one-line workflow change pulled the Renovate rules
-and the editor settings along with it.
+written ([../coding/](../coding/)).
 
-| File | What is in it | Read it when the change touches |
-|---|---|---|
-| [workflows.md](workflows.md) | Thin workflows (a job calls one `mise run ci-*` task), least-privilege `permissions` on every job, pinning actions by SHA, pinning mise, lockable mise backends, `install: false`/`env: false` as a pair, naming a workflow after its file, choosing a concurrency group, job timeouts | anything under `.github/workflows/` |
-| [shared-workflows.md](shared-workflows.md) | The three workflows this repository hosts and every project calls by pinned SHA — the link checker, the `mise.lock` and `uv.lock` regenerator, the uv dependency-graph submission — and what a caller must declare for each | adding or changing a caller of one of them |
-| [dependency-automation.md](dependency-automation.md) | The Renovate/Dependabot split by latency, why committing `renovate.json` does not turn Renovate on, the repository settings alerts and security updates depend on, and validating and previewing the config with Renovate itself (`lint-renovate`, `renovate-dry-run`, the `npm:renovate` pin) | `renovate.json`, `dependabot.yml`, the Renovate tasks or pin, or a dependency update that did or did not appear |
-| [python-tooling.md](python-tooling.md) | The Python toolchain: hatchling, guarding against a `0.0.0` release, uv and mise configuration, invoking tools through `uv run --no-sync`, module boundaries with import-linter, dead code with deadcode, enforcing the patching rule (a failing `monkeypatch` fixture and ruff `TID251`), the Python task set, the `uv.lock` check | `pyproject.toml` (including `[tool.importlinter]`, `[tool.deadcode]` and ruff's `TID251`), a test `conftest.py`, the Python settings in `mise.toml` (`[deps.uv]`, the `python` and `uv` pins, `UV_*`), `uv.lock`, or the Python task set |
-| [mise.md](mise.md) | Tasks in any project: naming them by family (writers, `lint-*`, `test*`, `preflight`, `ci-*`), one `ci-*` task per workflow job, multi-line task bodies as executable file tasks under `mise-tasks/` (metadata in `#MISE` comments, the executable bit mise silently requires, bash 3.2), linting every shell script with shellcheck through `lint-shell` (vendored scripts marked in `.gitattributes`), and checking `mise.lock` in a scratch copy with `lock-check` | `mise.toml`, `mise-tasks/`, `mise.lock`, a shell script, or adding a mise task |
-| [formatting.md](formatting.md) | One tool per file type — ruff for Python, dprint for JSON, TOML, YAML and Dockerfiles, rumdl for Markdown — pinned in mise, their configuration (rumdl's defaults and the three settings that change), the `fmt*`, `lint-fmt*` and `lint-markdown` tasks, the one-time reformat and `.git-blame-ignore-revs`, and formatting Renovate branches in CI | `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the `fmt*`, `lint-fmt*` or `lint-markdown` tasks, or a formatting or Markdown lint failure |
-| [ide.md](ide.md) | Pyright environment resolution, the committed extension set, checking `.venv` into `.vscode/settings.json`, fencing in `mise-vscode`, multi-root workspaces | `.vscode/`, a `*.code-workspace`, or `[tool.pyright]` |
-| [claude-code.md](claude-code.md) | The Pyright LSP plugin, multi-project workspaces, picking up configuration changes, and committing the plugin set so the team gets it | `.claude/settings.json`, or which plugins the project enables |
-| [repository.md](repository.md) | Merge-commit pull requests, the default-branch and release-tag rulesets, the code of conduct and security policy inherited from `iglootools/.github`, ignoring OS and editor cruft in the committed `.gitignore`, `git config`, and where each project type goes next | `.gitignore`, repository rulesets or merge settings, community files, or setting up a new repository |
-| [documentation.md](documentation.md) | The conventional paths the skill reads, keeping `docs/guidelines.md` lean and indexing area conventions from it, README vs `CONTRIBUTING.md` vs `docs/`, the `CONTRIBUTING.md` scaffold, `AGENTS.md` as a short map, with no `CLAUDE.md`, the recommended `docs/` set and one name per role, ADRs, recording repository settings as commands, generated references | `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md` or anything under `docs/` |
-| [pypi-publishing.md](pypi-publishing.md) | Versions from git tags, conventional-commit bumps and choosing one by hand, the release → publish chain, trusted publishing and the `pypi`/`testpypi` environments, the Test PyPI rehearsal, recovering a failed publish | `release.yml`, `publish.yml`, `publish-test.yml`, or cutting a release |
-| [iglootools-cli.md](iglootools-cli.md) | The shared `iglootools` command: what each command replaces, installing it as a dev dependency pinned to a release tag (or through uvx without Python), one-line mise tasks, `[tool.iglootools]` settings, and trying a fix from a local checkout with `--with-editable` before releasing it | `[tool.iglootools]`, the `iglootools` pin, or a task that calls `iglootools` |
-| [cli-demo.md](cli-demo.md) | The asciinema demo: a scripted, deterministic, seeded session, recorded by mise tasks and in CI on every release, published from a developer machine and embedded in the README | `demo/`, `demo.yml`, the `demo-*` tasks, or the README embed |
-
-Code rather than configuration is in [../coding/](../coding/).
+| File | Read it when the change touches |
+|---|---|
+| [repository.md](repository.md) | `.gitignore`, repository rulesets or merge settings, community files, or setting up a new repository |
+| [workflows.md](workflows.md) | anything under `.github/workflows/` |
+| [shared-workflows.md](shared-workflows.md) | a caller of one of the five shared workflows: the link checker, the lock regenerator, the uv dependency-graph submission, the `release.yml` stub or the `demo.yml` stub |
+| [dependency-automation.md](dependency-automation.md) | `renovate.json`, `renovate/`, `dependabot.yml`, the Renovate tasks or pin, or a dependency update that did or did not appear |
+| [mise.md](mise.md) | `mise.toml`'s tasks, `mise-tasks/`, `mise.lock`, a shell script, or adding a mise task |
+| [python-tooling.md](python-tooling.md) | a Python project: `pyproject.toml`, a test `conftest.py`, the Python settings in `mise.toml`, `uv.lock`, or the Python version |
+| [pypi-publishing.md](pypi-publishing.md) | publishing a Python project to PyPI: `release.yml`, `publish.yml`, `publish-test.yml`, or cutting a release |
+| [formatting.md](formatting.md) | `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the `fmt*`, `lint-fmt*` or `lint-markdown` tasks, or a formatting or Markdown lint failure |
+| [ide.md](ide.md) | `.vscode/`, a `*.code-workspace`, or `[tool.pyright]` |
+| [claude-code.md](claude-code.md) | `.claude/settings.json`, or which plugins the project enables |
+| [iglootools-cli.md](iglootools-cli.md) | `[tool.iglootools]`, the `iglootools` pin, or a task that calls `iglootools` |
+| [cli-demo.md](cli-demo.md) | a CLI project's asciinema demo: `demo/`, `demo.yml`, the `demo-*` tasks, or the README embed |
+| [../documentation/layout.md](../documentation/layout.md#generate-references-from-the-code-and-check-them) | a CLI project's generated reference, and the `clidocs`/`lint-clidocs` tasks |

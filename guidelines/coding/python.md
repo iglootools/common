@@ -1,69 +1,103 @@
 # Python Guidelines
 
+The Python form of [general.md](general.md)'s rules, and the rules only Python
+has. Read it before changing Python code; the plugin puts it in every session of
+a project with a `pyproject.toml`. Building, packaging and checking a Python
+project is [python-tooling.md](../project-setup/python-tooling.md)'s.
+
 <!-- toc -->
 **On this page**
 
-- [Functional Style](#functional-style)
-- [String Literals](#string-literals)
-- [Typing](#typing)
+- [Style](#style)
+  - [Build a collection in one expression, not by appending](#build-a-collection-in-one-expression-not-by-appending)
+  - [Prefer `match` and explicit branches over chains and early returns](#prefer-match-and-explicit-branches-over-chains-and-early-returns)
+  - [Write structured multi-line strings with `dedent`](#write-structured-multi-line-strings-with-dedent)
+  - [Annotate every function, including its return type](#annotate-every-function-including-its-return-type)
 - [Naming](#naming)
+  - [Follow PEP 8 casing](#follow-pep-8-casing)
+  - [Name a package after its domain slice, and its layers by fixed names](#name-a-package-after-its-domain-slice-and-its-layers-by-fixed-names)
+  - [Name a class by its role](#name-a-class-by-its-role)
+  - [Start a function's name with the verb that says what the caller gets](#start-a-functions-name-with-the-verb-that-says-what-the-caller-gets)
+  - [Name a parameter by the word its CLI option or role uses](#name-a-parameter-by-the-word-its-cli-option-or-role-uses)
+  - [Name a test after the behaviour it checks](#name-a-test-after-the-behaviour-it-checks)
 - [Data Classes](#data-classes)
+  - [Freeze every data class, but write exceptions as plain classes](#freeze-every-data-class-but-write-exceptions-as-plain-classes)
 - [Errors](#errors)
+  - [Give an error a kind and its fields, and subclass what callers catch](#give-an-error-a-kind-and-its-fields-and-subclass-what-callers-catch)
 - [Imports](#imports)
-- [Formatting](#formatting)
-- [Python Version](#python-version)
-- [Control Flow](#control-flow)
+  - [Import at module level, and defer with `lazy import`](#import-at-module-level-and-defer-with-lazy-import)
 - [Console Output](#console-output)
+  - [Print through Rich, escaping interpolated text exactly once](#print-through-rich-escaping-interpolated-text-exactly-once)
 - [Module Boundaries](#module-boundaries)
+  - [Change the import-linter contracts deliberately, never to let an edge through](#change-the-import-linter-contracts-deliberately-never-to-let-an-edge-through)
 - [Tests](#tests)
-- [Python Version Policy](#python-version-policy)
-  - [Why the latest, and only the latest](#why-the-latest-and-only-the-latest)
-  - [The knobs](#the-knobs)
-  - [Moving to a new release](#moving-to-a-new-release)
+  - [Build serialized test data from the models](#build-serialized-test-data-from-the-models)
+  - [Make a seam a keyword parameter whose default is the real function](#make-a-seam-a-keyword-parameter-whose-default-is-the-real-function)
+- [Target only the latest stable Python](#target-only-the-latest-stable-python)
   - [When a dependency lags](#when-a-dependency-lags)
 <!-- tocstop -->
 
-## Functional Style
+## Style
 
-- Avoid mutable accumulator lists (`errors = []; errors.append(...)`). Instead,
-  build lists as single expressions using `[*(...), *(...)]` unpacking,
-  conditional `[item] if cond else []` fragments, and helper functions that
-  return lists.
-- Prefer dict/list comprehensions over imperative loops for building
-  collections.
-- When a function computes a list from multiple independent branches, compose
-  the result by unpacking sub-expressions rather than mutating a shared list
-  across branches.
+### Build a collection in one expression, not by appending
 
-## String Literals
+Build lists from `[*(...), *(...)]` unpacking, conditional
+`[item] if cond else []` fragments, comprehensions and helpers that return
+lists, never an accumulator (`errors = []; errors.append(...)`).
 
-- Prefer `dedent("""\...""")` multiline strings over concatenated single-line
-  strings with `\n` escapes when the content has meaningful structure (e.g.
-  YAML, config snippets, multi-line templates). Short single-line strings (e.g.
-  `"key: value\n"`) are fine as-is.
+**Why:** the result's shape is visible where it is defined.
 
-## Typing
+- A result computed from independent branches unpacks each branch's
+  sub-expression.
+- Include keys conditionally with a filtered comprehension:
+  `**{k: v for k, v in {...}.items() if v is not None}`.
+- Filter with a comprehension or a built-in (`map`, `filter`) instead of a loop
+  with `continue`.
 
-Use type annotations for all functions and methods, including return types. Use
-`pyright` for static type checking.
+### Prefer `match` and explicit branches over chains and early returns
+
+Use `match`-`case` over `if`-`elif`-`else` chains, write the `else` explicitly,
+and return a single expression where the logic allows
+(`return bool(x) and all(...)` over guard clauses returning `False`).
+
+**Why:** every case is visible at one level, with no implicit path.
+
+### Write structured multi-line strings with `dedent`
+
+Use `dedent("""\...""")` for content with structure (YAML, config snippets,
+templates), not concatenated lines with `\n` escapes. A short single-line string
+such as `"key: value\n"` stays as it is.
+
+**Why:** the string reads as the text it produces.
+
+### Annotate every function, including its return type
+
+**Why:** pyright
+([setup](../project-setup/python-tooling.md#type-check-with-pyright)) checks
+only what is annotated.
 
 ## Naming
 
-The Python form of [Naming](general.md#naming) in general.md: PEP 8 casing
-(`snake_case` functions, modules and variables, `CamelCase` classes,
-`UPPER_SNAKE` constants and enum members), and a leading `_` for anything
-private to its module. A model read from or written to a file a user edits keeps
-snake_case fields and maps them to kebab keys through Pydantic's
-`alias_generator`, not with an alias per field.
+The Python form of [general.md › Naming](general.md#naming).
 
-**Machine-readable output** (JSON, CSV headers) uses snake_case keys, the
-fields' own names, so a consumer can write `.failure_reason` in `jq` or
-`row["album_id"]` without quoting. A command that echoes configuration back
-(`config show`) keeps the configuration's own kebab keys.
+### Follow PEP 8 casing
 
-**Modules and packages.** A package is named after the slice of the domain it
-owns, in the domain's own noun (`disks/`, `album/`). Layers inside it keep fixed
-names, so every package reads the same way:
+`snake_case` functions, modules and variables, `CamelCase` classes,
+`UPPER_SNAKE` constants and enum members, and a leading `_` for anything private
+to its module.
+
+**Why:** the code reads like any Python.
+
+- A model read from or written to a file a user edits keeps snake_case fields
+  and maps them to kebab keys through Pydantic's `alias_generator`, not an
+  alias per field, so the user still types kebab-case.
+- Machine-readable output (JSON keys, CSV headers) uses the fields' snake_case
+  names, so a consumer writes `.failure_reason` in `jq` without quoting. A
+  command that echoes configuration back (`config show`) keeps its kebab keys.
+
+### Name a package after its domain slice, and its layers by fixed names
+
+A package takes the domain's own noun (`disks/`, `album/`). Layers inside it:
 
 | Name | Holds |
 |---|---|
@@ -73,28 +107,29 @@ names, so every package reads the same way:
 | `models.py` | the domain's data types, when they outgrow the module that uses them |
 | `testkit.py` / `testkit/` | factories and sample values the tests share |
 
-**Classes.**
+**Why:** every package reads the same way.
 
-- A result is `<Subject>Result`; a plan a decider returns is `<Subject>Plan`;
-  configuration a user writes is `<Subject>Config`.
-- An exception is `<Subject>Error`, and only an exception is: an enum listing
-  kinds of problems is never `<Subject>Error`. It is `<Subject>ErrorKind` for a
-  problem found before an operation runs (a missing volume, an invalid config),
-  `<Subject>FailureKind` for how an operation that ran went wrong
-  (`MountFailureKind`), and `<Subject>WarningKind` for one that does not stop
-  it. The exception carries that kind ([Errors](#errors)).
+### Name a class by its role
+
+- A result is `<Subject>Result`, a plan a decider returns `<Subject>Plan`,
+  configuration a user writes `<Subject>Config`.
+- Only an exception is `<Subject>Error`. An enum of problem kinds is
+  `<Subject>ErrorKind` for a problem found before an operation runs (a missing
+  volume, an invalid config), `<Subject>FailureKind` for how an operation that
+  ran went wrong (`MountFailureKind`), and `<Subject>WarningKind` for one that
+  does not stop it. The exception carries that kind ([Errors](#errors)).
 - Enums subclass `StrEnum`, not `(str, Enum)`. Their values are stable tokens,
-  kebab-case or a single lowercase word (`"no-metadata"`, `"mounted"`), never
-  prose: the value is data that scripts match on, and the sentence a user reads
-  is rendered at the edge
-  ([Presentation at the Edges](general.md#presentation-at-the-edges)).
-- A `typing.Protocol` is named by the role it plays (`VolumeCommandRunner`,
+  kebab-case or one lowercase word (`"no-metadata"`, `"mounted"`), never prose:
+  scripts match on the value, and the sentence a user reads is rendered at the
+  [edge](general.md#presentation-at-the-edges).
+- A `typing.Protocol` is named by its role (`VolumeCommandRunner`,
   `ConvertFile`); a callable type alias ends in `Fn` (`PromptFn`, `WhichFn`).
   Write aliases with `type X = ...`.
-- A test double is `Fake<Thing>` when it is a class and `fake_<thing>()` when it
-  is a factory.
+- A test double is `Fake<Thing>` as a class, `fake_<thing>()` as a factory.
 
-**Functions.** The verb says what the caller gets back:
+**Why:** the name tells the reader what kind of thing it is before they open it.
+
+### Start a function's name with the verb that says what the caller gets
 
 | Verb | Means |
 |---|---|
@@ -113,221 +148,170 @@ names, so every package reads the same way:
 | `print_` | print; only in `cli/` modules |
 | `is_` / `has_` | a boolean predicate |
 
+**Why:** the name says whether it raises, prints or touches the disk.
+
 - `_or_exit` marks a CLI helper that exits the process on failure, and only
   those.
 - A Typer command function is `<command>_cmd` (`detect_faces_cmd`), so it never
   shadows a builtin or the domain function it calls (`mount`, `run`). A Typer
-  sub-app is `app` in its own module, which the code that mounts it reads as
-  `<scope>.app`; it is `<scope>_app` only where the module name does not already
-  say which app it is, such as several apps in one module.
-- An option two commands share is an `Annotated` constant named `<NAME>_OPTION`
-  in one module.
+  sub-app is `app` in its own module, read as `<scope>.app`; it is
+  `<scope>_app` only where the module does not already say which app it is.
+- An option two commands share is an `Annotated` constant `<NAME>_OPTION` in one
+  module.
 
-**Parameters.** A boolean field or flag uses the word the CLI option uses
-(`dry_run`, `force`); a negative one starts with `skip_`. A collection is a
-plural noun, and a mapping `<values>_by_<key>`. A directory is `<name>_dir`, any
-other path `<name>_path`. An injected seam is named for what it does (`run`,
-`which`, `now`), a callback `on_<event>`, and a function parameter `<role>_fn`.
+### Name a parameter by the word its CLI option or role uses
 
-**Tests.** `test_<module>.py` files mirror the package. Tests are grouped in
-`Test<Subject>` classes, and each test name states the behaviour:
-`test_<subject>_<outcome>[_when_<condition>]` (`test_failed_open_is_not_kept`).
+A boolean uses the CLI option's word (`dry_run`, `force`); a negative one starts
+with `skip_`. A collection is a plural noun, a mapping `<values>_by_<key>`. A
+directory is `<name>_dir`, any other path `<name>_path`. An injected seam is
+named for what it does (`run`, `which`, `now`), a callback `on_<event>`, a
+function parameter `<role>_fn`.
+
+**Why:** a concept keeps one name from the command line to the core.
+
+### Name a test after the behaviour it checks
+
+`test_<module>.py` files mirror the package, tests group in `Test<Subject>`
+classes, and each name is `test_<subject>_<outcome>[_when_<condition>]`
+(`test_failed_open_is_not_kept`).
+
+**Why:** a failing test's name says which behaviour broke.
 
 ## Data Classes
 
-- All serialized model objects are frozen pydantic dataclasses, immutable once
-  created.
-- Other data classes should also be frozen.
-- Exception classes are the exception: write them as plain classes that set
-  their attributes in `__init__`, never as `@dataclass(frozen=True)`. Python
-  assigns `__traceback__` (and `add_note` writes `__notes__`) while an exception
-  propagates — for instance when it passes through a `@contextmanager` — and a
-  frozen dataclass turns that into `FrozenInstanceError`, replacing the real
-  error with a confusing one.
+### Freeze every data class, but write exceptions as plain classes
+
+Serialized models are frozen pydantic dataclasses, and other data classes are
+frozen too. An exception is a plain class that sets its attributes in
+`__init__`, never a `@dataclass(frozen=True)`.
+
+**Why:** a frozen value is safe to share. But Python assigns `__traceback__`
+(and `add_note` writes `__notes__`) as an exception propagates, for instance
+through a `@contextmanager`, and a frozen dataclass replaces the real error with
+a `FrozenInstanceError`.
 
 ## Errors
 
-The Python form of structured errors (see [Testability](general.md#testability)
-in general.md).
+### Give an error a kind and its fields, and subclass what callers catch
 
-- An error value is a frozen dataclass with a `kind: StrEnum` and the fields
-  that describe it.
-- An exception carries the same as attributes, and subclasses the built-in its
-  callers already handle (`OSError` for a failed external tool, `ValueError` for
-  malformed input) so existing `except` clauses keep catching it.
-- `__str__` stays a plain fallback; the message users see is rendered by the
-  output layer.
+The Python form of
+[general.md › Return data from the core](general.md#return-data-from-the-core-and-render-it-at-the-edge):
+an error value is a frozen dataclass with a `kind: StrEnum` and its fields. An
+exception carries the same as attributes, and subclasses the built-in its
+callers already handle (`OSError` for a failed external tool, `ValueError` for
+malformed input). `__str__` stays a plain fallback; the output layer renders the
+message users see.
+
+**Why:** existing `except` clauses keep catching it, and tests assert on the
+kind and fields, not the wording.
 
 ## Imports
 
-Import at module level. Where an import has to be deferred — an expensive module
-the CLI does not need to start, or a cycle between modules — use a module-level
-`lazy import` / `lazy from ... import` (PEP 810) rather than an import inside a
-function, a `TYPE_CHECKING` block, or a module `__getattr__`.
+### Import at module level, and defer with `lazy import`
 
-- A lazy import is still a dependency edge: import-linter and pydeps both see
-  it, so the module-boundary contracts keep applying.
-- Enable ruff's `TID255` (lazy-import-immediately-resolved), which flags a lazy
-  import that module-level code resolves straight away, so the deferral is lost.
-- When the deferral is the point, such as keeping CLI startup fast, back it with
-  a test that imports the entry point in a fresh interpreter and asserts the
-  heavy modules are absent from `sys.modules`. Nothing else notices when an
-  eager import creeps back.
+Where an import has to be deferred (an expensive module the CLI does not need
+to start, or a cycle), use a module-level `lazy import` / `lazy from ... import`
+(PEP 810), not an import inside a function, a `TYPE_CHECKING` block or a module
+`__getattr__`.
+
+**Why:** every dependency stays visible at the top of the module, and
+import-linter and pydeps still see a lazy import as an edge, so the
+module-boundary contracts keep applying.
+
+- A lazy import that module-level code resolves straight away loses its
+  deferral; ruff's `TID255` flags it.
 - An optional extra stays an in-function `try: import ... except ImportError`.
   PEP 810 forbids `lazy` inside `try`, and a lazy import would move the
-  `ImportError` to the first use, where the except clause no longer surrounds
-  it.
-
-## Formatting
-
-- 88 characters (ruff default).
-
-## Python Version
-
-The latest stable release (3.15), one version for development, CI
-and users alike. See [Python Version Policy](#python-version-policy) below.
-
-## Control Flow
-
-- Prefer match-case over if-elif-else chains
-- Prefer comprehensions and built-ins (map, filter) over manual loops when
-  appropriate.
-- Avoid `continue` in loops, and prefer filtering with comprehensions or
-  built-ins instead.
-- Prefer single-expression returns over early returns when the logic can be
-  expressed concisely (e.g. `return bool(x) and all(...)` over guard clauses
-  with `return False`).
-- Prefer explicit if/else syntax over implicit else
-- Prefer dict unpacking with a filtered comprehension over if-chains when
-  conditionally including keys (e.g.
-  `**{k: v for k, v in {...}.items() if v is not None}`).
+  `ImportError` to the first use, outside the `except`.
+- When the deferral is the point, such as a fast CLI startup, a test imports the
+  entry point in a fresh interpreter and asserts the heavy modules are absent
+  from `sys.modules`: nothing else notices an eager import creeping back.
 
 ## Console Output
 
-Print through [Rich](https://github.com/textualize/rich), which
-[Typer](https://typer.tiangolo.com/) already bundles. The Python form of
-[Presentation at the Edges](general.md#presentation-at-the-edges) in general.md:
+### Print through Rich, escaping interpolated text exactly once
 
-- Apply indentation at the call site with `textwrap.indent` (or a small project
-  helper built on it); formatting helpers return unindented lines.
-- Rich parses square brackets as markup and silently drops tags it does not
-  recognize, so a name such as `Hiking [private]` prints as `Hiking `. Escape
-  interpolated user text with `rich.markup.escape` where it meets intentional
-  markup, or print with `markup=False` when the line has none. Escape exactly
-  once: a formatter that escapes what it embeds must be printed with markup on,
-  not escaped again.
+Print through [Rich](https://github.com/textualize/rich), which
+[Typer](https://typer.tiangolo.com/) bundles. Escape user text with
+`rich.markup.escape` where it meets intentional markup, or print with
+`markup=False` when the line has none. A formatter that escapes what it embeds
+is printed with markup on, not escaped again.
+
+**Why:** Rich silently drops square-bracket tags it does not recognize, so
+`Hiking [private]` prints as `Hiking `; escaping twice prints the backslashes.
+
+- Indent at the call site with `textwrap.indent`, or a small helper built on it
+  ([general.md](general.md#return-data-from-the-core-and-render-it-at-the-edge)).
 
 ## Module Boundaries
 
-The Python form of
-[High Cohesion, Low Coupling](general.md#high-cohesion-low-coupling) in
-general.md. Which package may import which is declared as
-[import-linter](https://import-linter.readthedocs.io/) contracts in
-`pyproject.toml` (`[tool.importlinter]`), and a check task enforces them. The
-setup is in
-[python-tooling.md](../project-setup/python-tooling.md#module-boundaries-import-linter).
+### Change the import-linter contracts deliberately, never to let an edge through
 
-- The contracts are the source of truth for the layering. A generated dependency
-  graph only *shows* the edges; the project's architecture doc explains why each
-  rule exists.
-- When a change needs an edge a contract forbids, first decide whether the edge
-  belongs: move the code to the layer that may own it rather than bending the
-  contract. Never add an `ignore_imports` entry just to make a new edge pass.
-- When the architecture itself changes, change the contracts deliberately, in
-  the same commit as the restructuring, together with the architecture doc that
-  explains them.
-- Core modules do not import `rich` or `typer`. A contract names them, which is
-  how `Presentation at the Edges` is enforced rather than only stated.
+Which package may import which is declared as
+[import-linter](https://import-linter.readthedocs.io/) contracts under
+`[tool.importlinter]` in `pyproject.toml`, enforced by
+`mise run lint-boundaries`
+([setup](../project-setup/python-tooling.md#declare-module-boundaries-as-import-linter-contracts)).
+They are the Python form of
+[general.md › Keep cohesion high](general.md#keep-cohesion-high-and-coupling-low-at-every-level).
+When a change needs an edge a contract forbids, move the code to the layer that
+may own it. Never add an `ignore_imports` entry just to make a new edge pass.
+
+**Why:** the contracts are the source of truth for the layering; bent once,
+they stop saying anything.
+
+- When the architecture itself changes, change the contracts in the same commit
+  as the restructuring, with the architecture doc that explains each rule. A
+  generated dependency graph only shows the edges.
+- Core modules do not import `rich` or `typer`, and a contract names them, so
+  presentation at the edges is enforced rather than only stated.
 
 ## Tests
 
-The Python form of [Mocks](general.md#mocks) in general.md. The tool setup that
-enforces it is in
-[python-tooling.md](../project-setup/python-tooling.md#enforce-the-patching-rule).
+The Python form of [general.md › Testability](general.md#testability), enforced
+as
+[python-tooling.md](../project-setup/python-tooling.md#enforce-the-patching-rule)
+sets up.
 
-- **What counts as patching:** `unittest.mock`, and pytest's `monkeypatch`
-  fixture. Changing directory is not patching (use `contextlib.chdir`), and
-  neither is choosing a backend through a library's own API.
-- **A seam is a keyword parameter whose default is the real function.** The
-  default is bound when the function is defined, so a test that still patches
-  the module attribute no longer reaches the code, and keeps passing without
-  testing anything. Run the whole suite after introducing a seam, not only the
-  tests you converted.
-- **Use real values, not `Mock` stand-ins.** A stand-in accepts any attribute
+### Build serialized test data from the models
+
+Write a test's YAML or JSON input by dumping the model (`model_dump`, then the
+serializer), not as a hand-written string.
+
+**Why:** a hand-written string keeps passing after the model's fields change,
+testing a format the code no longer reads.
+
+### Make a seam a keyword parameter whose default is the real function
+
+Run the whole suite after introducing one, not only the tests you converted.
+
+**Why:** the default is bound when the function is defined, so a test that still
+patches the module attribute no longer reaches the code, and keeps passing
+without testing anything.
+
+- Patching means `unittest.mock` and pytest's `monkeypatch` fixture. Changing
+  directory is not (use `contextlib.chdir`), nor is choosing a backend through a
+  library's own API.
+- Use real values, not `Mock` stand-ins: a stand-in accepts any attribute
   access, so a typo or a renamed field still passes.
 
-## Python Version Policy
+## Target only the latest stable Python
 
-Projects target **one** Python version: the **latest stable CPython release** —
-3.15 at the time of writing. The minimum supported version, the version
-developed on and the version CI tests are the same, so there is no compatibility
-floor to guard and no second interpreter to keep working.
+Support one version, the latest stable CPython release, for development, CI and
+users alike. Where it is pinned and how to move to a new release is in
+[python-tooling.md › Target only the latest stable Python](../project-setup/python-tooling.md#target-only-the-latest-stable-python).
 
-### Why the latest, and only the latest
-
-Supporting an older Python costs more than it buys for these projects. Every
-feature newer than the floor is off-limits, a separate check (`vermin`) is
-needed to enforce that because ruff's and pyright's targets miss cases, and CI
-has to test a version nobody develops on. Meanwhile the tools are installed by
-people who can get a current interpreter in one step:
-
-- `uv tool install <tool>` downloads a managed Python when the system has no
-  matching one, so the distro's `python3` does not matter.
-- `pipx install --python <path-to-python3.15> <tool>` works the same way with an
-  interpreter installed by any other means (mise, pyenv, a PPA, Homebrew).
-
-The system `python3` of an LTS distribution is therefore not a constraint, and
-the projects do not track it.
-
-### The knobs
-
-Four settings name the version. All of them move together, in one change:
-
-| Knob | Where | Value |
-|---|---|---|
-| `[tools] python` | `mise.toml` | `3.15.x` — the exact patch release; CI installs it from here |
-| `requires-python` | `pyproject.toml` | `>=3.15,<3.16` |
-| ruff `target-version` | `pyproject.toml` | `py315` |
-| pyright `pythonVersion` | `pyproject.toml` | `3.15` |
-
-The `<3.16` upper bound keeps the package from installing on a Python nobody has
-tested; it is raised deliberately, together with the other knobs, not
-automatically.
-
-CI takes its interpreter from `mise.toml` like a developer machine does, with no
-version matrix: there is only one version to test.
-
-### Moving to a new release
-
-Move once every dependency publishes wheels for the new version. `uv lock` is
-not the check: it resolves happily to a release that has only an sdist, and a
-developer machine with a compiler then builds it without a word, so the gap
-shows up later as a failed install on a user's machine. After raising
-`requires-python`, relock with `uv lock --upgrade` (an older locked release
-often predates the new wheels) and ask for wheels explicitly:
-
-```bash
-uv sync --no-build --dry-run
-```
-
-It names every package that would have to be built from source. A pure-Python
-package whose sdist builds without a compiler — PyYAML falling back from its C
-extension — is acceptable; anything that needs a C, C++ or Rust toolchain is
-not. Then:
-
-1. Move all four knobs, relock (`uv lock`, `mise lock`), and run the full check
-   and test suite.
-2. Run `ruff check --fix`; with the new `target-version` its `UP` rules rewrite
-   the idioms the new version makes redundant.
-3. Adopt the release's new features where they remove a workaround or make the
-   code simpler — not everywhere they could apply.
+**Why:** an older floor puts every newer feature off-limits and needs a second
+interpreter tested that nobody develops on.
 
 ### When a dependency lags
 
 A dependency that publishes no wheels for the latest release holds the project
-back. Stay on the newest version that dependency supports, and record it as an
-exception the way [general.md](general.md) asks: a comment next to
-`requires-python` naming the dependency, and the condition that retires the
-exception — usually "move when it publishes wheels for 3.x". Do not build the
-dependency from source to get ahead of it: that trades a version number for a
-toolchain every user then needs.
+back. Stay on the newest version that dependency supports, and record it as a
+[documented exception](general.md#documented-exceptions): a comment next to
+`requires-python` naming the dependency and the condition that retires it,
+usually "move when it publishes wheels for 3.x". Do not build the dependency
+from source to get ahead of it.
+
+**Why:** building from source trades a version number for a toolchain every
+user then needs.

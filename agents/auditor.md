@@ -33,11 +33,14 @@ yourself, in full:
    `pyproject.toml`.
 3. `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md` when `HIST` is one of your
    categories.
-4. The project's `docs/guidelines.md` and `CONTRIBUTING.md`, when they exist,
-   and any area conventions `docs/guidelines.md` links for the paths in your
-   scope. Where the project's rules contradict the shared ones, the project
-   wins, and a documented exception is not a finding unless its retirement
-   condition now holds.
+4. The project's `CONTRIBUTING.md` and guidelines entry file
+   (`docs/guidelines.md`, or `docs/guidelines/README.md`), when they exist, and
+   every other `guidelines.md` or `guidelines/**/*.md` that governs a path in
+   your scope: `<dir>/guidelines.md` and `<dir>/guidelines/**` cover everything
+   under `<dir>`, and a file under `docs/guidelines/` covers the paths the entry
+   file lists beside it. Where the project's rules contradict the shared ones,
+   the project wins, and a documented exception is not a finding unless its
+   retirement condition now holds.
 5. The shared `project-setup/` file under
    `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/` that governs a file in your
    scope, when you audit that file — `workflows.md` for `.github/workflows/`,
@@ -99,7 +102,8 @@ origin: 3f2a1c9
   `:start-end`.
 - `rule` is the guideline the finding breaks, as
   `<file under guidelines/> › <heading>` for a shared rule or
-  `docs/guidelines.md › <heading>` for a project rule, or `none`. Copy the
+  `<project guidelines file> › <heading>` for a project rule, such as
+  `docs/guidelines.md › <heading>`, or `none`. Copy the
   heading of the rule's section exactly, because the report turns it into a link
   to that heading. When the rule sits in no section of its own, cite the nearest
   heading above it.

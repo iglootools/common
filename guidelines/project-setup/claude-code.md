@@ -1,74 +1,56 @@
 # Claude Code Guidelines
 
-Claude Code's own configuration: which plugins a project enables, how they
-resolve symbols, and what has to be committed for the team to get them. The
-editor half is in [ide.md](ide.md), and the two are not interchangeable — VSCode
-runs Pylance for the squiggles while the plugin runs its own pyright for Claude.
+Claude Code's own configuration: `.claude/settings.json` and the plugins a
+project enables. Read it before changing either. The editor half is in
+[ide.md](ide.md): VSCode runs Pylance for its diagnostics, while the plugin
+runs its own pyright for Claude, so a stale diagnostic on one side says nothing
+about the other.
 
 <!-- toc -->
 **On this page**
 
-- [Pyright LSP plugin](#pyright-lsp-plugin)
-- [Multi-project workspaces](#multi-project-workspaces)
-- [Picking up configuration changes](#picking-up-configuration-changes)
-- [Sharing the plugin set with the team](#sharing-the-plugin-set-with-the-team)
+- [Install pyright-lsp at project scope in every Python project](#install-pyright-lsp-at-project-scope-in-every-python-project)
+- [Commit `.claude/settings.json` so the team gets the plugins](#commit-claudesettingsjson-so-the-team-gets-the-plugins)
+- [Restart the session after changing `[tool.pyright]`, and never kill the server](#restart-the-session-after-changing-toolpyright-and-never-kill-the-server)
 <!-- tocstop -->
 
-## Pyright LSP plugin
-
-Install it in every Python project so Claude resolves symbols instead of
-grepping for them:
+## Install pyright-lsp at project scope in every Python project
 
 ```bash
 claude plugin install pyright-lsp@claude-plugins-official --scope project
 ```
 
-It provides go-to-definition, find-references, hover types, document and
-workspace symbol search, and call hierarchy, and it pushes diagnostics into
-Claude's context after each edit. Where the same name appears in several
-modules, this is the difference between an answer grounded in the import graph
-and one inferred from text matches.
+**Why:** Claude then resolves symbols through the import graph instead of
+grepping for names, which matters wherever the same name appears in several
+modules.
 
-## Multi-project workspaces
+- It provides go-to-definition, find-references, hover types, symbol search and
+  call hierarchy, and pushes diagnostics into Claude's context after each edit.
+- Resolution stays per project in a multi-project session, even one rooted
+  outside every project, as long as each project pins its venv as
+  [ide.md](ide.md#pin-the-venv-for-pyright-in-toolpyright) describes. One server
+  may cover several projects, but each file is checked against its own
+  project's venv, and `goToDefinition` follows the import graph rather than the
+  name.
 
-Opening several projects in one window — or reaching them as additional working
-directories — does not degrade resolution,
-*provided each project pins its own venv* with
-[`venvPath`/`venv`](ide.md#pyright-environment-resolution). This holds even when
-the session itself is rooted somewhere unrelated to any of them:
+## Commit `.claude/settings.json` so the team gets the plugins
 
-- **One server can cover several projects.** There is no guarantee of one server
-  per project, and the binary serving them all is whichever project's `.venv`
-  supplied it first.
-- **Imports still resolve per project.** Each file is checked against the venv
-  its own project pins, so one project's dependencies never stand in for
-  another's.
-- **`goToDefinition` and `findReferences` stay correct**, including for a name
-  defined in more than one project — they follow the import graph rather than
-  the name, so a call lands in the definition its own project imports.
+`--scope project` writes `enabledPlugins` into the repository's
+`.claude/settings.json`. Commit it; only `.claude/settings.local.json` is
+ignored.
 
-## Picking up configuration changes
+**Why:** everyone who clones then gets the same plugins. The file is easy to
+leave untracked without noticing, since a user-scope install keeps the plugin
+working locally.
 
-The plugin's pyright server reads `[tool.pyright]` at startup, so edits to it do
-not reach a running session. Restart the editor window (or the Claude Code
-session) and let the plugin spawn the server itself. Do not kill the server
-process expecting a respawn: the plugin does not restart it on demand, and it
-then reports `server is running` for a process that no longer exists, failing
-every LSP request until the session is reloaded. Note that this server is
-distinct from the editor's own — VSCode runs Pylance for the squiggles and the
-plugin runs its own pyright for Claude, so a stale diagnostic on one side says
-nothing about the other.
+- Project plugins load only after the workspace trust dialog is accepted, and
+  LSP servers start only once the workspace is trusted.
 
-## Sharing the plugin set with the team
+## Restart the session after changing `[tool.pyright]`, and never kill the server
 
-`--scope project` is what makes the install shared: it writes `enabledPlugins`
-into the repository's `.claude/settings.json` instead of your own
-`~/.claude/settings.json`, so everyone who clones the repo gets the same plugins
-rather than each developer installing them by hand. **Commit that file** — only
-`.claude/settings.local.json` is normally ignored, so it is easy to leave the
-shared half untracked and never notice, since your own user-scope install keeps
-the plugin working locally.
+Restart the editor window or the Claude Code session, and let the plugin spawn
+the server itself.
 
-Plugins declared this way come from the repository rather than from the
-developer, so they load only after the workspace trust dialog is accepted — LSP
-servers in particular start only once the workspace is trusted.
+**Why:** the server reads `[tool.pyright]` at startup. Killed, it is not
+respawned: the plugin reports `server is running` for a process that no longer
+exists, and every LSP request fails until the session is reloaded.

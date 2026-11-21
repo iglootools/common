@@ -19,7 +19,8 @@ it is in
 
 The guidelines split into two kinds, and the plugin delivers each by the
 mechanism that fits. `coding/general.md`, `coding/python.md` and `coding/git.md`
-govern every edit, so a `SessionStart` hook puts them in context from the start.
+govern every edit, so a `SessionStart` hook puts them in context from the start
+(`coding/python.md` only in a project with a `pyproject.toml`).
 The rest are triggered by a specific file, so a skill reads them only when a
 change reaches the files they govern.
 
@@ -60,6 +61,12 @@ auditors itself.
 The auditors do not see what the `SessionStart` hook emits, because a subagent
 does not receive it, so the `auditor` agent reads the guidelines itself.
 
+When Claude is about to open a pull request, mark it ready or merge it,
+[hooks/remind-audit-pr.sh](../hooks/remind-audit-pr.sh) reminds the user if no
+report under `.iglootools/audits/` covers the current commit. It does not block
+the command, since an audit is a judgment call rather than a gate, and pull
+requests opened outside Claude get no reminder.
+
 ## The ones that load in every session
 
 Some guidelines govern every edit rather than one kind of file —
@@ -80,12 +87,16 @@ away.
 
 Emission can be conditional: `coding/python.md` goes out only when the project
 has a `pyproject.toml`, so a project with no Python does not pay for it. The
-project's own `docs/guidelines.md` goes out last, when it exists, under a
-heading that says it overrides the shared rules above it: an override the agent
-only reads on demand is one it does not have in front of it while writing the
-code it overrides. If a file cannot be read, the hook says so in the injected
-text rather than emitting nothing, because a guideline that failed to load must
-not be indistinguishable from one that does not apply.
+project's guidelines entry file goes out last, when it exists
+(`docs/guidelines.md`, or `docs/guidelines/README.md` when the guidelines are
+split), under a heading that says it overrides the shared rules above it: an
+override the agent only reads on demand is one it does not have in front of it
+while writing the code it overrides. Every other `guidelines.md` and
+`guidelines/**/*.md` the project tracks is listed after it by path, with what it
+governs, and read when a change reaches that: loading them all would make every
+session pay for every area's conventions. If a file cannot be read, the hook
+says so in the injected text rather than emitting nothing, because a guideline
+that failed to load must not be indistinguishable from one that does not apply.
 
 ## The `iglootools` command
 

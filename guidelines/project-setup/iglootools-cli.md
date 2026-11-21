@@ -1,35 +1,42 @@
 # The `iglootools` Command Line
 
 The build, documentation and check tools every iglootools project shares,
-shipped as one command from this repository instead of scripts each project
-copies. A fix lands once, and a project picks it up by moving one pin.
+shipped as one command from this repository: `[tool.iglootools]`, the
+`iglootools` pin, and the tasks that call it. Read it before adding or changing
+either, or when fixing a bug in one of its commands.
 
 <!-- toc -->
 **On this page**
 
-- [What it does](#what-it-does)
+- [Use the shared command instead of a copied script](#use-the-shared-command-instead-of-a-copied-script)
 - [Install it as a dev dependency, pinned to a release](#install-it-as-a-dev-dependency-pinned-to-a-release)
 - [Call it from one-line mise tasks](#call-it-from-one-line-mise-tasks)
 - [Configure it in `[tool.iglootools]`, only where the defaults do not fit](#configure-it-in-tooliglootools-only-where-the-defaults-do-not-fit)
 - [Try a change from a local checkout before releasing it](#try-a-change-from-a-local-checkout-before-releasing-it)
 <!-- tocstop -->
 
-## What it does
+## Use the shared command instead of a copied script
 
-| Command | Does | Replaces |
-|---|---|---|
-| `iglootools docs toc [--check] [--add FILE]` | the "On this page" lists between `<!-- toc -->` and `<!-- tocstop -->`, from each file's `##` and `###` headings | — |
-| `iglootools docs cli [--check]` | `docs/cli-reference.md`, from the Typer app | `build-scripts/clidocs.py` |
-| `iglootools docs depgraph [--check] [-f mermaid\|ascii]` | the Module Overview in `docs/architecture.md`, from pydeps | `build-scripts/depgraph.py` |
-| `iglootools python build` | `uv build --sdist --wheel` into an emptied `dist/` | `mise-tasks/build` |
-| `iglootools python verify-version` | fails on a wheel carrying the `0.0.0` fallback version | `build-scripts/verifyversion.py` |
-| `iglootools python clean` / `reinstall` | deletes build artifacts / rebuilds `.venv` from the lock | `mise-tasks/clean`, `mise-tasks/reinstall` |
-| `iglootools demo record` / `upload` | records `demo/demo.sh` / publishes the newest CI recording | `demo/record-demo.sh`, `build-scripts/demoupload.py` |
-| `iglootools mise lock-check` | fails when the staged `mise.lock` is stale | `scripts/lock-check.sh` |
-| `iglootools shell lint` | shellcheck on every tracked shell script | `scripts/lint-shell.sh` |
+Where `iglootools` has a command for a job, call it rather than keeping a
+script in the project.
 
-`iglootools --help` and `iglootools <group> --help` list the options. Each
-command works on the current directory, or on `--root <dir>`.
+**Why:** a fix lands once, and a project picks it up by moving one pin.
+
+| Command | For |
+|---|---|
+| `iglootools docs toc` | the "On this page" lists between `<!-- toc -->` and `<!-- tocstop -->` |
+| `iglootools docs cli` | the CLI reference, from the Typer app |
+| `iglootools docs depgraph` | the Module Overview in `docs/architecture.md`, from pydeps |
+| `iglootools python build` / `clean` | building the sdist and wheel into an emptied `dist/` / deleting build artifacts |
+| `iglootools python verify-version` | failing on a wheel that carries the `0.0.0` fallback version |
+| `iglootools python reinstall` | rebuilding `.venv` from the lock |
+| `iglootools demo record` / `upload` | recording the demo / publishing the newest CI recording |
+| `iglootools mise lock-check` | failing when the staged `mise.lock` is stale |
+| `iglootools shell lint` | running shellcheck on every tracked shell script |
+
+- `iglootools --help` and `iglootools <group> --help` list the options.
+- Each command works on the current directory, or on `--root <dir>`. The
+  `docs` commands take `--check`, which fails instead of writing.
 
 ## Install it as a dev dependency, pinned to a release
 
@@ -39,45 +46,34 @@ tag:
 ```toml
 [dependency-groups]
 dev = [
-  "iglootools @ git+https://github.com/iglootools/common@v1.24.0",
+  "iglootools @ git+https://github.com/iglootools/common@v<version>",
 ]
 ```
 
-`uv.lock` records the commit the tag resolved to. The version is the plugin's,
-so the tag that releases the plugin releases the tools too. Move the pin, then
-`uv lock`, the way any dependency moves.
+**Why:** `docs cli` imports the project's Typer app, and `docs depgraph`
+imports the package and reads the distributions it declares, so neither works
+from an isolated tool environment.
 
-It installs into the project's own environment on purpose: `docs cli` imports
-the project's Typer app, and `docs depgraph` imports the package and reads which
-distributions it declares. Neither works from an isolated tool environment.
+- `uv.lock` records the commit the tag resolved to. Move the pin, then
+  `uv lock`, as for any dependency. The version is the plugin's: the tag that
+  releases the plugin releases the tools.
+- A project without Python runs the commands that do not need its environment
+  (`shell lint`, `mise lock-check`) through uvx, with uv in `[tools]` and the
+  release named once, in `[env]`, under a `# renovate:` comment, which the
+  shared `base` preset reads. Without the comment, nothing updates the version.
 
-A project without Python, such as a site or an infrastructure repository, runs
-the commands that do not need its environment (`shell lint`, `mise lock-check`)
-through uvx, with uv pinned in `[tools]` and the release named once, in `[env]`:
+  alberta-hiking-resources'
+  [mise.toml](https://github.com/iglootools/alberta-hiking-resources/blob/main/mise.toml)
+  is a working example: `IGLOOTOOLS` in `[env]`, and its `lint-shell` task.
 
-```toml
-[tools]
-uv = "0.13.7"
-
-[env]
-# renovate: datasource=github-tags depName=iglootools/common
-IGLOOTOOLS_VERSION = "v1.24.0"
-IGLOOTOOLS = "uvx --from git+https://github.com/iglootools/common@{{ env.IGLOOTOOLS_VERSION }} iglootools"
-
-[tasks.lint-shell]
-description = "Lint the tracked shell scripts with shellcheck"
-run = "$IGLOOTOOLS shell lint"
-```
-
-The `# renovate:` comment is what keeps the version current: the shared `base`
-preset reads it, since no built-in manager reads `[env]`. Without it the version
-is a pin nothing updates. uv caches the build, so only the first run after the
-version moves builds anything.
+  uv caches the build, so only the first run after the version moves builds
+  anything.
 
 ## Call it from one-line mise tasks
 
-Name the tasks as [mise.md](mise.md#name-tasks-by-family) describes, and make
-each one a single call, run through `uv run --no-sync` like every other tool
+Make each task a single call, named as
+[mise.md](mise.md#name-tasks-by-family) describes and run through
+`uv run --no-sync`
 ([python-tooling.md](python-tooling.md#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare)):
 
 ```toml
@@ -86,14 +82,14 @@ description = "Check that the Module Overview in docs/architecture.md is up to d
 run = "uv run --no-sync iglootools docs depgraph --check"
 ```
 
-A task that only calls one command needs no file under `mise-tasks/`. Arguments
-after the task name reach the command: `mise run toc --add docs/new.md`, with
-`--add` repeated for each file.
+**Why:** a task that calls one command needs no file under `mise-tasks/`.
+
+- Arguments after the task name reach the command:
+  `mise run toc --add docs/new.md`, with `--add` repeated for each file.
 
 ## Configure it in `[tool.iglootools]`, only where the defaults do not fit
 
-Every setting has a default that fits nbkp and photree, so most projects write
-nothing:
+Write a setting only where its default does not fit the project:
 
 ```toml
 [tool.iglootools]
@@ -116,25 +112,28 @@ cast = "demo.cast"
 readme = "README.md"
 ```
 
-A setting of the wrong type fails the command and names the key, rather than
-falling back to the default.
+**Why:** every default fits nbkp and photree, so most projects write nothing,
+and a setting that restates a default hides the ones that matter.
+
+- A setting of the wrong type fails the command and names the key, rather than
+  falling back to the default.
 
 ## Try a change from a local checkout before releasing it
 
-When a bug in a tool shows up while working on a project, fix it in a checkout
-of this repository next to the project, and run the project's command against
-that checkout:
+Fix a tool in a checkout of this repository next to the project, and run the
+project's command against it:
 
 ```bash
 uv run --no-sync --with-editable ../common iglootools docs depgraph --check
 ```
 
-`--with-editable` layers the checkout over the project's environment for that
-one command, and it wins over the pinned version. Nothing in the project
-changes: its `pyproject.toml`, `uv.lock` and `.venv` stay on the pin, and the
-next plain `mise run` is back on it. Once the fix is merged and released, move
-the project's pin.
+Never point the dependency at a path or a branch in `pyproject.toml` to try a
+change.
 
-Do not point the dependency at a path or a branch in `pyproject.toml` to try a
-change. That edits the lock, and a commit that forgets to undo it ships a
-dependency on a developer's directory.
+**Why:** a path or branch dependency edits the lock, and a commit that forgets
+to undo it ships a dependency on a developer's directory.
+
+- `--with-editable` layers the checkout over the project's environment for that
+  one command, ahead of the pinned version. `pyproject.toml`, `uv.lock` and
+  `.venv` stay on the pin, and the next plain `mise run` is back on it.
+- Once the fix is released, move the project's pin.

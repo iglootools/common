@@ -6,8 +6,8 @@ license-files = ["LICENSE"]
 # One version for the plugin and the package: read from .claude-plugin/plugin.json below, so
 # a release bumps it in one place and the two can never disagree.
 dynamic = ["version"]
-# Documented exception to guidelines/coding/python.md "Python Version Policy": a range, not
-# one version, because the package installs into each consumer's environment, and photree is
+# Documented exception to guidelines/project-setup/python-tooling.md "Target only the latest
+# stable Python": a range, not one version, because the package installs into each consumer's environment, and photree is
 # held on 3.14 by onnxruntime (no cp315 wheels); nbkp runs it on 3.15. mise.toml develops and
 # CI tests on 3.15, like every other project, while ruff and pyright target the 3.14 floor, so
 # 3.15-only syntax and standard-library APIs fail the checks. What they cannot see, a behaviour

@@ -63,17 +63,18 @@ cd ../nbkp && uv run --no-sync --with-editable ../common iglootools docs depgrap
 
 ## The shared workflows
 
-`.github/workflows/reusable-check-links.yml` is consumed by the other iglootools
-repositories, which pin it by commit SHA. It is therefore an interface: changing
-its inputs, or what a caller has to declare for it to work, breaks every caller
-that has not been updated. Document the consumer side in
+The `.github/workflows/reusable-*.yml` workflows are consumed by the other
+iglootools repositories, which pin them by commit SHA. Each is therefore an
+interface: changing its inputs, or what a caller has to declare for it to work,
+breaks every caller that has not been updated. Document the consumer side in
 `guidelines/project-setup/shared-workflows.md` in the same change, and remember
 that consumers do not move until someone repoints their pin.
 
-`check-links.yml` here calls it through a local path ref, so this repository
-exercises the workflow as changed rather than as last released. Use that:
-dispatch it on the branch (`gh workflow run check-links.yml --ref <branch>`)
-before merging a change to it.
+`check-links.yml` and `renovate-mise-lock.yml` here call theirs through a local
+path ref, so this repository exercises them as changed rather than as last
+released. Use that: dispatch the link checker on the branch
+(`gh workflow run check-links.yml --ref <branch>`) before merging a change to
+it.
 
 ## The version is the pin
 
@@ -91,4 +92,13 @@ From a clean working tree on `main`, with `version` already bumped in
 ```bash
 claude plugin validate .
 claude plugin tag --push -m "Release %s"
+git tag -a v<version> -m "Release <version>" 'iglootools--v<version>^{}'
+git push origin v<version>
 ```
+
+Each release carries two tags at the same commit: `iglootools--v<version>`,
+which `claude plugin tag` creates and the plugin installs by, and a plain
+`v<version>`, which projects pin the shared workflows, the Renovate presets and
+the `iglootools` command by. The plain tag exists because Renovate resolves
+ordinary version tags, not the prefixed spelling; without it no project gets an
+update pull request for the release.

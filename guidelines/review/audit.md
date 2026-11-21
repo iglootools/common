@@ -1,35 +1,62 @@
 # Auditing a Codebase
 
-What an iglootools audit looks for, how it rates what it finds, and how its
-report is laid out and worked through. The plugin's `audit-pr` and `audit-full`
-skills follow this document, and so does the `auditor` agent they start. A
-person reviewing a pull request can use the categories below as a checklist just
-as well.
-
-An audit reports problems. It does not fix them. Fixing is a separate step that
-you ask for finding by finding, so each fix is a change you chose (see
-[Fixing findings](#fixing-findings)).
-
-Run `audit-pr` before a pull request is reviewed, and again before it merges if
-the branch has changed much. It is a judgment call, not a gate. When Claude is
-about to open a pull request, mark it ready or merge it, the plugin's
-[remind-audit-pr.sh](../../hooks/remind-audit-pr.sh) hook reminds you if no
-report under `.iglootools/audits/` covers the current commit. It does not block
-the command, and pull requests opened outside Claude get no reminder.
+What an iglootools audit looks for, how it rates and reports what it finds, and
+how the findings are fixed. Read it before running or changing an audit, fixing
+a finding from an audit report, or reviewing a pull request by hand, which can
+use the categories as a checklist. The plugin's `audit-pr` and `audit-full`
+skills and the `auditor` agent they start follow it.
 
 <!-- toc -->
 **On this page**
 
+- [Report problems; fix them only when asked](#report-problems-fix-them-only-when-asked)
+- [Run `audit-pr` before review](#run-audit-pr-before-review)
 - [Categories](#categories)
+  - [File each finding under exactly one category](#file-each-finding-under-exactly-one-category)
+  - [Run every category in `audit-pr`, and all but `HIST` in `audit-full`](#run-every-category-in-audit-pr-and-all-but-hist-in-audit-full)
+  - [Record a broken guideline on the finding, not as `GUIDE`](#record-a-broken-guideline-on-the-finding-not-as-guide)
+  - [Check whether each documented exception's retirement condition holds](#check-whether-each-documented-exceptions-retirement-condition-holds)
 - [Rating a finding](#rating-a-finding)
+  - [Rate severity by the impact if the finding is left alone](#rate-severity-by-the-impact-if-the-finding-is-left-alone)
+  - [Mark confidence, and have a second auditor try to disprove `critical` and `high`](#mark-confidence-and-have-a-second-auditor-try-to-disprove-critical-and-high)
+  - [Give an `audit-pr` finding its origin](#give-an-audit-pr-finding-its-origin)
 - [The report](#the-report)
+  - [Write the report to `.iglootools/audits/<timestamp>-<scope>.md`](#write-the-report-to-iglootoolsauditstimestamp-scopemd)
+  - [Lay the report out for navigating](#lay-the-report-out-for-navigating)
+  - [State coverage, never imply it](#state-coverage-never-imply-it)
+  - [Report what an auditor notices beyond its brief](#report-what-an-auditor-notices-beyond-its-brief)
 - [Fixing findings](#fixing-findings)
+  - [Ask for fixes by ID, category or severity](#ask-for-fixes-by-id-category-or-severity)
+  - [Fold a fix with an origin into that commit; give the rest their own](#fold-a-fix-with-an-origin-into-that-commit-give-the-rest-their-own)
+  - [Describe the problem in the commit message, not the ID](#describe-the-problem-in-the-commit-message-not-the-id)
+  - [Update the finding's status with the fix](#update-the-findings-status-with-the-fix)
+  - [Answer a finding you disagree with by `won't fix` or a documented exception](#answer-a-finding-you-disagree-with-by-wont-fix-or-a-documented-exception)
 <!-- tocstop -->
+
+## Report problems; fix them only when asked
+
+An audit reports problems and changes nothing. Fixing is a separate step, asked
+for finding by finding ([Fixing findings](#fixing-findings)).
+
+**Why:** each fix is then a change someone chose, not a side effect of looking.
+
+## Run `audit-pr` before review
+
+Run it before a pull request is reviewed, and again before it merges if the
+branch has changed much. It is a judgment call, not a gate.
+
+**Why:** problems found before review cost a fold; found after merge, a new
+pull request.
 
 ## Categories
 
-Every finding has exactly one category. The ID prefix is the category's short
-name, and the categories appear in this order in a report, functional first.
+### File each finding under exactly one category
+
+The ID prefix is the category's short name, and the categories appear in this
+order in a report, functional first.
+
+**Why:** a finding counted under two categories inflates the report and is
+fixed twice.
 
 | ID | Category | Looks for |
 |---|---|---|
@@ -47,27 +74,35 @@ name, and the categories appear in this order in a report, functional first.
 | `GUIDE` | Guideline conformance | Only what fits no other category: a deviation from a shared or project rule that is not documented as an exception, and a documented exception whose retirement condition now holds |
 | `HIST` | Commit history | `audit-pr` only. Any rule in [git.md](../coding/git.md) the branch breaks: a commit that belongs in its own pull request, refactoring mixed with behaviour, rework or a fix-up never folded in, a message that does not match its diff |
 
-**Which categories each audit runs.** `audit-pr` runs every category.
-`audit-full` runs every category except `HIST`. Commit history is worth auditing
-only while it can still be changed: on a branch, a finding is fixed by rebasing
-before the merge. On `main` the history is append-only, so a full audit would
-pay to read every commit and produce findings nobody can act on. Either skill
-takes `only:` or `skip:` to narrow the set further. `audit-full` refuses
+### Run every category in `audit-pr`, and all but `HIST` in `audit-full`
+
+Either skill takes `only:` or `skip:` to narrow the set. `audit-full` refuses
 `only:HIST`.
 
-**A broken guideline is a field on the finding, not a category.** An overlong
-function is `MAINT`, and its rule cites `coding/general.md › Function size`.
-Filing it under `GUIDE` as well would count it twice. `GUIDE` holds only the
-divergences that are about the rules themselves.
+**Why:** commit history can be fixed only on a branch, by rebasing before the
+merge. On `main` it is append-only, so a full audit would pay to read every
+commit for findings nobody can act on.
 
-**Check documented exceptions too.** Every exception in a project's
-`docs/guidelines.md` or in a comment names the condition that would retire it.
-An audit checks whether that condition now holds — the dependency published
-wheels, the plan was upgraded — because nothing else does.
+### Record a broken guideline on the finding, not as `GUIDE`
+
+An overlong function is `MAINT`, and its rule cites
+`coding/general.md › Keep functions short, at one level of abstraction`.
+`GUIDE` holds only divergences about the rules themselves.
+
+**Why:** filing it under `GUIDE` as well would count it twice.
+
+### Check whether each documented exception's retirement condition holds
+
+Every exception names the condition that retires it
+([general.md](../coding/general.md#name-the-condition-that-retires-it)). The
+audit checks whether it now holds: the dependency published wheels, the plan was
+upgraded.
+
+**Why:** nothing else checks.
 
 ## Rating a finding
 
-**Severity** is the impact if the finding is left alone:
+### Rate severity by the impact if the finding is left alone
 
 | Severity | Meaning |
 |---|---|
@@ -76,124 +111,118 @@ wheels, the plan was upgraded — because nothing else does.
 | `medium` | A latent bug under conditions that are plausible but not routine, or debt that makes the next change in that area harder |
 | `low` | Polish: a better name, a clearer message, a small simplification |
 
-**Confidence** is how well the finding is established: `confirmed` when the
-auditor reproduced it, or traced it end to end through the code, and `plausible`
-when the reasoning holds but was not traced all the way. `critical` and `high`
-findings go through a second auditor that tries to disprove them before they
-reach the report. A finding that does not survive is dropped. One that survives
-but stays unproven keeps `plausible`.
+**Why:** the reader fixes in order of impact, not of discovery.
 
-**Origin** applies to `audit-pr` only: the commit on the branch that introduced
-the problem, or `pre-existing` when it is already present at the base. It is the
-ownership test from
+### Mark confidence, and have a second auditor try to disprove `critical` and `high`
+
+`confirmed` when the auditor reproduced the finding or traced it end to end
+through the code, `plausible` when the reasoning holds but was not traced all
+the way. A `critical` or `high` finding goes to a second auditor that tries to
+disprove it before it reaches the report: one that does not survive is dropped,
+one that survives unproven stays `plausible`.
+
+**Why:** the most severe findings are the ones acted on first, so a false one
+costs the most.
+
+### Give an `audit-pr` finding its origin
+
+The commit on the branch that introduced the problem, or `pre-existing` when it
+is already present at the base.
+
+**Why:** it is the ownership test from
 [git.md](../coding/git.md#fold-rework-into-the-commit-it-corrects), and it
 decides how the finding is fixed.
 
 ## The report
 
-An audit writes a Markdown report to `.iglootools/audits/<timestamp>-<scope>.md`
-at the project root, for example
+### Write the report to `.iglootools/audits/<timestamp>-<scope>.md`
+
+At the project root, for example
 `.iglootools/audits/20261114T093012Z-pr-feat-sync-retries.md` or
 `.iglootools/audits/20261114T161540Z-full.md`. The timestamp is UTC in ISO 8601
-basic format, so the reports list in the order they were written. Reports are
-working documents, not project history. `.iglootools/` holds everything
-iglootools tools generate and is listed in the committed `.gitignore` (see
-[repository.md](../project-setup/repository.md#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore)).
-The conversation shows only the summary and the path.
+basic format. The conversation shows only the summary and the path.
 
-The report is built for navigating, in GitHub, in an editor's Markdown preview,
-or as plain text:
+**Why:** the reports list in the order they were written, and as working
+documents rather than project history they stay out of Git: `.iglootools/` is
+in the committed `.gitignore`
+([repository.md](../project-setup/repository.md#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore)).
 
-```markdown
-# Audit: feat/sync-retries — 2026-11-14
+### Lay the report out for navigating
 
-Scope: 7 commits, a1b2c3d..d4e5f6a · Categories: all · Auditors: 3 · Guidelines: iglootools 1.21.0
+In GitHub, in an editor's Markdown preview, or as plain text, as
+[templates/audit-report.md.template](templates/audit-report.md.template)
+shows for a branch with one finding.
 
-To address findings, see [Fixing findings](<link to this section>).
-
-## Summary
-
-| Category | critical | high | medium | low |
-|---|---|---|---|---|
-| [SEC — Security](#sec) | 1 | 1 | | |
-| [ERR — Error handling](#err) | | 2 | 1 | |
-
-No findings in: BUG, DATA, PERF, TEST, ARCH, DEPS, MAINT, OPS, DOC, GUIDE, HIST.
-Not audited: none.
-
-## Index
-
-| ID | Severity | Finding | Location | Status |
-|---|---|---|---|---|
-| [SEC-1](#SEC-1) | critical | `rsync` command built from a user path | [sync/rsync.py:88](../../sync/rsync.py#L88) | open |
-
-<a id="sec"></a>
-## SEC — Security
-
-<a id="SEC-1"></a>
-### SEC-1 — `rsync` command built as a string from a user-supplied path
-
-| | |
-|---|---|
-| Severity | critical · confirmed |
-| Location | [sync/rsync.py:88](../../sync/rsync.py#L88) |
-| Origin | introduced in `3f2a1c9` |
-| Rule | [coding/general.md › Command Line](https://github.com/iglootools/common/blob/iglootools--v1.21.0/guidelines/coding/general.md#command-line) |
-| Status | open |
-
-**Scenario.** A volume named `x; rm -rf ~` runs the `rm`.
-
-**Fix.** Build the command as an argument list.
-
-[↑ Index](#index)
-```
+**Why:** a reader jumps from the summary to a finding to the line of code and
+back, and cites a finding by a link that does not break.
 
 - **IDs** are the category prefix and a number, numbered by severity within the
   category, so `SEC-1` is the most severe security finding. They are assigned
-  once, when the report is written, and never renumbered: a fixed finding keeps
-  its ID.
-- **Anchors** are explicit (`<a id="SEC-1">`) rather than derived from the
-  heading, so a link to a finding survives a reworded title.
-- **Locations** are relative to the report file (`../../<path>`, two levels up
-  from `.iglootools/audits/`) with a `#L<line>` anchor, so they open the file in
-  an editor and at the line on GitHub.
-- **Rules** link to the rule's own heading in the guideline, at the plugin
-  version that was applied, so a later change to the guideline does not change
-  what the finding cited.
-- **Coverage is stated, not implied.** "No findings in" lists the categories
-  that were audited and came back clean. "Not audited" lists what was skipped
-  and why — a category left out on request, an auditor that failed or ran out of
-  turns — so a gap never reads as a clean result.
-- **A problem one auditor notices in another's category** becomes a finding like
-  any other, marked `plausible` unless it was confirmed, so it can be fixed by
-  ID like the rest.
-- **Problems noticed outside the scope** go in a final "Outside the scope" list,
-  with a location and one line each, instead of being dropped. That covers code
-  in another repository, paths the audit was not asked to cover, and categories
-  it did not run. They have no ID and no severity, because nobody audited that
-  code. Run an audit over it to turn them into findings.
+  once and never renumbered: a fixed finding keeps its ID.
+- **Anchors** are explicit (`<a id="SEC-1">`), so a link survives a reworded
+  title.
+- **Locations** are relative to the report file (`../../<path>`) with a
+  `#L<line>` anchor, so they open in an editor and at the line on GitHub.
+- **Rules** link to the rule's own heading at the plugin version applied, so a
+  later change to the guideline does not change what the finding cited.
+
+### State coverage, never imply it
+
+"No findings in" lists the categories audited that came back clean. "Not
+audited" lists what was skipped and why: a category left out on request, an
+auditor that failed or ran out of turns.
+
+**Why:** a gap must never read as a clean result.
+
+### Report what an auditor notices beyond its brief
+
+- **In another auditor's category**: a finding like any other, `plausible`
+  unless confirmed, so it can be fixed by ID.
+- **Outside the scope** (another repository, paths not asked for, categories
+  not run): a final "Outside the scope" list, a location and one line each, with
+  no ID and no severity. Run an audit over it to turn them into findings.
+
+**Why:** a problem dropped because it was off-brief is lost; one given a
+severity nobody audited is overstated.
 
 ## Fixing findings
 
-Ask for findings by ID, by category or by severity: "fix SEC-1 and ERR-2", "fix
-all ARCH", "fix every high". The agent fixing them reads the report first, and
-follows
-[git.md](../coding/git.md):
+### Ask for fixes by ID, category or severity
+
+"Fix SEC-1 and ERR-2", "fix all ARCH", "fix every high". Whoever fixes them
+reads the report first and follows [git.md](../coding/git.md).
+
+**Why:** each fix is a change chosen from the report, not a sweep.
+
+### Fold a fix with an origin into that commit; give the rest their own
 
 - **An `audit-pr` finding with an origin commit** is a problem the branch
-  introduced. Its fix is folded into that commit with `git commit --fixup=<sha>`
-  and `git rebase --autosquash`.
+  introduced: fold its fix into that commit with `git commit --fixup=<sha>` and
+  `git rebase --autosquash`.
 - **A `pre-existing` finding, or any `audit-full` finding,** gets a commit of
   its own. Mechanical fixes across one category (a rename, a formatting rule)
-  can share one commit.
-- **Commit messages describe the problem, not the ID.** IDs mean something only
-  inside one report, while the history outlives it.
-- **The report is updated with the fix.** The finding's status, in the index and
-  in its section, becomes `fixed in <sha>`, or `won't fix: <reason>` when you
-  decide against it. Findings are never deleted from a report, so the IDs stay
-  stable.
+  can share one.
 
-A finding you disagree with is not fixed by editing around the rule. Either it
-is wrong, and gets `won't fix: <reason>`, or the project records a documented
-exception for it, as
+**Why:** the reviewer never reads a problem a later commit fixes, and a branch's
+fixes stay apart from older code.
+
+### Describe the problem in the commit message, not the ID
+
+**Why:** an ID means something only inside one report, and the history outlives
+it.
+
+### Update the finding's status with the fix
+
+In the index and in its section: `fixed in <sha>`, or `won't fix: <reason>`.
+Never delete a finding from a report.
+
+**Why:** the IDs stay stable, and the report shows what is left.
+
+### Answer a finding you disagree with by `won't fix` or a documented exception
+
+Never edit around the rule. Either the finding is wrong, and gets
+`won't fix: <reason>`, or the project records an exception as
 [Documented Exceptions](../coding/general.md#documented-exceptions) describes.
+
+**Why:** code edited around a rule hides the disagreement that the rule or the
+finding should settle.

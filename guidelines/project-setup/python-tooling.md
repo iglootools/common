@@ -1,42 +1,117 @@
 # Python Tooling Guidelines
 
-The toolchain: how a Python project is built, how its environment is created,
-and what tasks it exposes. For the language itself — what to write, rather than
-what builds it — see [python.md](../coding/python.md). Editor configuration is
-in [ide.md](ide.md), and what every repository carries regardless of language is
-in [repository.md](repository.md).
+How a Python project is built, how its environment is created, and which tools
+check it: `pyproject.toml`, the Python settings in `mise.toml` (`[deps.uv]`, the
+`python` and `uv` pins, `UV_*`), `uv.lock` and a test `conftest.py`. Read it
+before changing any of them, or the Python version. The language itself is in
+[python.md](../coding/python.md), the editor in [ide.md](ide.md), and task
+naming in [mise.md](mise.md#name-tasks-by-family).
 
 <!-- toc -->
 **On this page**
 
+- [Target only the latest stable Python](#target-only-the-latest-stable-python)
+  - [Name the version in the four places that pin it](#name-the-version-in-the-four-places-that-pin-it)
+  - [Move to a new Python release](#move-to-a-new-python-release)
 - [Build and Packaging](#build-and-packaging)
-  - [Build backend](#build-backend)
+  - [Build with hatchling and uv-dynamic-versioning](#build-with-hatchling-and-uv-dynamic-versioning)
   - [Pin the build backend explicitly](#pin-the-build-backend-explicitly)
   - [Guard against a `0.0.0` release](#guard-against-a-000-release)
-  - [Know what hatchling packages by default](#know-what-hatchling-packages-by-default)
+  - [Tell hatchling what to package](#tell-hatchling-what-to-package)
   - [Keep the version honest in editable installs](#keep-the-version-honest-in-editable-installs)
 - [Mise and uv](#mise-and-uv)
-  - [Configuration](#configuration)
+  - [Pin uv to mise's interpreter by absolute path](#pin-uv-to-mises-interpreter-by-absolute-path)
+  - [Let `[deps.uv]` install the environment, and mise only source it](#let-depsuv-install-the-environment-and-mise-only-source-it)
+  - [Assert the lock in CI with `UV_LOCKED=1` and in `lint` with `uv lock --check`](#assert-the-lock-in-ci-with-uv_locked1-and-in-lint-with-uv-lock---check)
   - [Invoke tools through `uv run --no-sync <tool>` in mise tasks, not bare](#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare)
-  - [Adding and removing dependencies](#adding-and-removing-dependencies)
+  - [Add and remove dependencies with `uv add` and `uv remove`, then run `fmt`](#add-and-remove-dependencies-with-uv-add-and-uv-remove-then-run-fmt)
+  - [Keep `install` and `reinstall` as tasks over `mise deps`](#keep-install-and-reinstall-as-tasks-over-mise-deps)
 - [Code Quality Tools](#code-quality-tools)
-  - [Module boundaries (import-linter)](#module-boundaries-import-linter)
-  - [Dead code (deadcode)](#dead-code-deadcode)
+  - [Lint and format with ruff](#lint-and-format-with-ruff)
+  - [Type-check with pyright](#type-check-with-pyright)
+  - [Declare module boundaries as import-linter contracts](#declare-module-boundaries-as-import-linter-contracts)
+  - [Prefer contracts whose coverage follows the code](#prefer-contracts-whose-coverage-follows-the-code)
+  - [Give every `ignore_imports` entry its reason](#give-every-ignore_imports-entry-its-reason)
+  - [Find unused code with deadcode](#find-unused-code-with-deadcode)
 - [Tests](#tests)
   - [Run test suites in parallel with pytest-xdist](#run-test-suites-in-parallel-with-pytest-xdist)
   - [Enforce the patching rule](#enforce-the-patching-rule)
-- [Mise Tasks](#mise-tasks)
-  - [Lock checks](#lock-checks)
-  - [Reinstalling the environment](#reinstalling-the-environment)
+- [Rationale](#rationale)
+  - [Target only the latest stable Python](#target-only-the-latest-stable-python-1)
+  - [Pin the build backend explicitly](#pin-the-build-backend-explicitly-1)
+  - [Guard against a `0.0.0` release](#guard-against-a-000-release-1)
+  - [Let `[deps.uv]` install the environment, and mise only source it](#let-depsuv-install-the-environment-and-mise-only-source-it-1)
+  - [Invoke tools through `uv run --no-sync <tool>` in mise tasks, not bare](#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare-1)
+  - [Prefer contracts whose coverage follows the code](#prefer-contracts-whose-coverage-follows-the-code-1)
 <!-- tocstop -->
+
+## Target only the latest stable Python
+
+A project targets one Python version: the latest stable CPython release, the one
+`[tools] python` in `mise.toml` pins. The minimum supported version, the version
+developed on and the version CI tests are the same.
+
+**Why:** an older floor puts every newer feature off-limits, needs a separate
+check to enforce it, and has CI test a version nobody develops on, while users
+can get a current interpreter in one step.
+[Rationale](#target-only-the-latest-stable-python-1)
+
+- CI takes its interpreter from `mise.toml`, as a developer machine does, with
+  no version matrix.
+- There is no compatibility check (`vermin`): nothing can be too new.
+- A dependency without wheels for the latest release holds the project back as
+  [python.md › When a dependency lags](../coding/python.md#when-a-dependency-lags)
+  describes.
+
+### Name the version in the four places that pin it
+
+Four settings name the version, and they move together, in one change:
+
+| Setting | Where | Value |
+|---|---|---|
+| `[tools] python` | `mise.toml` | the exact patch release, `3.X.Y`; CI installs it from here |
+| `requires-python` | `pyproject.toml` | `>=3.X,<3.(X+1)` |
+| ruff `target-version` | `pyproject.toml` | `py3X` |
+| pyright `pythonVersion` | `pyproject.toml` | `3.X` |
+
+**Why:** settings that disagree check the code against one version and run it on
+another. The upper bound keeps the package off a Python nobody has tested, so it
+is raised deliberately, with the others, never automatically.
+
+### Move to a new Python release
+
+Move once every dependency publishes wheels for the new version. After raising
+`requires-python`, relock with `uv lock --upgrade` and ask for wheels
+explicitly:
+
+```bash
+uv sync --no-build --dry-run
+```
+
+**Why:** `uv lock` resolves happily to a release that has only an sdist, and a
+developer machine with a compiler builds it without a word, so the gap shows up
+later as a failed install on a user's machine.
+
+- `--upgrade`, because an older locked release often predates the new wheels.
+- The dry run names every package that would be built from source. A pure-Python
+  package whose sdist builds without a compiler, such as PyYAML falling back
+  from its C extension, is acceptable. Anything that needs a C, C++ or Rust
+  toolchain is not.
+- Then:
+  1. Move all four settings, relock (`uv lock`, `mise lock`), and run
+     `mise run preflight`.
+  2. Run `ruff check --fix`: with the new `target-version`, its `UP` rules
+     rewrite the idioms the new version makes redundant.
+  3. Adopt the release's new features where they remove a workaround or make
+     the code simpler, not everywhere they could apply.
 
 ## Build and Packaging
 
-### Build backend
+### Build with hatchling and uv-dynamic-versioning
 
-Build tool: `uv`, with `hatchling` as the build backend and
+Build with `uv`, `hatchling` as the backend and
 [`uv-dynamic-versioning`](https://github.com/ninoseki/uv-dynamic-versioning) for
-git-tag-derived versions. Commit `uv.lock`.
+versions derived from git tags. Commit `uv.lock`.
 
 ```toml
 [build-system]
@@ -47,76 +122,46 @@ build-backend = "hatchling.build"
 source = "uv-dynamic-versioning"
 ```
 
-`uv-dynamic-versioning` is powered by the same `dunamai` library as the
-`poetry-dynamic-versioning` plugin used before, so version strings are identical
-across the switch — `0.6.1` on a tagged commit, `0.6.1.post6.dev0+2a99beb` off
-one. It is a third-party plugin; `uv`'s own `uv_build` backend cannot derive
-versions from a VCS at all
+**Why:** `uv`'s own `uv_build` backend cannot derive a version from a VCS
 ([astral-sh/uv#14561](https://github.com/astral-sh/uv/issues/14561)), and
-`hatch-vcs` would change the dev-version format.
+`hatch-vcs` uses a different dev-version format.
+
+- Versions come from `dunamai`: `0.6.1` on a tagged commit,
+  `0.6.1.post6.dev0+2a99beb` off one.
 
 ### Pin the build backend explicitly
 
-`uv.lock` does **not** resolve PEP 517 build dependencies: `uv build` resolves
-them fresh from PyPI on a cold cache. `[tool.uv] build-constraint-dependencies`
-is the only pin, and it must cover the whole closure — most importantly
-`dunamai`, which is what computes the version. Regenerate with:
+Pin the whole build closure in `[tool.uv] build-constraint-dependencies`,
+including `dunamai`, which computes the version. Leave `[build-system].requires`
+unpinned, so the two never contradict each other.
 
-```bash
-printf '%s\n' hatchling uv-dynamic-versioning \
-  | uv pip compile - --no-annotate --no-header --quiet
-```
+**Why:** `uv.lock` does not resolve PEP 517 build dependencies, so without the
+constraints `uv build` resolves them fresh from PyPI on a cold cache.
+[Rationale](#pin-the-build-backend-explicitly-1)
 
-Leave `[build-system].requires` unpinned so the two can never contradict each
-other. No built-in Renovate manager reads `build-constraint-dependencies`, so
-these pins rot silently unless a `customManagers` regex entry is added for them.
-It takes two patterns:
+- Regenerate the list with:
 
-```json
-{
-  "customType": "regex",
-  "managerFilePatterns": ["/pyproject.toml/"],
-  "matchStrings": [
-    "build-constraint-dependencies = \\[[^\\]]*\\]",
-    "\"(?<depName>[a-zA-Z0-9._-]+)==(?<currentValue>[^\"]+)\""
-  ],
-  "matchStringsStrategy": "recursive",
-  "datasourceTemplate": "pypi"
-}
-```
+  ```bash
+  printf '%s\n' hatchling uv-dynamic-versioning \
+    | uv pip compile - --no-annotate --no-header --quiet
+  ```
 
-The first isolates the array, and the second, applied within it, captures every
-pin. The obvious single pattern, anchored on the field name and capturing a pin,
-extracts only the first pin: its anchor is consumed by the first match, so the
-rest of the array is never matched. That fails quietly, since Renovate keeps
-updating one dependency and the build closure looks maintained. In photree it
-extracted one of ten pins, and it went unnoticed in two iglootools projects
-until an audit.
-
-The shared `python` Renovate preset carries this entry, so extend it rather than
-copying the entry
-([dependency-automation.md](dependency-automation.md#extend-the-shared-renovate-presets)).
-
-That entry only gets the bump halfway. `uv.lock` does not resolve the build
-closure, but it does record the constraints themselves, in its `[manifest]`, and
-Renovate regenerates the lock only for dependencies its built-in managers
-extracted. A regex-manager bump therefore arrives with `pyproject.toml` changed
-and `uv.lock` stale, and a CI job running with `UV_LOCKED=1` fails on it before
-any test. The
-[shared lock regenerator](shared-workflows.md#call-the-shared-lock-regenerator-too)
-runs `uv lock` on Renovate branches to close that gap, so a project with these
-pins needs to call it.
+- No built-in Renovate manager reads `build-constraint-dependencies`. The shared
+  `python` preset ([renovate/python.json](../../renovate/python.json)) carries
+  the custom manager that does: extend it
+  ([dependency-automation.md](dependency-automation.md#extend-the-shared-renovate-presets))
+  rather than copying it.
+- `uv.lock` records the constraints in its `[manifest]`, and Renovate relocks
+  only for what its built-in managers extracted. A bump from the custom manager
+  therefore leaves `uv.lock` stale, and CI fails under `UV_LOCKED=1`. A project
+  with these pins calls the
+  [shared lock regenerator](shared-workflows.md#call-the-shared-lock-regenerator-on-renovate-branches),
+  which runs `uv lock` on Renovate branches.
 
 ### Guard against a `0.0.0` release
 
-With a VCS-derived version, `[tool.uv-dynamic-versioning] fallback-version` is
-required — Renovate runs `uv lock --upgrade-package`, which builds with no git
-context, and without a fallback every such PR fails. The cost is that "no git
-history" becomes a *successful* build producing `0.0.0`: verified by building
-from a source tree with `.git` removed, which yields
-`<pkg>-0.0.0-py3-none-any.whl` and exits 0. Nothing else in the publish path
-catches this, and PyPI never allows a version to be re-uploaded. So provide a
-`build-verify` task and wire it into the CI build:
+Set `[tool.uv-dynamic-versioning] fallback-version`, and add a `build-verify`
+task that `ci-build` runs after `build`:
 
 ```toml
 [tasks.build-verify]
@@ -124,269 +169,292 @@ description = "Fail if the built wheel carries the 0.0.0 fallback version"
 run = "uv run --no-sync iglootools python verify-version"
 ```
 
-[`iglootools python verify-version`](iglootools-cli.md) reads the fallback
-version from `pyproject.toml` rather than keeping its own copy, which would let
-fallback builds through as soon as the two differed. It reads each wheel's
-`METADATA` rather than pattern-matching filenames, since a legitimate
-`1.0.0.dev0` contains `0.0.0` as a substring, and it fails when `dist/` holds no
-wheel at all, or the guard would be defeated by the very situation it exists to
-catch.
+**Why:** Renovate runs `uv lock --upgrade-package` with no git context, so
+without a fallback every such PR fails. With one, a build with no git history
+succeeds as `0.0.0`, nothing else in the publish path catches it, and PyPI
+never accepts a version twice. [Rationale](#guard-against-a-000-release-1)
 
-Building the wheel *from an sdist* is safe, contrary to expectation: hatchling
-writes the resolved version into the sdist's `PKG-INFO` and reads it back,
-verified by building from an extracted sdist with no `.git`.
-`uv build --sdist --wheel` (both from source) is still mildly preferable at no
-cost, but it is not a workaround for a broken path.
+- `iglootools python verify-version` is described in
+  [iglootools-cli.md](iglootools-cli.md).
 
-### Know what hatchling packages by default
+### Tell hatchling what to package
 
-Which is more than poetry did:
+Set `[tool.hatch.build.targets.wheel] packages` and
+`[tool.hatch.build.targets.sdist] only-include` explicitly.
 
-| Default | Consequence |
-|---|---|
-| sdist includes every file not ignored by the VCS | ships `tests/`, `docs/`, `.github/` and the lockfiles unless constrained with `[tool.hatch.build.targets.sdist] only-include` |
-| wheel contents inferred from a `<NAME>/__init__.py` heuristic | when the heuristic misses, the result is a silently *empty* wheel rather than an error — so set `[tool.hatch.build.targets.wheel] packages` explicitly |
-| `.gitignore` is the only ignore file read — not `.git/info/exclude`, not `core.excludesfile` | a file ignored only locally is published. See the `.gitignore` rule under [All Projects](repository.md) |
+**Why:** hatchling's sdist includes every file the VCS does not ignore,
+shipping `tests/`, `docs/`, `.github/` and the lockfiles. Its wheel is inferred
+from a `<NAME>/__init__.py` heuristic, and when the heuristic misses the wheel
+is silently empty rather than an error.
 
-Prove parity rather than assuming it when migrating a build backend: diff the
-wheel payload and sdist file lists against the previous toolchain's at the same
-tag, and install the wheel and exercise anything read through
-`importlib.resources` or `Path(__file__).parent`, which a file-list diff does
-not cover.
+- hatchling reads only `.gitignore`, so a file ignored only locally is
+  published: see
+  [repository.md › the committed `.gitignore`](repository.md#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore).
+- When changing build backend, prove parity: diff the wheel payload and the
+  sdist file list against the previous toolchain's at the same tag, and install
+  the wheel and exercise anything read through `importlib.resources` or
+  `Path(__file__).parent`, which a file-list diff does not cover.
 
 ### Keep the version honest in editable installs
 
-Code that reads its own version through `importlib.metadata` gets whatever was
-frozen into `.dist-info` at install time, so a VCS-derived version goes stale on
-the next commit. Fix it with:
+Add git to uv's cache keys, keeping the `pyproject.toml` entry:
 
 ```toml
 [tool.uv]
 cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
 ```
 
-This *replaces* the default `[{ file = "pyproject.toml" }]` rather than
-extending it, hence the explicit file entry. Note the interaction with
-`[deps.uv]`: a plain commit changes neither `uv.lock` nor `pyproject.toml`, so
-no automatic sync fires and the staleness persists until something forces one.
-An uncommitted tree also still reports the last commit's version — `dunamai`'s
-default format carries no dirty marker.
+**Why:** code that reads its own version through `importlib.metadata` gets what
+was frozen into `.dist-info` at install time, which goes stale on the next
+commit.
+
+- The setting replaces the default `[{ file = "pyproject.toml" }]` rather than
+  extending it, hence the explicit file entry.
+- `[deps.uv]` hashes only `uv.lock` and `pyproject.toml`, so a plain commit
+  fires no automatic sync, and the version stays stale until something forces
+  one.
+- An uncommitted tree reports the last commit's version: `dunamai`'s default
+  format carries no dirty marker.
 
 ## Mise and uv
 
-### Configuration
+Common's [mise.toml](../../mise.toml) is a working example of these settings,
+with each line's reason.
 
-For uv projects mise documents `python.uv_venv_auto` in `[settings]`, *not*
-`_.python.venv` in `[env]` — the latter is for projects that do not use uv, and
-the two are separate code paths, so this is a replacement rather than an
-addition. Pair it with `[deps.uv]` so mise's dependency engine owns
-installation:
+### Pin uv to mise's interpreter by absolute path
 
-```toml
-[tools]
-python = "3.15.0"
-uv = "0.12.3"
+Set `UV_PYTHON` to `{{ tools.python.path }}`, with
+`UV_PYTHON_DOWNLOADS = "never"` and `UV_PYTHON_PREFERENCE = "only-system"`.
 
-[env]
-UV_PYTHON = { value = "{{ tools.python.path }}", tools = true }
-UV_PYTHON_DOWNLOADS = "never"
-UV_PYTHON_PREFERENCE = "only-system"
+**Why:** mise documents that a bare version number does not guarantee uv uses
+the interpreter mise manages. uv may build the venv on a system Python of the
+same version, and a raised `[tools] python` pin stops recreating `.venv`,
+since the old interpreter still satisfies `requires-python`.
 
-[settings]
-lockfile = true
-experimental = true            # required by `mise deps`
-python.uv_venv_auto = "source"     # creation is [deps.uv]'s job, not mise's
+### Let `[deps.uv]` install the environment, and mise only source it
 
-[deps.uv]
-auto = true
-run = "uv sync"                # add --all-extras if the project has extras
-```
+Set `python.uv_venv_auto = "source"` in `[settings]`, not `"create|source"`,
+and not `_.python.venv` in `[env]`. Enable `[deps.uv]` with `auto = true`, and
+`experimental = true` in the committed `mise.toml`.
 
-| Setting | Why | Consequence if missing |
-|---|---|---|
-| `UV_PYTHON` as an **absolute path** | mise's docs are explicit that a bare version number "does not guarantee that uv uses the specific interpreter managed by mise" | uv may silently build the venv on a system or self-managed Python of the same version; a raised `[tools] python` pin also stops recreating `.venv`, since the old interpreter still satisfies `requires-python` |
-| `experimental = true` in the committed `mise.toml` | `mise deps` is experimental, and relying on each developer exporting `MISE_EXPERIMENTAL` makes a fresh clone behave differently from CI | dependencies mysteriously do not install, with no error naming the cause |
-| `[deps.uv] auto = true` | runs `uv sync` before any `mise run`, gated on a blake3 hash of `uv.lock` + `pyproject.toml` and on `.venv` existing | every task needs a manual `install` first, or silently runs against a stale environment |
-| `[deps.uv] run = "..."` | the built-in command is a bare `uv sync`, which misses `--all-extras` | extras are absent from the dev environment. Note that overriding `run` **keeps** the built-in source hashing and `.venv` tracking — only `install_command()` reads it |
-| `python.uv_venv_auto = "source"`, not `"create\|source"` | mise's cookbook is explicit that with `[deps.uv]` enabled, creating the venv is the deps provider's job — keep the setting at `"source"`, enable `[deps.uv]`, and let `mise deps` create it | the two mechanisms collide. Measured on a fresh clone with `"create\|source"`, `mise install` announced `creating venv with uv at: …` and then failed on its own result: `error: Failed to create virtual environment / Caused by: A virtual environment already exists at: .venv`, then `WARN uv venv creation failed`. With `"source"` the same clone installs silently and the first `mise run` lets `[deps.uv]` create and populate `.venv` |
-| `UV_LOCKED: 1` in CI job env | asserts a sync will not change `uv.lock` | a stale lockfile is papered over by an implicit re-resolve on the runner. Prefer the environment variable over a `--locked` flag, so the `[deps.uv]` command stays identical locally and in CI and only the strictness differs |
+**Why:** with `[deps.uv]` enabled, creating the venv is the deps provider's job,
+and the two collide when both try.
+[Rationale](#let-depsuv-install-the-environment-and-mise-only-source-it-1)
 
-A consequence of leaving creation to `[deps.uv]` is that on a genuinely fresh
-clone `.venv` does not exist until the first `mise run` — `mise install` alone
-does not create it. That is by design rather than a gap, but it means nothing is
-on `PATH` for that first run, which is one of the two reasons for the next rule.
+- `_.python.venv` is for projects that do not use uv: a separate code path, so
+  `uv_venv_auto` replaces it rather than adding to it.
+- `auto = true` runs `uv sync` before any `mise run`, gated on a hash of
+  `uv.lock` and `pyproject.toml` and on `.venv` existing. Without it, every task
+  needs a manual `install` first or runs against a stale environment.
+- `experimental = true` in the file, not in each developer's
+  `MISE_EXPERIMENTAL`: otherwise a fresh clone behaves differently from CI, and
+  dependencies do not install with no error naming the cause.
+- The built-in command is a bare `uv sync`. Set `run = "uv sync --all-extras"`
+  only in a project with extras. Overriding `run` keeps the source hashing and
+  the `.venv` tracking.
+- On a fresh clone, `.venv` does not exist until the first `mise run`:
+  `mise install` alone does not create it, so nothing is on `PATH` for that
+  first run.
+
+### Assert the lock in CI with `UV_LOCKED=1` and in `lint` with `uv lock --check`
+
+Set `UV_LOCKED: 1` in the environment of every CI job that syncs, and give the
+project a `lint-lock-uv` task running `uv lock --check`.
+
+**Why:** without the assertion, a stale lockfile is papered over by an implicit
+re-resolve on the runner, and CI tests something nobody committed.
+
+- The two ask different questions: `uv lock --check` whether `uv.lock` is
+  consistent with `pyproject.toml`, `UV_LOCKED` whether a sync would change it.
+- Prefer the environment variable to a `--locked` flag, so the `[deps.uv]`
+  command stays identical locally and in CI and only the strictness differs.
+- The `mise.lock` counterpart, `lint-lock-mise`, is in
+  [mise.md](mise.md#check-miselock-in-a-scratch-copy).
 
 ### Invoke tools through `uv run --no-sync <tool>` in mise tasks, not bare
 
-mise activates the project's `.venv`, but it does not remove a *foreign*
-`.venv/bin` that is already on `PATH`, so in a shell where another project's
-virtualenv is active a bare `ruff` silently runs that project's copy. Measured
-in a multi-project checkout: the current project's venv landed at `PATH`
-position 16 and the foreign one at position 1. `uv run` resolves the environment
-from the project root and ignores `PATH`, so it is immune; `--no-sync` keeps
-installation the `[deps.uv]` provider's job alone. It was not measurably slower
-than a bare invocation.
+Write `run = "uv run --no-sync ruff check ."`, not `run = "ruff check ."`, and
+state the same rule in the project's own docs, with `mise exec -- <tool>` as the
+way to run a tool from an unactivated shell.
 
-State the same rule in the project's own docs. Under `poetry run` the
-requirement for an activated environment was implicit in every command; without
-a prefix it has to be written down, including `mise exec -- <tool>` as the way
-to run something from an unactivated shell.
+**Why:** mise does not remove a foreign `.venv/bin` already on `PATH`, so in a
+shell where another project's virtualenv is active a bare `ruff` silently runs
+that project's copy.
+[Rationale](#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare-1)
 
-### Adding and removing dependencies
+- `uv run` resolves the environment from the project root and ignores `PATH`.
+  `--no-sync` leaves installing to `[deps.uv]` alone.
+- Tools mise itself installs, such as dprint and rumdl, run bare.
 
-Add dependencies with `uv add` / `uv remove`, which update `pyproject.toml` and
-`uv.lock` together. `mise deps add` does not support uv — its ecosystems are
-npm, yarn, pnpm, bun, deno, aube, dart and flutter — so do not go looking for a
-mise verb. Both write `pyproject.toml` in uv's style, so run `mise run fmt`
-before committing ([formatting.md](formatting.md)).
+### Add and remove dependencies with `uv add` and `uv remove`, then run `fmt`
+
+Use `uv add` and `uv remove`, which update `pyproject.toml` and `uv.lock`
+together, and run `mise run fmt` before committing.
+
+**Why:** both write `pyproject.toml` in uv's style, which `lint-fmt` rejects.
+
+- `mise deps add` does not support uv: its ecosystems are npm, yarn, pnpm, bun,
+  deno, aube, dart and flutter.
+
+### Keep `install` and `reinstall` as tasks over `mise deps`
+
+`install` runs `mise deps install uv`, not `uv sync`. `reinstall` runs
+`iglootools python reinstall`, which deletes `.venv` and runs
+`mise deps install uv --force`.
+
+```toml
+[tasks.reinstall]
+description = "Delete .venv and reinstall dependencies from scratch"
+run = "uv run --no-sync iglootools python reinstall"
+```
+
+**Why:** `mise deps` is experimental, and delegating to it keeps reverting to a
+plain `uv sync` a one-line change in one place. `reinstall` covers the one case
+the hashing cannot see: a venv that is dirty rather than stale, after a
+`uv pip install` by hand.
+
+- `uv sync` is exact by default, and `UV_PYTHON` picks up a raised
+  `[tools] python`, so neither needs `reinstall`.
+- `build` and `clean` are `iglootools python build` and `iglootools python
+  clean`, so no Python task needs a file under `mise-tasks/`.
+- The generated-document tasks (`clidocs`, `depgraph`, `configdocs`) are in
+  [layout.md](../documentation/layout.md#generate-references-from-the-code-and-check-them).
 
 ## Code Quality Tools
 
-Use `ruff` for linting and formatting the Python (the other files are formatted
-as [formatting.md](formatting.md) describes), `pyright` for type-checking,
-`import-linter` for module boundaries, and `deadcode` for code nothing uses.
-There is no compatibility check (`vermin`): projects support only the version
-they are developed on, so nothing can be too new (see the
-[Python Version Policy](../coding/python.md#python-version-policy)).
+Each tool runs as a `lint-*` task in `lint`, so `preflight` and CI run it:
 
-### Module boundaries (import-linter)
+| Tool | Checks | Task |
+|---|---|---|
+| ruff | lint and format | `lint-ruff`, `lint-fmt-ruff`, `fmt-ruff` |
+| pyright | types | `lint-types` |
+| import-linter | module boundaries | `lint-boundaries` |
+| deadcode | code nothing uses | `lint-dead-code` |
 
-What the contracts mean, and when to change them, is in
-[python.md › Module Boundaries](../coding/python.md#module-boundaries). This
-section covers how they are set up.
+The other files are formatted as [formatting.md](formatting.md) describes.
 
-Add `import-linter>=2.15,<3.0` to the dev dependency group, and declare the
-contracts in `pyproject.toml`:
+### Lint and format with ruff
+
+Configure ruff in `pyproject.toml`: `target-version` as
+[Name the version](#name-the-version-in-the-four-places-that-pin-it) gives it,
+and `extend-select` with `RUF100`, `TID251` and `TID255`.
+
+**Why:** `RUF100` reports a `noqa` that no longer suppresses anything, `TID251`
+enforces the [patching rule](#enforce-the-patching-rule), and `TID255` flags a
+lazy import that module-level code resolves straight away, losing the deferral
+[python.md › Imports](../coding/python.md#imports) asks for.
+
+### Type-check with pyright
+
+Add `pyright` to the dev dependency group and run it as `lint-types`
+(`uv run --no-sync pyright`), configured under `[tool.pyright]`.
+
+**Why:** the same configuration then serves the CLI, CI, the editor and Claude
+Code's language server.
+
+- `pythonVersion` is one of the
+  [four version settings](#name-the-version-in-the-four-places-that-pin-it).
+- `venvPath` and `venv` are in
+  [ide.md](ide.md#pin-the-venv-for-pyright-in-toolpyright).
+
+### Declare module boundaries as import-linter contracts
+
+Add `import-linter>=2.15,<3.0` to the dev dependency group, declare the
+contracts under `[tool.importlinter]`, and run them as `lint-boundaries`
+(`uv run --no-sync lint-imports`). What the contracts mean is in
+[python.md › Module Boundaries](../coding/python.md#module-boundaries).
 
 ```toml
 # Module boundaries, enforced by `mise run lint-boundaries` (part of `lint`).
 # The rationale for each rule is in docs/architecture.md#layering.
 [tool.importlinter]
 root_package = "<pkg>"
-# Lets a contract name third-party packages, so core code can be kept off rich and typer.
-include_external_packages = true
+include_external_packages = true   # lets a contract name rich and typer
 ```
 
-Point the comment above `[tool.importlinter]` at the task and at the
-architecture section that explains the rules. A comment naming a task that has
-since been renamed points the next reader at something that does not exist, and
-nothing fails to say so.
+**Why:** a boundary no check enforces erodes one convenient import at a time.
 
-Expose it as a `lint-boundaries` task, run through `uv run --no-sync` like
-every other tool, and add it to `lint` so `preflight` and CI run it:
+- The comment above the table names the task and the architecture section that
+  explains the rules. Update it when either is renamed: nothing fails when it
+  points at something that no longer exists.
+- The task is `lint-boundaries`, named for the property, not `lint-imports`,
+  which names the tool and is easily mistaken for its command.
+- import-linter reads every import, including those inside functions, so a rule
+  such as "the ML stack is imported lazily" is not a contract. Check it with a
+  test that imports the entry point and inspects `sys.modules`.
 
-```toml
-[tasks.lint-boundaries]
-description = "Check module boundaries (import-linter contracts in pyproject.toml)"
-run = "uv run --no-sync lint-imports"
-```
+### Prefer contracts whose coverage follows the code
 
-The name follows the `lint-*` family ([mise.md](mise.md#name-tasks-by-family))
-and says what is asserted. It is not `lint-imports`, which names the tool
-rather than the property, and is easily mistaken for the tool's own command.
-
-**Prefer contracts whose coverage follows the code.** A `forbidden` contract
-with an enumerated `source_modules` list covers exactly the modules listed. A
-module added later is unchecked, and the run still passes. Choose the contract
-type that does not depend on the list being kept up to date:
+Choose the contract type that covers a new module without editing a list:
 
 | Type | Use it for | Coverage of a new module |
 |---|---|---|
 | `layers` | the top-level ordering of packages, highest first; `\|` separates siblings that must not import each other | automatic: a layer is a whole package |
-| `protected` | "only X may import Y", such as only CLI modules importing `typer` | automatic: an allowlist of importers catches any new importer |
+| `protected` | "only X may import Y", such as only CLI modules importing `typer` | automatic: any new importer is caught |
 | `independence` | sibling sub-apps that must not import each other | only the listed modules |
 | `forbidden` | everything else, especially "core never reaches the CLI layer, even indirectly" | only the listed `source_modules`, unless written with wildcards (`<pkg>.*.cli`) |
 
-Where an enumerated list is unavoidable, say so in a comment above it ("a new
-subpackage outside `cli/` belongs on this list"). That comment is the only
-reminder the next person gets. If a package keeps its `cli/` subpackage beside
-its core, a package listed as a `forbidden` source also covers its own `cli/`.
-List its non-CLI subpackages instead, and cover the package's `__init__` with a
-second contract that sets `as_packages = false`.
+**Why:** a contract with an enumerated list covers exactly what is listed. A
+module added later is unchecked, and the run still passes.
 
-**Every `ignore_imports` entry carries a comment** saying why the edge is
-acceptable. Leave `unmatched_ignore_imports_alerting` at its default, `error`,
-so an entry that no longer matches anything fails the check instead of lingering
-as an exemption for code that has moved.
+- Where a list is unavoidable, say so in a comment above it ("a new subpackage
+  outside `cli/` belongs on this list"): it is the only reminder the next person
+  gets.
+- A package listed as a `forbidden` source also covers its own `cli/`. List its
+  non-CLI subpackages instead, and cover its `__init__` with a second contract
+  that sets `as_packages = false`.
+- `acyclic_siblings` is not a default: it suits a project split by layer, not
+  one where each package keeps its own `cli/`.
+  [Rationale](#prefer-contracts-whose-coverage-follows-the-code-1)
 
-**Know what a contract cannot express.** import-linter reads every import
-statement, including those inside functions. A rule such as "the ML stack is
-imported lazily, never at startup" is therefore not a contract. Check it with a
-test that imports the entry point and inspects `sys.modules`.
+### Give every `ignore_imports` entry its reason
 
-`acyclic_siblings` is not a default. Run against nbkp and photree with the root
-package as ancestor, it reported cycles between each module's `cli/` subpackage
-and the shared CLI wiring below them, which is layering both projects intend. It
-suits a project whose packages are split by layer, not one where each package
-keeps its own `cli/`.
+Put a comment on each `ignore_imports` entry saying why the edge is acceptable,
+and leave `unmatched_ignore_imports_alerting` at its default, `error`.
 
-### Dead code (deadcode)
+**Why:** an entry that no longer matches then fails the check instead of
+lingering as an exemption for code that has moved.
 
-Ruff and pyright report an unused import or local variable within one file, but
-neither notices a function, method or class that nothing in the project calls
-any more. [deadcode](https://github.com/albertas/deadcode) does, across the
-package and its tests, and also reports commented-out code, which
-[general.md](../coding/general.md#code-comments) says to delete. Retire it once
-Ruff or ty detects unused definitions across files: that is a check the project
-already runs, with one tool fewer to pin.
+### Find unused code with deadcode
 
-Add `deadcode>=2.7.0,<3.0` to the dev dependency group (2.6.0 is the first
-release that runs on Python 3.15), expose it as a `lint-dead-code` task in
-`lint`, and configure it in `pyproject.toml`:
+Add `deadcode>=2.7.0,<3.0` to the dev dependency group, run it as
+`lint-dead-code` (`uv run --no-sync deadcode <pkg> tests`), and list in
+`[tool.deadcode]` what runs without being named in the project: commands and
+fixtures registered by decorator, Pydantic validators and serializers, the
+entry point, and names pytest reads. nbkp's
+[pyproject.toml](https://github.com/iglootools/nbkp/blob/main/pyproject.toml)
+is a working example.
 
-```toml
-[tasks.lint-dead-code]
-description = "Check for unused code (deadcode, configured in pyproject.toml)"
-run = "uv run --no-sync deadcode <pkg> tests"
-```
+**Why:** ruff and pyright report an unused import or variable within one file,
+but not a function, method or class nothing calls any more. deadcode also
+reports commented-out code, which
+[general.md](../coding/general.md#code-comments) says to delete.
 
-```toml
-# Unused code, enforced by `mise run lint-dead-code` (part of `lint`). Each entry is code
-# that runs without being named in the project, so the scan cannot see it used.
-[tool.deadcode]
-ignore-names-if-decorated-with = [
-  "@*.command", "@*.callback",                # Typer registers commands by decorator
-  "@pytest.fixture",                          # pytest injects fixtures by parameter name
-  "@field_validator", "@model_validator",     # Pydantic calls them while validating
-  "@field_serializer", "@model_serializer",
-]
-ignore-names = [
-  "main",                                     # the [project.scripts] entry point
-  "model_config",                             # read by Pydantic
-  "pytestmark", "pytest_plugins", "pytest_*", # read by pytest
-]
-```
-
-- **Scan the package and its tests together**, so a test helper or a `testkit`
-  module counts as used. Code only the tests use is then not reported; that is
-  the price of not flagging every helper the tests share.
-- **Exceptions sit on the line they excuse**, with their reason:
+- Scan the package and its tests together, so a test helper or a `testkit`
+  module counts as used. Code only the tests use is then not reported.
+- An exception sits on the line it excuses, with its reason:
   `# noqa: DC04 -- Paramiko calls it on an unknown host key`. The config holds
-  only patterns that recur across the code, each with its comment, so a reader
-  of the config learns which frameworks call code by name. Ruff reports a `noqa`
-  code it does not know as unused (`RUF100`), so declare deadcode's codes to it
-  under `[tool.ruff.lint]`: `external = ["DC"]`.
-- **What deadcode reports is deleted**, unless it is one of those exceptions. A
+  only patterns that recur, each with its comment. Declare deadcode's codes to
+  ruff with `external = ["DC"]` under `[tool.ruff.lint]`, or `RUF100` reports
+  them as unused.
+- Delete what deadcode reports, unless it is one of those exceptions. A
   commented-out line that is really prose (`# SSH: StrictHostKeyChecking`) is
-  rephrased or marked, not kept as code.
-- **Review `deadcode --fix` like any other diff**, and commit it on its own with
-  the command in the message
+  rephrased, not kept as code.
+- Review `deadcode --fix` like any other diff, and commit it alone with the
+  command in the message
   ([git.md](../coding/git.md#keep-refactoring-apart-from-behaviour-changes)). It
-  reports a definition used only by other dead code in the same run, so one pass
-  removes a whole cascade, but it can also cut a multi-line function short and
-  leave a file that does not parse: run the checks after it, and remove what it
-  mangles by hand.
+  removes a whole cascade in one pass, but can cut a multi-line function short
+  and leave a file that does not parse: run the checks after it, and fix by hand
+  what it mangles.
+- Retire deadcode once ruff or ty detects unused definitions across files.
 
 ## Tests
 
 ### Run test suites in parallel with pytest-xdist
 
 Add `pytest-xdist` to the dev dependency group and pass `-n auto` in every test
-task whose tests are isolated — each one working under its own `tmp_path`,
-taking its dependencies as fakes, and sharing no module-level state. It spreads
-the suite across one worker per CPU, which is what keeps the common case of
-[Shorten every feedback loop](../../philosophy.md#shorten-every-feedback-loop)
-running in seconds as the suite grows.
+task whose tests are isolated: each working under its own `tmp_path`, taking
+its dependencies as fakes, and sharing no module-level state.
 
 ```toml
 [tasks.test-unit]
@@ -395,71 +463,46 @@ description = "Run unit tests"
 run = "uv run --no-sync pytest tests/ --ignore=tests/integration_fs/ -n auto -v"
 ```
 
-- **Put `-n auto` in the task, not in `addopts`.** `addopts` applies to every
-  invocation, so running one test by hand, or under `--pdb` or a debugger, would
-  also start a worker per CPU — slower to start and, under xdist, without an
-  interactive terminal for the debugger.
-- **Parallel runs surface hidden coupling.** A test that passes alone and fails
-  under `-n auto` depends on state another test leaves behind, or on running in
-  a particular order. Fix the isolation rather than dropping `-n auto` for the
-  suite.
-- **A suite that cannot be parallelized says why, at the task.** Some suites
-  share a resource that is expensive to duplicate per worker — a Docker
-  environment started once for the session, say. Leave `-n auto` off there, with
-  a comment naming the shared resource, so the next person does not "fix" it by
-  adding the flag.
+**Why:** one worker per CPU keeps the suite running in seconds as it grows
+([Shorten every feedback loop](../philosophy.md#shorten-every-feedback-loop)).
+
+- Put `-n auto` in the task, not in `addopts`, which applies to every
+  invocation: one test run by hand, or under `--pdb`, would also start a worker
+  per CPU, and under xdist a debugger has no interactive terminal.
+- A test that passes alone and fails under `-n auto` depends on state another
+  test leaves behind, or on order. Fix the isolation rather than dropping
+  `-n auto`.
+- A suite that shares a resource too expensive to duplicate per worker, such as
+  a Docker environment started once per session, leaves `-n auto` off, with a
+  comment at the task naming the resource.
 
 ### Enforce the patching rule
 
-What counts as patching, and the three exceptions to the rule against it, are in
-[general.md › Mocks](../coding/general.md#mocks) and
-[python.md › Tests](../coding/python.md#tests). pytest and ruff enforce it
-between them, with no custom code:
+Enforce
+[general.md › Patch only in the three documented cases](../coding/general.md#patch-only-in-the-three-documented-cases-and-list-each-one)
+and
+[python.md › Tests](../coding/python.md#tests) with pytest and ruff, in three
+steps.
+
+**Why:** a rule only reviewers enforce is broken in the first rushed change,
+and nothing reports it.
 
 1. **Replace the `monkeypatch` fixture** in the root `tests/conftest.py` with
-   one that fails the test and says why. A fixture defined there overrides
-   pytest's for every test below it.
-
-   ```python
-   @pytest.fixture
-   def monkeypatch() -> NoReturn:
-       """Replace pytest's fixture for every test: tests do not patch."""
-       pytest.fail(
-           "The monkeypatch fixture is disabled: inject a fake through a parameter"
-           " instead (docs/guidelines.md, Tests).",
-           pytrace=False,
-       )
-   ```
-
-   Do not reach for `-p no:monkeypatch` in `addopts` instead. pytest loads its
-   built-in plugins before it reads `addopts` from `pyproject.toml`, so the flag
-   only works on the command line, and a suite configured that way still has the
-   fixture.
-2. **Ban what is left with ruff.** `TID251` (flake8-tidy-imports banned-api)
-   bans `unittest.mock` and `pytest.MonkeyPatch`, the only ways to patch once
-   the fixture is gone. Enable `RUF100` as well, which reports a `noqa` that no
-   longer suppresses anything:
-
-   ```toml
-   [tool.ruff.lint]
-   # TID251: tests inject fakes through parameters instead of patching
-   # (docs/guidelines.md, Tests). unittest.mock is banned, and so is
-   # pytest.MonkeyPatch: tests/conftest.py replaces the monkeypatch fixture with one
-   # that fails. Each documented exception carries `# noqa: TID251` on its import, and
-   # RUF100 reports a noqa that is no longer needed.
-   extend-select = ["RUF100", "TID251"]
-
-   [tool.ruff.lint.flake8-tidy-imports.banned-api]
-   "unittest.mock".msg = "Inject a fake through a parameter instead of patching (docs/guidelines.md, Tests)."
-   "pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (docs/guidelines.md, Tests)."
-   ```
-
-3. **Mark each exception at its import**, with its category, rather than in
-   `per-file-ignores`: ruff does not report a `per-file-ignores` entry that no
-   longer matches anything, while `RUF100` does report a stale `noqa`. A file
-   that patches in several tests can define its own `monkeypatch` fixture, so
-   the tests themselves stay as they are. Define it in the test module, never in
-   a `conftest.py`, where it would re-enable patching for the whole directory.
+   one that calls `pytest.fail` and says why
+   ([tests/conftest.py](../../tests/conftest.py) is a working example). A
+   fixture defined there overrides pytest's for every test below it. Not
+   `-p no:monkeypatch` in `addopts`: pytest loads its built-in plugins before it
+   reads `addopts` from `pyproject.toml`, so the flag works only on the command
+   line.
+2. **Ban what is left with ruff.** `TID251` (`banned-api`) bans `unittest.mock`
+   and `pytest.MonkeyPatch`, the only ways to patch once the fixture is gone,
+   each with a message pointing at the rule
+   ([pyproject.toml](../../pyproject.toml) is a working example).
+3. **Mark each exception at its import**, with its category, not in
+   `per-file-ignores`: ruff does not report a stale `per-file-ignores` entry,
+   while `RUF100` reports a stale `noqa`. A file that patches in several tests
+   defines its own `monkeypatch` fixture in the test module, never in a
+   `conftest.py`, where it would re-enable patching for the whole directory.
 
    ```python
    from pytest import MonkeyPatch  # noqa: TID251 -- (c) HOME, read by a library below any seam
@@ -472,65 +515,78 @@ between them, with no custom code:
            yield patch
    ```
 
-Changing directory goes with the fixture. Give `tests/conftest.py` a `chdir`
-fixture over `contextlib.chdir`, undone at the end of the test:
+- Give `tests/conftest.py` a `chdir` fixture over `contextlib.chdir`, undone at
+  the end of the test:
 
-```python
-@pytest.fixture
-def chdir() -> Iterator[Callable[[Path], None]]:
-    """Change the working directory until the end of the test."""
-    with contextlib.ExitStack() as stack:
-        yield lambda path: stack.enter_context(contextlib.chdir(path))
-```
+  ```python
+  @pytest.fixture
+  def chdir() -> Iterator[Callable[[Path], None]]:
+      """Change the working directory until the end of the test."""
+      with contextlib.ExitStack() as stack:
+          yield lambda path: stack.enter_context(contextlib.chdir(path))
+  ```
 
-The exceptions table in `docs/guidelines.md` stays the one list of reasons. The
-`noqa` comment carries a short form of its row, so a reader can tell which one
-it belongs to. A project that adopts the rule with patches already in place
-marks each of them **pending** the same way, which is what lets the checks go in
-before the tests are converted.
+- The exceptions table in `docs/guidelines.md` stays the one list of reasons.
+  Each `noqa` comment carries a short form of its row.
+- A project adopting the rule with patches in place marks each one **pending**
+  the same way, so the checks go in before the tests are converted.
 
-## Mise Tasks
+## Rationale
 
-Consider providing:
+### Target only the latest stable Python
 
-- `configdocs`/`lint-configdocs`, and `depgraph`/`lint-depgraph` tasks for
-  config and dependency documentation, respectively; `depgraph` runs
-  `iglootools docs depgraph`
-- `fmt`, `lint-ruff`, `lint-types`, `lint-boundaries` and `lint-dead-code`
-  tasks for code quality, named as [mise.md](mise.md#name-tasks-by-family)
-  describes
+Supporting an older Python costs more than it buys for these projects. Every
+feature newer than the floor is off-limits, a separate check (`vermin`) is
+needed to enforce that because ruff's and pyright's targets miss cases, and CI
+has to test a version nobody develops on. Meanwhile the tools are installed by
+people who can get a current interpreter in one step:
 
-The rules for tasks in any project — `ci-*` tasks, multi-line bodies as file
-tasks under `mise-tasks/`, and checking `mise.lock` — are in [mise.md](mise.md).
+- `uv tool install <tool>` downloads a managed Python when the system has no
+  matching one, so the distribution's `python3` does not matter.
+- `pipx install --python <path-to-python3.X> <tool>` works the same way with an
+  interpreter installed by any other means (mise, pyenv, a PPA, Homebrew).
 
-### Lock checks
+The system `python3` of an LTS distribution is therefore not a constraint, and
+the projects do not track it.
 
-A `lint-lock-uv` task runs `uv lock --check`, which asks whether `uv.lock` is
-consistent with `pyproject.toml`, while `UV_LOCKED` in CI asks whether a sync
-would *change* it. Its `mise.lock` counterpart, `lint-lock-mise`, is in
-[mise.md](mise.md#check-miselock-in-a-scratch-copy).
+### Pin the build backend explicitly
 
-### Reinstalling the environment
+The custom manager in [renovate/python.json](../../renovate/python.json) uses
+two patterns under the `recursive` strategy: the first isolates the array, the
+second captures every pin within it. The obvious single pattern, anchored on the
+field name, extracts only the first pin, since the anchor is consumed by the
+first match. That fails quietly: Renovate keeps updating one dependency, and the
+build closure looks maintained. In photree it extracted one of ten pins.
 
-A `reinstall` task that deletes `.venv` and reinstalls from scratch. Most of
-what this used to be for is gone: `uv sync` is exact by default, so it removes
-packages present in neither `pyproject.toml` nor `uv.lock`, and the `UV_PYTHON`
-pin above is what picks up a raised `[tools] python`. It survives for the one
-case `[deps.uv]`'s hashing cannot see — a venv that is *dirty* rather than
-*stale*, after someone ran `uv pip install` into it by hand.
-[`iglootools python reinstall`](iglootools-cli.md) deletes `.venv` and runs
-`mise deps install uv --force`:
+### Guard against a `0.0.0` release
 
-```toml
-[tasks.reinstall]
-description = "Delete .venv and reinstall dependencies from scratch"
-run = "uv run --no-sync iglootools python reinstall"
-```
+Building the wheel from an sdist is safe: hatchling writes the resolved version
+into the sdist's `PKG-INFO` and reads it back, verified by building from an
+extracted sdist with no `.git`. `uv build --sdist --wheel` (both from source),
+which `iglootools python build` runs, is mildly preferable at no cost, but it is
+not a workaround for a broken path. Building from a source tree with `.git`
+removed is what yields `<pkg>-0.0.0-py3-none-any.whl` and exits 0.
 
-`build` and `clean` are commands too, `iglootools python build` and
-`iglootools python clean`, so none of the Python tasks needs a file under
-`mise-tasks/`.
+### Let `[deps.uv]` install the environment, and mise only source it
 
-Keep `install` as a named task delegating to `mise deps install uv`, rather than
-calling `uv sync` directly. `mise deps` is experimental, and that indirection is
-what makes reverting to a plain `uv sync` a one-line change in one place.
+mise's cookbook says that with `[deps.uv]` enabled, creating the venv is the
+deps provider's job. Measured on a fresh clone with `"create|source"`,
+`mise install` announced `creating venv with uv at: …` and then failed on its
+own result: `error: Failed to create virtual environment / Caused by: A virtual
+environment already exists at: .venv`, then `WARN uv venv creation failed`. With
+`"source"` the same clone installs silently, and the first `mise run` lets
+`[deps.uv]` create and populate `.venv`.
+
+### Invoke tools through `uv run --no-sync <tool>` in mise tasks, not bare
+
+Measured in a multi-project checkout, the current project's venv landed at
+`PATH` position 16 and a foreign one at position 1. `uv run --no-sync` was not
+measurably slower than a bare invocation. It also covers the first `mise run` on
+a fresh clone, when `.venv` does not yet exist and nothing of the project's is
+on `PATH`.
+
+### Prefer contracts whose coverage follows the code
+
+Run against nbkp and photree with the root package as ancestor,
+`acyclic_siblings` reported cycles between each module's `cli/` subpackage and
+the shared CLI wiring below them, which is layering both projects intend.

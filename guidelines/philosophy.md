@@ -1,8 +1,9 @@
 # Philosophy
 
-This document describes the general philosophy that underpins the
-[coding guidelines](guidelines/coding/). The guidelines are meant to be
-practical and actionable; this is the reasoning behind them.
+The reasoning behind every iglootools guideline and practice: how work flows,
+how systems are designed, how code and documentation are written, and how people
+and agents share a codebase. The guidelines say what to do, compactly, and link
+here for why; this document argues at length, and grows as the reasoning does.
 
 <!-- toc -->
 **On this page**
@@ -35,16 +36,22 @@ practical and actionable; this is the reasoning behind them.
   - [Make the right thing easy and the wrong thing hard](#make-the-right-thing-easy-and-the-wrong-thing-hard)
   - [Design for deletion](#design-for-deletion)
   - [Make everything inspectable](#make-everything-inspectable)
+- [Documentation](#documentation)
+  - [Write for one reader with one intent](#write-for-one-reader-with-one-intent)
+  - [State each fact once](#state-each-fact-once)
+  - [A rule carries its reason](#a-rule-carries-its-reason)
 - [People and AI agents](#people-and-ai-agents)
   - [Documentation for people first, agent configuration for the gaps](#documentation-for-people-first-agent-configuration-for-the-gaps)
+  - [Invest in the harness, not in the instructions](#invest-in-the-harness-not-in-the-instructions)
   - [Practices that are good on their own and help agents](#practices-that-are-good-on-their-own-and-help-agents)
+  - [What agents make affordable](#what-agents-make-affordable)
 <!-- tocstop -->
 
 ## Applying this document
 
 These are defaults, not dogma. Where an exception goes and the bar its rationale
 has to meet are in
-[general.md › Documented Exceptions](guidelines/coding/general.md#documented-exceptions).
+[general.md › Documented Exceptions](coding/general.md#documented-exceptions).
 
 That standard covers the reasoning below as much as the concrete rules it
 underpins, and it is easier to neglect here: nothing fails when a principle is
@@ -437,6 +444,49 @@ Further reading on coding philosophy:
 - [Out of the Tar Pit](http://curtclifton.net/papers/MosesSchonworkerTarPit.pdf)
   by Moseley & Marks (paper)
 
+## Documentation
+
+Documentation is how a decision outlives the conversation it was made in, and
+how a convention reaches someone who was not there. It deserves the care code
+gets, because it fails the same way: silently, by drifting from what is true.
+
+### Write for one reader with one intent
+
+A reader opens a document to do one thing: learn the project, get a task done,
+look up an exact fact, understand why something works the way it does, find out
+what a change must respect, or recover what was decided. Each intent wants a
+different shape. A tutorial walks one path, a reference is complete and austere,
+an explanation argues. A document that serves two intents serves both badly: the
+person looking up an option wades through a story, and the person learning gets
+a table. So each document has one kind and opens by saying who it is for, and a
+document that grows a second intent is split, with the halves linked. The kinds
+are in [documentation/types.md](documentation/types.md). They follow
+[Diátaxis](https://diataxis.fr/), plus what a codebase adds to it: rules,
+records and maps.
+
+### State each fact once
+
+A fact written in two places will one day be true in only one of them, and
+nothing fails when that happens: the reader cannot tell which copy is current,
+and whoever edits one copy does not know the other exists. Give every fact one
+home, the document whose reader needs it most, and link to it from everywhere
+else. An index says where something is and when to read it, never
+what it says.
+A link costs the reader one click; a copy costs every future edit, made twice or
+not at all. Generating documentation from the code is the strongest form of
+this: the code is the home, and a check holds the document to it.
+
+### A rule carries its reason
+
+A rule without a reason can only be obeyed or broken. With its reason, a reader
+can tell when it applies, when it does not, and how firmly to hold it. A rule
+whose reason is a silent mechanical failure, such as a release that ships as
+`0.0.0`, is held rigidly. A rule whose reason is consistency or taste gives way
+to a documented reason. The reason is also what lets a rule be retired once the
+condition behind it is gone. So every guideline says why, in a sentence next to
+the rule, and the longer argument lives in this document, where it can be
+developed without burying the rules.
+
 ## People and AI agents
 
 **No practice should exist only because an AI agent does the work.** An agent
@@ -453,7 +503,7 @@ agent is a sign of a gap in the human setup, and that gap is the thing to fix.
 
 Write the documentation a person needs — architecture, conventions, how to build
 and test, why things are the way they are — in the project's docs, where people
-read it. Do not start with `AGENTS.md` or `CLAUDE.md`. A rule that exists only
+read it. Do not start with `AGENTS.md`. A rule that exists only
 in agent configuration is invisible to the people who review the agent's work,
 so nobody notices when it goes stale, and the human contributors never get it at
 all.
@@ -475,10 +525,25 @@ touches that area, without having to rediscover them. A convention written once
 by a specialist and loaded when it applies scales better than review comments
 that repeat it on every pull request.
 
+### Invest in the harness, not in the instructions
+
+The leverage is in the environment a change is made in, not in telling each
+contributor how to make it. Frameworks that make the right structure the easy
+one, conventions written by the people who own an area, policies enforced by
+automated checks, and tasks that answer in seconds: each is built once and then
+corrects every contributor, person or agent, on every change. An instruction,
+whether a review comment, a paragraph in a guide or a line in a prompt, has to
+be read, remembered and applied each time, and fails silently when it is not.
+So every mistake caught by hand, in review or after an agent's wrong turn, is a
+prompt to ask what would have caught it automatically: a check, a type, a
+framework, a convention loaded where it applies. Instructions are for what is
+left.
+
 ### Practices that are good on their own and help agents
 
 The workflow and architecture in this document already serve agents, because
-they serve anyone who has to make a change without knowing everything:
+they serve anyone who has to make a change without knowing everything. They are
+what the harness is made of:
 
 - **Tight feedback loops**
   ([Shorten every feedback loop](#shorten-every-feedback-loop)). An agent
@@ -492,7 +557,24 @@ they serve anyone who has to make a change without knowing everything:
   Compilers, type checkers, linters and enforced module boundaries reject a
   mistake with a precise message at the moment it is made. A rule that a tool
   can check should be checked by the tool; prose is for the rules that cannot
-  be.
+  be. The checks reach from the language to the repository:
+  - *Types*: a statically typed language, or a type checker such as pyright
+    over fully annotated code, with types that make illegal states
+    unrepresentable: an enum rather than a string, a frozen dataclass rather
+    than a dict, a distinct type for a value that has been validated.
+  - *Data at the boundary*: a schema, such as a pydantic model, that rejects a
+    malformed config or input when it is read rather than when it is used.
+  - *Linters and formatters*: ruff, shellcheck, rumdl and dprint, including
+    rules that ban an API outright, as ruff's banned-API rule forbids patching
+    in tests.
+  - *Architecture*: import contracts that hold module boundaries, and a check
+    that fails on dead code.
+  - *Derived files*: a lint that fails when a generated reference, a table of
+    contents or a lock file no longer matches its source.
+  - *The repository*: branch and tag protection, as rulesets that refuse a
+    force-push or deletion of the default branch, any change that skips a pull
+    request, a merge before CI passes, and a release tag rewritten after the
+    fact; a validator for the Renovate config; a link checker.
 - **Structured errors and inspectable state**
   ([Errors as first-class values](#errors-as-first-class-values),
   [Make everything inspectable](#make-everything-inspectable)). An agent
@@ -513,3 +595,28 @@ they serve anyone who has to make a change without knowing everything:
   ([Small, reviewable changes](#small-reviewable-changes)). Agents produce code
   faster than people can review it, so a reviewer's attention runs out first.
   One intent per change is what keeps the review meaningful.
+
+### What agents make affordable
+
+Agents also lower the cost of work that was always worth doing and rarely got
+done, because it was tedious or broad. The output still lands as something
+people use and review, never as knowledge only an agent holds:
+
+- **Building the harness.** A custom lint rule, a generator with its `--check`,
+  a script that verifies a lock file in a scratch copy: each used to cost more
+  than the mistakes it would catch. Cheaper to write, more of them clear the
+  bar, and more rules move from prose to a check
+  ([Invest in the harness](#invest-in-the-harness-not-in-the-instructions)).
+- **Auditing against the guidelines.** Reading a whole codebase against every
+  rule is a job nobody schedules. An audit that does it on request finds where
+  the code drifted, and also where a guideline is unclear, duplicated or wrong,
+  so both the system and the rules improve from the same pass.
+- **Keeping documentation true.** Finding every copy of a fact, every stale
+  link, every document that no longer matches the code, across files no single
+  person holds in their head.
+- **Carrying a change across repositories.** Adopting a renamed task, a new
+  check or a moved file in every project, one reviewable pull request each,
+  instead of letting projects drift apart until someone has the time.
+- **Checking before trusting.** Reading a dependency's source, the diff between
+  two releases, or the documentation a decision rests on, where a person would
+  have taken it on faith.
