@@ -63,6 +63,14 @@ A commit is one step towards it.
   change in one commit and its callers in the next can be clearer than both
   together. Say in the message that the build is broken until the next commit,
   so whoever bisects knows to `git bisect skip` it.
+- Check each commit with `mise run preflight-quick`, which skips the slow test
+  suites, and run `mise run preflight` every few commits and before asking for
+  review. Fold what the slow suites catch into the commits that caused it
+  ([below](#fold-rework-into-the-commit-it-corrects)), then confirm every commit
+  still passes with `git rebase --exec 'mise run preflight-quick' <base>`. The
+  fast suite keeps each commit's loop to seconds; the full run catches what it
+  leaves out before a reviewer or CI does. What each task runs is in
+  [mise.md](../project-setup/mise.md#name-tasks-by-family).
 - A fix made along the way gets its own commit, or its own pull request when it
   is an intent of its own ([above](#a-new-commit-or-a-new-pull-request)).
 

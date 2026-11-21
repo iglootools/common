@@ -157,7 +157,9 @@ nbkp is an rsync-based backup tool for sources and destinations that come and go
 
 ## Commands
 
-- `mise run preflight`: every lint and test CI runs. `mise tasks` lists the rest.
+- `mise run preflight-quick`: every lint and the fast tests, before each commit.
+- `mise run preflight`: every lint and test CI runs, every few commits and before review.
+- `mise tasks` lists the rest.
 - Run a mise task when one does the job, and `uv run --no-sync <tool>` otherwise, never a bare
   tool.
 

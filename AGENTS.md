@@ -6,8 +6,11 @@ calls, and the `iglootools` command.
 
 ## Commands
 
-- `mise run preflight`: every lint and test CI runs. `mise tasks` lists the
-  rest.
+- `mise run preflight-quick`: every lint and the fast tests, before each
+  commit.
+- `mise run preflight`: every lint and test CI runs, every few commits and
+  before review.
+- `mise tasks` lists the rest.
 - `mise run toc` after adding, renaming or removing a heading in a Markdown
   file, and `mise run fmt` after editing any file.
 
