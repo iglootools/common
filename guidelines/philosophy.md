@@ -44,6 +44,7 @@ here for why; this document argues at length, and grows as the reasoning does.
   - [Documentation for people first, agent configuration for the gaps](#documentation-for-people-first-agent-configuration-for-the-gaps)
   - [Invest in the harness, not in the instructions](#invest-in-the-harness-not-in-the-instructions)
   - [Practices that are good on their own and help agents](#practices-that-are-good-on-their-own-and-help-agents)
+  - [What agents make affordable](#what-agents-make-affordable)
 <!-- tocstop -->
 
 ## Applying this document
@@ -592,3 +593,28 @@ what the harness is made of:
   ([Small, reviewable changes](#small-reviewable-changes)). Agents produce code
   faster than people can review it, so a reviewer's attention runs out first.
   One intent per change is what keeps the review meaningful.
+
+### What agents make affordable
+
+Agents also lower the cost of work that was always worth doing and rarely got
+done, because it was tedious or broad. The output still lands as something
+people use and review, never as knowledge only an agent holds:
+
+- **Building the harness.** A custom lint rule, a generator with its `--check`,
+  a script that verifies a lock file in a scratch copy: each used to cost more
+  than the mistakes it would catch. Cheaper to write, more of them clear the
+  bar, and more rules move from prose to a check
+  ([Invest in the harness](#invest-in-the-harness-not-in-the-instructions)).
+- **Auditing against the guidelines.** Reading a whole codebase against every
+  rule is a job nobody schedules. An audit that does it on request finds where
+  the code drifted, and also where a guideline is unclear, duplicated or wrong,
+  so both the system and the rules improve from the same pass.
+- **Keeping documentation true.** Finding every copy of a fact, every stale
+  link, every document that no longer matches the code, across files no single
+  person holds in their head.
+- **Carrying a change across repositories.** Adopting a renamed task, a new
+  check or a moved file in every project, one reviewable pull request each,
+  instead of letting projects drift apart until someone has the time.
+- **Checking before trusting.** Reading a dependency's source, the diff between
+  two releases, or the documentation a decision rests on, where a person would
+  have taken it on faith.
