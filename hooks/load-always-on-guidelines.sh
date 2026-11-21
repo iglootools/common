@@ -53,11 +53,57 @@ fi
 # was not enough: the shared rules were in context while code was being written and the
 # override was not, so a project deviation was only noticed if the agent happened to go and
 # read it. A missing file is not an error — it means the project documents no deviations.
-project_guidelines="$project_dir/docs/guidelines.md"
-if [[ -e "$project_guidelines" ]]; then
-  printf '# Project guidelines (docs/guidelines.md)\n\n'
+#
+# Only the entry file goes out in full: docs/guidelines.md, or docs/guidelines/README.md when
+# the project splits its guidelines into a directory. Every line of it is paid for in every
+# session, so anything long lives in another guidelines file, which is listed by path below
+# and read when a change reaches what it governs.
+project_guidelines=""
+for candidate in docs/guidelines.md docs/guidelines/README.md; do
+  if [[ -e "$project_dir/$candidate" ]]; then
+    project_guidelines="$candidate"
+    break
+  fi
+done
+
+if [[ -n "$project_guidelines" ]]; then
+  printf '# Project guidelines (%s)\n\n' "$project_guidelines"
   printf 'This project'"'"'s own rules, documented exceptions and checklists. Where they conflict with\n'
   printf 'the shared guidelines above, these win. Where they list conventions for an area of the\n'
   printf 'code, read the linked document in full before changing files in that area.\n\n'
-  emit "$project_guidelines"
+  emit "$project_dir/$project_guidelines"
+fi
+
+# What a guidelines file governs follows from where it is: <dir>/guidelines.md and
+# <dir>/guidelines/**/*.md cover everything under <dir>. Files under docs/guidelines/ cover what
+# the entry file lists beside them, since docs/ is not the code they are about.
+scope() {
+  local path="$1"
+  case "$path" in
+    docs/guidelines/*) printf 'the paths %s lists beside it' "$project_guidelines" ;;
+    guidelines.md | guidelines/*) printf 'the whole repository' ;;
+    */guidelines.md) printf '%s/' "${path%/guidelines.md}" ;;
+    *) printf '%s/' "${path%%/guidelines/*}" ;;
+  esac
+}
+
+# Tracked files only: git already leaves out node_modules, build output and vendored trees, and a
+# project that is not a git repository simply gets no list.
+others=()
+while IFS= read -r -d '' path; do
+  case "$path" in
+    "$project_guidelines") ;;
+    guidelines.md | */guidelines.md | guidelines/*.md | */guidelines/*.md) others+=("$path") ;;
+  esac
+done < <(git -C "$project_dir" ls-files -z -- '*.md' 2>/dev/null || true)
+
+if ((${#others[@]} > 0)); then
+  printf '# Other project guidelines\n\n'
+  printf 'Read the file in full before changing anything it governs, the same way the shared\n'
+  printf 'project-setup guidelines are read:\n\n'
+  for path in "${others[@]}"; do
+    # shellcheck disable=SC2016 # the backticks are Markdown code spans, not a substitution
+    printf -- '- `%s`: %s\n' "$path" "$(scope "$path")"
+  done
+  printf '\n'
 fi

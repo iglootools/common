@@ -34,7 +34,7 @@ A document's kind is set by what its reader came to do:
 | [How-to guide](#how-to-guide) | get a known task done | `installation.md`, `usage.md`, `setup-development-environment.md`, `releasing-and-publishing.md`, network-infra's `operations.md` |
 | [Reference](#reference) | look up an exact fact | `cli-reference.md`, `config-reference.md`, `features.md` |
 | [Explanation](#explanation) | understand what something is and why it works that way | `domain.md`, `architecture.md`, `internals.md`, `philosophy.md` |
-| [Rules](#rules) | know what a change must respect | the shared guidelines, `docs/guidelines.md`, `docs/<area>-conventions.md` |
+| [Rules](#rules) | know what a change must respect | the shared guidelines, `docs/guidelines.md` or `docs/guidelines/`, a subsystem's `guidelines.md` |
 | [Record](#record) | recover what was decided or done, and why | `architecture-decision-record.md`, `divergence-from-the-template.md`, network-infra's host log |
 
 The first five are [Diátaxis](https://diataxis.fr/)'s four kinds plus the maps

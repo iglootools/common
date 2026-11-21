@@ -107,11 +107,9 @@ also helps AI agents should be a consequence.
   documentation and fill the gaps only agents have — they are never the only
   copy of a rule.
 - Conventions for a layer or area (storage, CLI, event schema, CI) are written
-  by the people who own it and kept next to the code they govern. Index them in
-  the project's `docs/guidelines.md` next to the paths they govern, which agents
-  have in context from the start; a project skill scoped to those paths may
-  deliver them as well. Do not load every area's full conventions into every
-  session.
+  by the people who own it, next to the code they govern, at the paths
+  [layout.md](../documentation/layout.md#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean)
+  names.
 - When a rule can be checked by a tool — compiler, type checker, linter, import
   contract, test — enforce it with the tool instead of describing it in prose.
 - Keep changes that carry more risk structurally apart from those that carry

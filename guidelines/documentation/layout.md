@@ -14,7 +14,7 @@ skills and hooks only decide when an agent reads it.
 **On this page**
 
 - [Where documentation lives](#where-documentation-lives)
-  - [Keep `docs/guidelines.md` at its fixed path, and lean](#keep-docsguidelinesmd-at-its-fixed-path-and-lean)
+  - [Keep the project's guidelines at conventional paths, and the entry file lean](#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean)
   - [Split `README.md`, `CONTRIBUTING.md` and `docs/` by reader](#split-readmemd-contributingmd-and-docs-by-reader)
   - [Keep `AGENTS.md` a short map, with no `CLAUDE.md` beside it](#keep-agentsmd-a-short-map-with-no-claudemd-beside-it)
 - [What to write](#what-to-write)
@@ -28,32 +28,40 @@ skills and hooks only decide when an agent reads it.
 
 ## Where documentation lives
 
-### Keep `docs/guidelines.md` at its fixed path, and lean
+### Keep the project's guidelines at conventional paths, and the entry file lean
 
-The `guidelines` skill reads two paths by convention rather than by being
-pointed at them, so they are fixed in every project: `CONTRIBUTING.md`
-([below](#split-readmemd-contributingmd-and-docs-by-reader)) and
-`docs/guidelines.md`. The latter holds deviations from the shared guidelines,
-which shared sections are out of scope, the project's own rules, its
-implementation checklists, and an index of area conventions.
+A project's guidelines take one of two forms: `docs/guidelines.md`, or a
+`docs/guidelines/` directory, subfolders allowed, whose entry file is
+`docs/guidelines/README.md`. A subsystem may add its own, `<dir>/guidelines.md`
+or `<dir>/guidelines/**/*.md`, which govern every file under `<dir>`. The
+guidelines write `docs/guidelines.md` for the entry file, whichever form a
+project uses.
 
-The plugin's `SessionStart` hook loads `docs/guidelines.md` into every agent
-session after the shared guidelines, so a project rule overrides a shared one
-while the code is written. Every line is paid for in every session, so it holds
-rules and exceptions, and links to anything long, such as a testing strategy, in
-its own file under `docs/`:
+**Why:** the plugin finds these files by their path, not by being pointed at
+them. Guidelines kept next to the code they govern are found by whoever changes
+that code, as
+[Let the people who own an area set its conventions](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps)
+argues.
 
-- **Implementation checklists** live in it, or are linked from it, under a
-  heading that names the task: adding a CLI command, a config field, a
-  migration. One long enough to crowd the rest out moves to its own file, linked
-  beside that task.
-- **Area conventions** are indexed from it. The people who own an area —
-  storage, the CLI, the event schema, CI — write its conventions in
-  `docs/<area>-conventions.md`, which opens by linking back to its index entry.
-  The skill tells the agent to read it before touching the paths listed beside
-  it; a document only mentioned in prose is not read when a change reaches the
-  area. A skill of the project's own may also deliver it, but the document stays
-  the source. The index, as photree has it:
+- **Only the entry file is loaded in every session.** The plugin's
+  `SessionStart` hook emits it after the shared guidelines, so a project rule
+  overrides a shared one while the code is written. It then lists the path of
+  every other guidelines file, and the skill has the agent read the ones that
+  govern a file before changing it.
+- **The entry file holds rules and links**: deviations from the shared
+  guidelines, which shared sections are out of scope, the project's own rules,
+  and a link to everything else. Every line in it is paid for in every session.
+- **Anything long moves into its own file under `docs/guidelines/`**, linked
+  from the entry under a heading that names the task: an implementation
+  checklist (adding a CLI command, a config field, a migration), a testing
+  strategy.
+- **An area's conventions live with the area.** The people who own it write
+  them. An area that is one directory (storage, the event schema) gets that
+  directory's `guidelines.md`, and nothing needs to point at it. An area spread
+  across directories gets `docs/guidelines/<area>.md`, indexed from the entry
+  with the paths it governs, since a document only mentioned in prose is not
+  read when a change reaches the area. A skill of the project's own may also
+  deliver it, but the document stays the source. photree's index:
 
   ```markdown
   ## Area conventions
@@ -62,14 +70,13 @@ its own file under `docs/`:
 
   | Paths | Conventions |
   |-------|-------------|
-  | `photree/cli/`, `photree/*/cli/` — and adding a command anywhere | [cli-conventions.md](./cli-conventions.md) — command hierarchy, options, progress, exit codes |
+  | `photree/cli/`, `photree/*/cli/` — and adding a command anywhere | [cli.md](./guidelines/cli.md) — command hierarchy, options, progress, exit codes |
   ```
 
-- **Decisions about the project's own stack** — which linter, which framework
-  feature, how far to follow an upstream template — are not deviations from
-  anything, and go in the
-  [architecture decision record](#record-architectural-decisions-in-an-append-only-log)
-  instead.
+- **Decisions about the project's own stack**, such as which linter, which
+  framework feature, or how far to follow an upstream template, are not
+  deviations from anything. They go in the
+  [architecture decision record](#record-architectural-decisions-in-an-append-only-log).
 
 ### Split `README.md`, `CONTRIBUTING.md` and `docs/` by reader
 
@@ -162,7 +169,7 @@ The shared iglootools guidelines govern every change. Claude Code loads them thr
 changing, using [iglootools/common's
 index](https://github.com/iglootools/common/blob/main/guidelines/README.md). Read
 [docs/guidelines.md](docs/guidelines.md) before any change too: it holds this project's deviations
-and its own rules.
+and its own rules, and links to the project's other guidelines files.
 
 ## Where things are
 
@@ -205,7 +212,7 @@ title (`# Building and Testing` lives in `building-and-testing.md`).
 | `docs/architecture.md` | how the code is organized: modules or layers, what depends on what, the reasoning behind the import contracts, and where a new piece of code goes | there is more than one module |
 | `docs/internals.md` | runtime behavior and the reasoning behind it: algorithms, on-disk formats, the external commands invoked, and design decisions as `Why …` subsections next to the behavior they explain | the behavior is not obvious from the code, or a decision would otherwise be relitigated |
 | `docs/architecture-decision-record.md` (not `adr/`, `decisions.md`) | the [decision log](#record-architectural-decisions-in-an-append-only-log) | a choice worth arguing has been made |
-| `docs/<area>-conventions.md` | an area's conventions, written by the people who own it | an area has [conventions of its own](#keep-docsguidelinesmd-at-its-fixed-path-and-lean) |
+| `docs/guidelines/<area>.md`, `<dir>/guidelines.md` | an area's conventions, written by the people who own it | an area has [conventions of its own](#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean) |
 | `docs/cli-reference.md` | every command, option and argument | the project ships a CLI — [generate it](#generate-references-from-the-code-and-check-them) |
 | `docs/config-reference.md` | every configuration field: type, default, validation rule; examples under `docs/config-examples/` | the project reads a configuration file |
 

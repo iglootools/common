@@ -28,6 +28,8 @@ paths:
   - "AGENTS.md"
   - "CLAUDE.md"
   - "docs/*.md"
+  - "**/guidelines.md"
+  - "**/guidelines/**/*.md"
   - "README.md"
   - "demo/**"
   - ".vscode/**"
@@ -40,7 +42,7 @@ paths:
 `coding/general.md` and `coding/git.md` are already in this session — the
 plugin's `SessionStart` hook emits them at startup and again after a compaction,
 along with `coding/python.md` when the project has a `pyproject.toml`, and the
-project's own `docs/guidelines.md` after both when the project has one. Apply
+project's guidelines entry file after both when the project has one. Apply
 them at write time, not as a post-hoc review, and where the project's file
 contradicts a shared rule, follow the project's file.
 
@@ -49,7 +51,7 @@ If a file you need is not in context, because the project has no
 not read it, read `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/general.md`,
 `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md`,
 `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md` or the project's
-`docs/guidelines.md` before continuing.
+guidelines entry file before continuing.
 
 ## Finding code
 
@@ -69,26 +71,23 @@ file read directly.
 
 ## What the project documents, and where
 
-Every iglootools project keeps two documents at the same paths. That is a
-convention rather than something each project announces, so do not wait to be
-pointed at them:
+Every iglootools project keeps its documentation index and its guidelines at
+conventional paths. Do not wait to be pointed at them:
 
 | Path | Holds | Read it |
 |---|---|---|
 | `CONTRIBUTING.md` | the index of the project's documentation — setup, build and test, guidelines, domain, architecture, internals, CLI and config references | when you need any of those, to find which file has it |
-| `docs/guidelines.md` | the project's deviations from the shared set, which shared sections are out of scope, rules of its own, its implementation checklists (inline, or linked by task), and the conventions its owners set for particular areas of the code (linked by the paths they govern) | it is already in context — the hook emits it; reread it if a compaction dropped it |
+| `docs/guidelines.md`, or `docs/guidelines/README.md` when the guidelines are split | the entry file: the project's deviations from the shared set, which shared sections are out of scope, rules of its own, and links to its checklists and area conventions | it is already in context — the hook emits it; reread it if a compaction dropped it |
+| any other `guidelines.md` or `guidelines/**/*.md` | an area's conventions, written by the people who own it | before changing a file it governs. The hook lists each one with what it governs: `<dir>/guidelines.md` and `<dir>/guidelines/**` cover everything under `<dir>`, and a file under `docs/guidelines/` covers the paths the entry file lists beside it |
 
 A missing file means the project has documented nothing of that kind, and the
 shared guidelines stand as written. It does not mean the content sits elsewhere
 under another name.
 
-**Area conventions.** The people who own a part of the code — storage, the CLI,
-the event schema, the CI pipeline — may have written conventions for it, and
-`docs/guidelines.md` links each such document next to the paths it governs. When
-a change reaches one of those paths, read the linked document in full before
-editing, the same way the table below works for the shared files. A project may
-also deliver an area's conventions through a skill of its own scoped to those
-paths; if one fires, follow it.
+Read a governing guidelines file in full before editing, the same way the table
+below works for the shared files. A project may also deliver an area's
+conventions through a skill of its own scoped to those paths; if one fires,
+follow it.
 
 ## Read the file the change reaches
 
@@ -108,7 +107,7 @@ looks skippable is usually the part that names the failure.
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/repository.md` | The committed `.gitignore`, setting up a new repository, its rulesets (branch or tag protection), how pull requests are merged, or the code of conduct and security policy. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/layout.md` | Adding, renaming or restructuring project documentation: `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, or a file under `docs/` — including `docs/guidelines.md` and a new area-conventions document. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/types.md` | Writing a new document, or reworking what one says, anywhere in the project. Read it *with* `layout.md` when the document is new or moves. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/writing-guidelines.md` | Adding or reworking a rule in the project's `docs/guidelines.md` or a `docs/<area>-conventions.md`. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/writing-guidelines.md` | Adding or reworking a rule in any of the project's guidelines files. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/pypi-publishing.md` | `release.yml`, `publish.yml` or `publish-test.yml`, the version scheme, or cutting a release by hand. Read it *with* `workflows.md` when the edit is to a workflow. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/iglootools-cli.md` | `[tool.iglootools]` in `pyproject.toml`, the `iglootools` dependency or its pin, a mise task that calls `iglootools`, or a bug found in one of its commands (which is fixed in iglootools/common, not worked around in the project). |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/cli-demo.md` | `demo/`, `.github/workflows/demo.yml`, the `demo-*` mise tasks, or the README's asciinema embed. |
@@ -132,9 +131,9 @@ about the other.
 Walk the diff against the guidelines rather than trusting that you applied them
 while writing:
 
-1. The checklists in the project's `docs/guidelines.md` that cover this kind of
-   change, including any it links to. Those items are project-specific and are
-   not repeated anywhere in this plugin.
+1. The checklists in the project's guidelines that cover this kind of change,
+   including any the entry file links to. Those items are project-specific and
+   are not repeated anywhere in this plugin.
 2. `coding/general.md`, then `coding/python.md` for a Python change, rule by
    rule against what the diff actually does.
 3. Whichever file from the table above you read for this change.
@@ -153,11 +152,11 @@ below.
 
 ### The project may already have decided
 
-Check the project's `docs/guidelines.md` (already in context) and any area
-conventions it links for a rule or a documented exception that overrides the
-shared default, and read any comment at the point of deviation in the file you
-are editing. A documented project rule wins. If the project records none, the
-shared guideline stands as written.
+Check the project's guidelines entry file (already in context) and any
+guidelines file that governs what you are editing for a rule or a documented
+exception that overrides the shared default, and read any comment at the point
+of deviation in the file you are editing. A documented project rule wins. If the
+project records none, the shared guideline stands as written.
 
 Undocumented divergence is drift, not an override. Do not carry it into the
 change: follow the shared guideline and say what you found.

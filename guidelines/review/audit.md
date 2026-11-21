@@ -61,7 +61,7 @@ Filing it under `GUIDE` as well would count it twice. `GUIDE` holds only the
 divergences that are about the rules themselves.
 
 **Check documented exceptions too.** Every exception in a project's
-`docs/guidelines.md` or in a comment names the condition that would retire it.
+guidelines or in a comment names the condition that would retire it.
 An audit checks whether that condition now holds — the dependency published
 wheels, the plan was upgraded — because nothing else does.
 
