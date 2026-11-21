@@ -88,7 +88,7 @@ A map lists where each thing is, one line per destination, saying when to go
 there rather than what is inside. It fits on a screen, and holds no content of
 its own. The README is the one exception: it also makes the case for the
 project, which
-[layout.md](layout.md#split-readmemd-contributingmd-and-docs-by-reader) spells
+[layout.md](layout.md#make-the-readme-a-pitch-that-links-out) spells
 out. A map groups its links by the reader's journey, not by kind; which maps a
 project has is set by [layout.md](layout.md).
 

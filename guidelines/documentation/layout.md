@@ -16,6 +16,7 @@ skills and hooks only decide when an agent reads it.
 - [Where documentation lives](#where-documentation-lives)
   - [Keep the project's guidelines at conventional paths, and the entry file lean](#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean)
   - [Split `README.md`, `CONTRIBUTING.md` and `docs/` by reader](#split-readmemd-contributingmd-and-docs-by-reader)
+  - [Make the README a pitch that links out](#make-the-readme-a-pitch-that-links-out)
   - [Keep `AGENTS.md` a short map](#keep-agentsmd-a-short-map)
 - [What to write](#what-to-write)
   - [Write the documents the project's shape calls for, one name per role](#write-the-documents-the-projects-shape-calls-for-one-name-per-role)
@@ -82,24 +83,18 @@ argues.
 
 | File | Reader | Holds |
 |---|---|---|
-| `README.md` | someone deciding whether to use the project | what it does, badges, a demo, main use cases, non-goals, known limitations, philosophy, related projects, links to the user documentation, a link to `CONTRIBUTING.md`, the license |
+| `README.md` | someone deciding whether to use the project | the case for the project, and links to everything else, as [below](#make-the-readme-a-pitch-that-links-out) |
 | `CONTRIBUTING.md` | someone changing it | the index of the contributor documentation, one line per document — nothing else |
 | `docs/` | either | every document longer than a README section, user-facing and contributor-facing alike |
 
-- **The README links out**: installation, usage and the feature list get one
-  sentence and a link. It has no "Development" section, since that is
-  `CONTRIBUTING.md`, but it does state non-goals and known limitations, which a
-  prospective user needs before installing.
 - **Every project has a `CONTRIBUTING.md`**, even one with no `docs/`, where it
   indexes whatever plays those roles and says why its shape differs. GitHub
   links it from the pull request and issue forms, and the skill reads it to find
   everything else. Start from the scaffold below, delete the lines for documents
   the project does not have, and add the ones only it has.
 - **Link with relative paths**, so links resolve on GitHub, in the editor and in
-  a fork alike — except in a README that is also the package's long description
-  (`readme = "README.md"`), which PyPI renders without the repository: use
-  absolute GitHub URLs there
-  (`https://github.com/iglootools/<repo>/blob/main/docs/usage.md`). Link to the
+  a fork alike. The one exception is a README that PyPI also renders
+  ([below](#make-the-readme-a-pitch-that-links-out)). Link to the
   shared guidelines at `https://github.com/iglootools/common/...` rather than
   naming a file in prose, so the link checker notices when it is renamed.
 
@@ -140,6 +135,31 @@ describes.
   `mise run clidocs`)
 - [docs/config-reference.md](docs/config-reference.md) — every configuration field
 ```
+
+### Make the README a pitch that links out
+
+The README is for someone deciding whether to use the project. It holds what the
+project does, badges, a demo, the main use cases, non-goals and known
+limitations, its philosophy, related projects, links to the user documentation
+and to the
+[documents for both readers](#write-the-documents-the-projects-shape-calls-for-one-name-per-role),
+a link to `CONTRIBUTING.md`, and the license.
+
+**Why:** every prospective user reads it, on GitHub and on PyPI, and decides
+from it. Anything longer than a section belongs in a document they can choose to
+open.
+
+- **Installation, usage and the feature list get one sentence and a link.**
+  There is no "Development" section: that is `CONTRIBUTING.md`.
+- **State non-goals and known limitations.** A prospective user needs them
+  before installing, not after.
+- **A CLI project embeds its demo near the top**, as
+  [cli-demo.md](../project-setup/cli-demo.md#embed-the-cast-at-the-top-of-the-readme)
+  describes.
+- **Use absolute GitHub URLs when the README is also the package's long
+  description** (`readme = "README.md"`), such as
+  `https://github.com/iglootools/<repo>/blob/main/docs/usage.md`. PyPI renders
+  it without the repository, so relative links break there.
 
 ### Keep `AGENTS.md` a short map
 
@@ -324,9 +344,6 @@ committed copy differs:
   Keep the Markdown formatter out of both, or it reformats what the generator
   wrote and its `lint-*` task fails on the next run:
   [formatting.md](../project-setup/formatting.md#leave-generated-documents-to-their-generator).
-- **A CLI project shows itself in the README** with an
-  [asciinema](https://asciinema.org/) recording near the top, re-recorded on a
-  major release when the demo script gains the new commands.
 - **Broken links** are caught by the shared link checker — see
   [shared-workflows.md](../project-setup/shared-workflows.md#call-the-shared-link-checker-instead-of-copying-it).
 
