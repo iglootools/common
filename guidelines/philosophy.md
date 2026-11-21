@@ -556,7 +556,22 @@ what the harness is made of:
   Compilers, type checkers, linters and enforced module boundaries reject a
   mistake with a precise message at the moment it is made. A rule that a tool
   can check should be checked by the tool; prose is for the rules that cannot
-  be.
+  be. The checks reach from the language to the repository:
+  - *Types*: a statically typed language, or a type checker such as pyright
+    over fully annotated code, with types that make illegal states
+    unrepresentable: an enum rather than a string, a frozen dataclass rather
+    than a dict, a distinct type for a value that has been validated.
+  - *Data at the boundary*: a schema, such as a pydantic model, that rejects a
+    malformed config or input when it is read rather than when it is used.
+  - *Linters and formatters*: ruff, shellcheck, rumdl and dprint, including
+    rules that ban an API outright, as ruff's banned-API rule forbids patching
+    in tests.
+  - *Architecture*: import contracts that hold module boundaries, and a check
+    that fails on dead code.
+  - *Derived files*: a lint that fails when a generated reference, a table of
+    contents or a lock file no longer matches its source.
+  - *The repository*: rulesets that refuse a merge until CI passes, a validator
+    for the Renovate config, a link checker.
 - **Structured errors and inspectable state**
   ([Errors as first-class values](#errors-as-first-class-values),
   [Make everything inspectable](#make-everything-inspectable)). An agent
