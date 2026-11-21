@@ -14,7 +14,7 @@ rumdl = "0.3.4"
 # back to JavaScript's regex engine, and lint-renovate would accept custom-manager patterns
 # that Renovate itself, which runs RE2, rejects.
 "npm:renovate" = { version = "44.239.1", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"], allow_builds = ["re2"] }
-node = "24.22.3"
+node = "26.13.0"
 jq = "1.8.2"
 
 [env]
