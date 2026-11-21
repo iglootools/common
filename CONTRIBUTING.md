@@ -27,15 +27,13 @@ the bar a documented exception has to meet.
 
 ## Understanding the repository
 
-- [README.md](README.md): what is here, and which guideline is triggered by
-  which file
+- [README.md](README.md): what is here
+- [guidelines/README.md](guidelines/README.md): which guideline governs which
+  change
 - [guidelines/philosophy.md](guidelines/philosophy.md): the reasoning behind the
   guidelines
 - [docs/internals.md](docs/internals.md): how the plugin delivers the
   guidelines, and how the `iglootools` command is organized
-- [guidelines/coding/README.md](guidelines/coding/README.md) and
-  [guidelines/project-setup/README.md](guidelines/project-setup/README.md): the
-  index of each half of the guidelines
 
 ## Reference
 
