@@ -31,6 +31,7 @@ thing in each one. The name says whether a task writes:
 | `test`, `test-*` | runs tests | `test`, `test-unit`, `test-integration` |
 | `preflight`, `preflight-quick` | everything to run before a push | — |
 | `ci-*` | one per workflow job | `ci-preflight`, `ci-build` |
+| a report, named for what it shows | prints, and neither writes nor fails on what it finds | `renovate-dry-run`, `depgraph-mermaid` |
 
 - **Anything that fails without writing is a lint**: a linter in the usual
   sense (`lint-ruff`, `lint-shell`, `lint-markdown`), the type checker

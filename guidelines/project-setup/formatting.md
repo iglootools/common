@@ -81,7 +81,10 @@ them the same way, and Renovate's mise manager keeps them current.
   a Python project needs no `excludes`. A Node project does: `pnpm-lock.yaml`
   and `package-lock.json` have extensions dprint formats, and the package
   manager rewrites them in its own style on every install. Generated data, such
-  as minified JSON a script writes, is excluded for the same reason. dprint
+  as minified JSON a script writes, is excluded for the same reason, and so is
+  `.mise/locks/`, where mise locks an npm tool's dependencies
+  ([dependency-automation.md](dependency-automation.md#validate-and-preview-the-config-with-renovate-itself)).
+  dprint
   reads comments in `dprint.json`, so give each entry its reason:
 
   ```json

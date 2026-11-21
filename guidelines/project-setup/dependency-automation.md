@@ -15,6 +15,7 @@ branches is in
 
 - [Extend the shared Renovate presets](#extend-the-shared-renovate-presets)
 - [Committing `renovate.json` does not turn Renovate on](#committing-renovatejson-does-not-turn-renovate-on)
+  - [Validate and preview the config with Renovate itself](#validate-and-preview-the-config-with-renovate-itself)
 - [Turn on the dependency graph, alerts and security updates](#turn-on-the-dependency-graph-alerts-and-security-updates)
 - [Split Renovate and Dependabot by job, not by ecosystem](#split-renovate-and-dependabot-by-job-not-by-ecosystem)
 - [Give every copy of a pin the same datasource](#give-every-copy-of-a-pin-the-same-datasource)
@@ -85,19 +86,66 @@ Check both after adding the config, not months later. A repository can carry a
 fully documented `renovate.json`, a complete set of SHA-pinned actions and a
 pile of open Dependabot alerts while Renovate has never looked at it once.
 
-Validate the config itself with Renovate's own validator, and
-**pin the validator to a current version** — `npx` resolves `renovate` to a very
-old release, which reports valid modern options as errors and invites you to
-"fix" a working config:
+Validate the config, and preview what Renovate would do, with the
+[tasks below](#validate-and-preview-the-config-with-renovate-itself), rather
+than waiting for its next run to report a mistake.
 
-```bash
-npx --yes --package renovate@<current> -- renovate-config-validator --strict
+### Validate and preview the config with Renovate itself
+
+Two tasks run Renovate locally, from the project's own pinned copy:
+
+| Task | Runs | Family |
+|---|---|---|
+| `lint-renovate` | `renovate-config-validator --strict`, which validates `renovate.json` as repository config | a lint: `lint` runs it, since it takes about a second |
+| `renovate-dry-run` | Renovate's local platform in lookup mode, which prints the updates it would propose from this checkout | neither writes nor fails on what it finds |
+
+```toml
+[tools]
+node = "24.22.3"
+jq = "1.8.2"
+"npm:renovate" = { version = "44.239.1", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"], allow_builds = ["re2"] }
+
+[tasks.lint-renovate]
+description = "Validate the Renovate config with Renovate's validator, strictly"
+run = "renovate-config-validator --strict"
 ```
 
-**Pass `--strict`.** Without it, a config that Renovate has renamed or
-restructured an option of passes with only a warning, and Renovate keeps
-migrating it in memory on every run without anyone being told. Strict mode
-fails on it, so the migration lands as a commit rather than going unnoticed.
+`renovate-dry-run` is a file task, `mise-tasks/renovate-dry-run`: copy it from
+iglootools/common. It takes a GitHub token from `GITHUB_COM_TOKEN` or else from
+`gh auth token`, runs
+`renovate --platform=local --dry-run=lookup --report-type=file`, and prints
+the report as a table with `jq`, so a project without Python can run it.
+
+- **Pass `--strict`.** Without it, a config that Renovate has renamed or
+  restructured an option of passes with only a warning, and Renovate keeps
+  migrating it in memory on every run without anyone being told. Strict mode
+  fails on it, so the migration lands as a commit rather than going unnoticed.
+- **Pin Renovate in mise, not through `npx`.** An unpinned `npx renovate`
+  resolves to a very old release, which reports valid modern options as errors
+  and invites you to "fix" a working config, and a version named on the
+  command line is a pin no updater reads. In `[tools]`, Renovate's mise manager
+  keeps it current like any other tool.
+- **Commit `.mise/locks/`.** mise locks an npm tool's whole dependency tree in
+  a file under it, which `mise.lock` pins by digest: without it, CI's locked
+  install fails. Exclude the directory from dprint, which would otherwise
+  reformat a file mise writes. The shared `base` preset keeps Renovate's npm
+  manager off it, and the
+  [shared lock regenerator](shared-workflows.md#call-the-shared-lock-regenerator-too)
+  commits the new lock when Renovate moves the tool.
+- **The two options are deliberate.** `allow_builds = ["re2"]` lets that one
+  dependency run its build script: without its native module Renovate falls
+  back to JavaScript's regex engine, and the validator accepts custom-manager
+  patterns Renovate itself, which runs RE2, rejects. `trust_policy_excludes`
+  exempts one release from mise's no-trust-downgrade check: the Yarn project's
+  lead maintainer published `@yarnpkg/libzip@3.2.2` by hand, without the
+  provenance its CI-published predecessors carry. It was reviewed (its tarball
+  matches Yarn's source, and its compiled code is byte-identical to the
+  attested 3.2.1) and the comment in iglootools/common's `mise.toml` records
+  the review. Drop the exclusion once Renovate no longer resolves to it; never
+  widen it to a bare package name, which would exempt every release.
+- **Extend the presets with `github>`.** Renovate's local platform cannot fetch
+  a `local>` preset and rejects the whole config, so the dry run needs the
+  `github>iglootools/common//renovate/…` form the presets are documented with.
 
 ## Turn on the dependency graph, alerts and security updates
 

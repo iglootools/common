@@ -36,7 +36,7 @@ session, the rest are read only when a change reaches the files they govern:
 | [`project-setup/mise.md`](guidelines/project-setup/mise.md) | `mise.toml`, `mise-tasks/**`, `mise.lock`, a shell script, adding, renaming or naming a mise task |
 | [`project-setup/workflows.md`](guidelines/project-setup/workflows.md) | `.github/workflows/**` |
 | [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
-| [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, and the repository settings both depend on |
+| [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, the repository settings both depend on, `lint-renovate` and `renovate-dry-run` |
 | [`project-setup/repository.md`](guidelines/project-setup/repository.md) | `.gitignore`, setting up a new repository, repository rulesets and merge settings, the code of conduct and security policy |
 | [`project-setup/documentation.md`](guidelines/project-setup/documentation.md) | `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, `docs/**` |
 | [`project-setup/pypi-publishing.md`](guidelines/project-setup/pypi-publishing.md) | the release and publish workflows, cutting a release |
