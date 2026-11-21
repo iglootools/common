@@ -58,9 +58,8 @@ Answer symbol questions with the project's language server rather than with text
 search: where something is defined, what references or calls it, what type it
 returns, what a module contains. These projects reuse short names across
 modules, so a symbol answer has to come from the import graph and not from text
-matches. A project declares its server in `.claude/settings.json` — for a Python
-project that is the `pyright-lsp` plugin, which `ide.md` requires at project
-scope.
+matches. A project declares its server in `.claude/settings.json`: for a Python
+project, the `pyright-lsp` plugin, as `claude-code.md` sets up.
 
 Reach for `grep`/`Glob` when the target is not a resolvable symbol: string
 literals, config keys, YAML/TOML, comments, filenames, or a name that may not
@@ -70,21 +69,18 @@ file read directly.
 
 ## What the project documents, and where
 
-Every iglootools project keeps its documentation index and its guidelines at
-conventional paths. Do not wait to be pointed at them:
+Every iglootools project keeps its documentation index and its guidelines at the
+paths `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/layout.md` sets out. Do
+not wait to be pointed at them:
 
-| Path | Holds | Read it |
-|---|---|---|
-| `CONTRIBUTING.md` | the index of the project's documentation — setup, build and test, guidelines, domain, architecture, internals, CLI and config references | when you need any of those, to find which file has it |
-| `docs/guidelines.md`, or `docs/guidelines/README.md` when the guidelines are split | the entry file: the project's deviations from the shared set, which shared sections are out of scope, rules of its own, and links to its checklists and area conventions | it is already in context — the hook emits it; reread it if a compaction dropped it |
-| any other `guidelines.md` or `guidelines/**/*.md` | an area's conventions, written by the people who own it | before changing a file it governs. The hook lists each one with what it governs: `<dir>/guidelines.md` and `<dir>/guidelines/**` cover everything under `<dir>`, and a file under `docs/guidelines/` covers the paths the entry file lists beside it |
+| Path | Read it |
+|---|---|
+| `CONTRIBUTING.md` | to find which file documents setup, build and test, the domain, the architecture, internals or a reference |
+| `docs/guidelines.md`, or `docs/guidelines/README.md` | already in context, emitted by the hook; reread it if a compaction dropped it |
+| any other `guidelines.md` or `guidelines/**/*.md` | in full, before changing a file it governs; the hook lists each one with what it governs |
 
 A missing file means the project has documented nothing of that kind, and the
-shared guidelines stand as written. It does not mean the content sits elsewhere
-under another name.
-
-Read a governing guidelines file in full before editing, the same way the table
-below works for the shared files. A project may also deliver an area's
+shared guidelines stand as written. A project may also deliver an area's
 conventions through a skill of its own scoped to those paths; if one fires,
 follow it.
 
@@ -114,16 +110,10 @@ looks skippable is usually the part that names the failure.
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md` | `.vscode/`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/claude-code.md` | `.claude/settings.json`, or which Claude Code plugins the project enables. |
 
-Some files are split between two guidelines, so check you have the right half.
-`pyproject.toml` appears twice: `[tool.pyright]` belongs to
-`project-setup/ide.md`, everything about building, packaging and dependencies to
-`project-setup/python-tooling.md`. `mise.toml` does too: its tasks and the
-`mise.lock` check belong to `project-setup/mise.md` in every project, and a
-Python project's uv settings to `project-setup/python-tooling.md`. And editor
-configuration is `project-setup/ide.md` while Claude Code's own configuration is
-`project-setup/claude-code.md` — VSCode runs Pylance for the squiggles, the
-plugin runs its own pyright for Claude, so a question about one says nothing
-about the other.
+Two files are split between guidelines. In `pyproject.toml`, `[tool.pyright]` is
+`ide.md`'s and building, packaging and dependencies are `python-tooling.md`'s.
+In `mise.toml`, tasks and the `mise.lock` check are `mise.md`'s, and a Python
+project's uv settings are `python-tooling.md`'s.
 
 ## Before calling the change done
 
@@ -145,23 +135,12 @@ Say what you changed as a result.
 
 ## When a rule does not fit
 
-These are defaults, not dogma. An explicit, justified exception is fine; silent
-drift is not. Never edit around a rule silently — take one of the two paths
-below.
+Never edit around a rule silently. First check whether the project has already
+decided: its guidelines entry file (already in context), any guidelines file
+that governs what you are editing, and any comment at the point of departure in
+the file itself. A documented project rule wins; if the project records none,
+the shared guideline stands. Undocumented divergence is drift: do not carry it
+into the change, follow the shared guideline and say what you found.
 
-### The project may already have decided
-
-Check the project's guidelines entry file (already in context) and any
-guidelines file that governs what you are editing for a rule or a documented
-exception that overrides the shared default, and read any comment at the point
-of deviation in the file you are editing. A documented project rule wins. If the
-project records none, the shared guideline stands as written.
-
-Undocumented divergence is drift, not an override. Do not carry it into the
-change: follow the shared guideline and say what you found.
-
-### Otherwise, record the exception
-
-Follow `coding/general.md` › Documented Exceptions, already in context: check
-that it is an exception and not debt, put it where a reader will hit it, meet
-the bar, and name the condition that would retire it.
+Otherwise, record the exception as `coding/general.md` › Documented Exceptions
+(already in context) describes.

@@ -19,7 +19,8 @@ it is in
 
 The guidelines split into two kinds, and the plugin delivers each by the
 mechanism that fits. `coding/general.md`, `coding/python.md` and `coding/git.md`
-govern every edit, so a `SessionStart` hook puts them in context from the start.
+govern every edit, so a `SessionStart` hook puts them in context from the start
+(`coding/python.md` only in a project with a `pyproject.toml`).
 The rest are triggered by a specific file, so a skill reads them only when a
 change reaches the files they govern.
 
@@ -59,6 +60,12 @@ auditors itself.
 
 The auditors do not see what the `SessionStart` hook emits, because a subagent
 does not receive it, so the `auditor` agent reads the guidelines itself.
+
+When Claude is about to open a pull request, mark it ready or merge it,
+[hooks/remind-audit-pr.sh](../hooks/remind-audit-pr.sh) reminds the user if no
+report under `.iglootools/audits/` covers the current commit. It does not block
+the command, since an audit is a judgment call rather than a gate, and pull
+requests opened outside Claude get no reminder.
 
 ## The ones that load in every session
 

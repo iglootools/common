@@ -27,14 +27,13 @@ emit() {
 }
 
 printf '# iglootools common guidelines\n\n'
-printf 'Shared across iglootools projects and delivered by the iglootools plugin. These\n'
-printf 'govern every edit. Where the project documents a deviation in its own docs/guidelines.md\n'
-printf '(emitted at the end of this context when it exists), the project wins; undocumented\n'
-printf 'divergence is drift, not an override.\n\n'
+printf 'Shared across iglootools projects and delivered by the iglootools plugin. These govern\n'
+printf 'every edit. Each rule is a default: the terms for departing from one are in\n'
+printf 'coding/general.md, Documented Exceptions, below. The project'"'"'s own guidelines\n'
+printf '(docs/guidelines.md or docs/guidelines/README.md) follow at the end when it has them.\n\n'
 # The guideline files do not repeat, one per file, that they are defaults and where the
 # reasoning lives: stating it once here reaches every session.
-printf 'The reasoning behind these rules is in %s/guidelines/philosophy.md, and the terms for departing\n' "$plugin_root"
-printf 'from one are in coding/general.md, Documented Exceptions, below.\n\n'
+printf 'The reasoning behind these rules is in %s/guidelines/philosophy.md.\n\n' "$plugin_root"
 # guidelines/, not the plugin root: these files sit one directory down, and a relative link such
 # as general.md's ../philosophy.md only resolves if you know that.
 printf 'These files live in %s/guidelines/coding/, where the relative links inside them resolve.\n\n' "$plugin_root"
@@ -69,8 +68,8 @@ done
 if [[ -n "$project_guidelines" ]]; then
   printf '# Project guidelines (%s)\n\n' "$project_guidelines"
   printf 'This project'"'"'s own rules, documented exceptions and checklists. Where they conflict with\n'
-  printf 'the shared guidelines above, these win. Where they list conventions for an area of the\n'
-  printf 'code, read the linked document in full before changing files in that area.\n\n'
+  printf 'the shared guidelines above, these win; a divergence they do not document is drift, not an\n'
+  printf 'override. Read any document they link for an area in full before changing files there.\n\n'
   emit "$project_dir/$project_guidelines"
 fi
 
@@ -99,8 +98,7 @@ done < <(git -C "$project_dir" ls-files -z -- '*.md' 2>/dev/null || true)
 
 if ((${#others[@]} > 0)); then
   printf '# Other project guidelines\n\n'
-  printf 'Read the file in full before changing anything it governs, the same way the shared\n'
-  printf 'project-setup guidelines are read:\n\n'
+  printf 'Read each in full before changing anything it governs:\n\n'
   for path in "${others[@]}"; do
     # shellcheck disable=SC2016 # the backticks are Markdown code spans, not a substitution
     printf -- '- `%s`: %s\n' "$path" "$(scope "$path")"

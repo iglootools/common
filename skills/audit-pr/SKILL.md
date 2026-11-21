@@ -34,7 +34,8 @@ range against every rule in it, using its own commands with `<merge-base>` as
 the base: `git log --reverse --stat` for the range, then each commit's diff.
 Record each problem as a `finding` block in the auditor's format, with `origin`
 set to the commit and `rule` citing the section it breaks
-(`coding/git.md › Commit messages`).
+(`coding/git.md` › Write the subject as a Conventional Commit, and the body
+as the why).
 
 ## 4. Split the work
 
