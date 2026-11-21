@@ -15,6 +15,7 @@ rumdl = "0.3.4"
 # that Renovate itself, which runs RE2, rejects.
 "npm:renovate" = { version = "44.239.1", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"], allow_builds = ["re2"] }
 node = "24.22.3"
+jq = "1.8.2"
 
 [env]
 # Pin uv to the interpreter mise installed, by absolute path: a bare version number does not
@@ -118,6 +119,7 @@ run = [
   { task = "lint-lock-mise" },
   { task = "lint-lock-uv" },
   { task = "lint-toc" },
+  { task = "lint-renovate" },
 ]
 
 # The formatters exit 0 whether or not they changed anything, so they cannot be the gate. rumdl
@@ -174,3 +176,13 @@ run = "uv lock --check"
 [tasks.lint-toc]
 description = "Check that the Markdown tables of contents are up to date (fix with `mise run toc`)"
 run = "uv run --no-sync iglootools docs toc --check"
+
+# --strict fails on a config Renovate would migrate, which a plain run reports only as a
+# warning. Run with no argument it validates renovate.json as repository config; the presets
+# every project extends are validated as files.
+[tasks.lint-renovate]
+description = "Validate the Renovate config and presets with Renovate's validator, strictly"
+run = [
+  "renovate-config-validator --strict",
+  "renovate-config-validator --strict renovate/base.json renovate/python.json",
+]
