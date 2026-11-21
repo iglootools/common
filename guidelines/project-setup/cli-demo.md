@@ -33,7 +33,7 @@ The pieces, as `nbkp` and `photree` lay them out:
 - [Embed the cast at the top of the README](#embed-the-cast-at-the-top-of-the-readme)
 <!-- tocstop -->
 
-### Record a cast, not a GIF or a screen video
+## Record a cast, not a GIF or a screen video
 
 A cast is the terminal's output stream with timings, not pictures of it. The README embed plays it
 back as text, so a reader can pause it and copy a command out of it; it stays small (tens to
@@ -46,7 +46,7 @@ what the session printed before it died.
 today, so `iglootools demo record` does not make one. Add the conversion and the GIF in the
 workflow's artifact together, not one without the other.
 
-### Script the session; do not record it by hand
+## Script the session; do not record it by hand
 
 A hand-recorded demo is recorded once, on one machine, with whatever typos and stale state that
 session had, and nobody can re-record it the same way after the next release. `demo/demo.sh` is
@@ -77,7 +77,7 @@ the recording and as a failure that only reproduces sometimes:
 Grow the script with the tool. On a major release, add scenarios for what the release
 introduced, so the demo keeps showing what the tool is for rather than what it was for at 0.1.
 
-### Seed the data with a command the tool ships
+## Seed the data with a command the tool ships
 
 The demo runs against data created by `<tool> demo seed --base-dir "$DEMO_DIR"`, a subcommand of
 the CLI itself, not by fixtures kept in `demo/` or by setup steps someone performs first. That
@@ -95,7 +95,7 @@ data, which is how a change to formatting is reviewed without reproducing each s
 `photree` does not. The `<tool> demo` subcommand is the convention, and a second entry point is
 optional.
 
-### Make a failing command fail the recording
+## Make a failing command fail the recording
 
 A demo whose third command errors still produces a cast, and a cast that shows a stack trace
 looks like a successful recording to every check that does not watch it. Two settings close
@@ -106,7 +106,7 @@ that, and both are needed:
   whatever the recorded command did, which is how a demo that died on its first command once recorded and
   "succeeded" on CI.
 
-### Record through mise tasks, with the tools pinned
+## Record through mise tasks, with the tools pinned
 
 The demo is recorded by a mise task, so a developer and CI record it with the same command — see
 "Keep workflows thin" in [workflows.md](workflows.md).
@@ -145,13 +145,13 @@ so the demo would otherwise run with no CLI on the `PATH` at all.
 beyond the CLI — `pv` for demo-magic's simulated typing, `tree` for directory listings — is a
 system package: `brew install` locally, an `apt-get install` step in the workflow.
 
-### Keep the cast out of git
+## Keep the cast out of git
 
 `demo/demo.cast` and `demo/demo.gif` are in `.gitignore`. A recording is a build output, one per
 release, and committing it would add a few hundred KB to the history every time it is refreshed
 for no reader: the README embeds the copy on asciinema.org, and CI keeps the one it recorded.
 
-### Record the demo in CI on every release
+## Record the demo in CI on every release
 
 `.github/workflows/demo.yml` calls the shared `reusable-demo.yml`
 ([shared-workflows.md](shared-workflows.md#call-the-shared-demo-recorder)), which runs
@@ -182,7 +182,7 @@ days.
 - **Concurrency** uses the shared group expression from [workflows.md](workflows.md), including
   the `github.event.workflow_run.head_sha` term that this workflow's `workflow_run` trigger needs.
 
-### Publish from a machine that can reach asciinema.org
+## Publish from a machine that can reach asciinema.org
 
 Publishing is manual, from a developer machine:
 
@@ -211,7 +211,7 @@ of the repository's GitHub configuration in `docs/building-and-testing.md`:
 
 Re-enable CI publishing only once a run shows the host is reachable from a runner again.
 
-### Embed the cast at the top of the README
+## Embed the cast at the top of the README
 
 The README carries the player directly under the one-paragraph description, before the first
 section, so the first screen shows what the tool does:

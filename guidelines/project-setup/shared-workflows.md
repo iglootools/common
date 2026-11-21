@@ -18,7 +18,7 @@ follow — pinning, concurrency, timeouts, naming — are in
 - [Keep publishing in the project](#keep-publishing-in-the-project)
 <!-- tocstop -->
 
-### Call the shared link checker instead of copying it
+## Call the shared link checker instead of copying it
 
 Link checking is identical in every project, so it lives here as a reusable workflow rather
 than as a file each repository keeps its own copy of:
@@ -100,7 +100,7 @@ Four things about that stub are load-bearing:
   before the same failure, and each one pads every report so a genuine 404 arrives buried in
   known-good noise.
 
-### Call the shared lock regenerator too
+## Call the shared lock regenerator too
 
 The other workflow that is identical everywhere, for the same reason and with the same shape:
 
@@ -150,7 +150,7 @@ That is also why the input is named `version` and not `mise-version`: the custom
 a `# renovate:` marker followed by whitespace and a literal `version:` line, so a more
 descriptive name would silently stop matching and freeze the pin.
 
-### A uv project must submit its own dependency graph
+## A uv project must submit its own dependency graph
 
 GitHub's dependency graph does not parse `uv.lock`. A uv project therefore has an **empty**
 graph, and because Dependabot alerts are generated *from* the graph and Dependabot security
@@ -193,7 +193,7 @@ added dependency, or a change in how the token is passed as a reason to stop rat
 detail. The pin living in this repository rather than in each project is deliberate — it makes
 that review happen once, here, instead of once per consumer.
 
-### Call the shared release workflow
+## Call the shared release workflow
 
 Python projects that release from conventional commits (see
 [pypi-publishing.md](pypi-publishing.md#let-the-release-workflow-pick-the-bump-from-conventional-commits))
@@ -226,7 +226,7 @@ jobs:
 - **Rehearse with `dry-run: true`** under `with:`: it computes the next version and changelog,
   writes them to the run summary, and pushes nothing.
 
-### Call the shared demo recorder
+## Call the shared demo recorder
 
 CLI projects with an asciinema demo ([cli-demo.md](cli-demo.md)) call it from `demo.yml`:
 
@@ -261,7 +261,7 @@ The job runs `mise run ci-demo-record` and uploads the cast as the `demo-recordi
 It skips a `workflow_run` whose release failed. `apt-packages` lists what the session needs
 beyond mise's tools; `pv` is demo-magic's and stays in the list.
 
-### Keep publishing in the project
+## Keep publishing in the project
 
 `publish.yml` and `publish-test.yml` are near-identical across projects and still are not
 shared. Trusted publishing ties a PyPI project to a workflow file in the publishing repository,

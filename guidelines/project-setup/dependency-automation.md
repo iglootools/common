@@ -19,7 +19,7 @@ The workflow that regenerates `mise.lock` and `uv.lock` on Renovate branches is 
 - [Give every copy of a pin the same datasource](#give-every-copy-of-a-pin-the-same-datasource)
 <!-- tocstop -->
 
-### Extend the shared Renovate presets
+## Extend the shared Renovate presets
 
 The rules every iglootools project needs live once, as presets in
 [iglootools/common](https://github.com/iglootools/common/tree/main/renovate):
@@ -62,7 +62,7 @@ and schedule, its holds, and its own custom managers.
 - `config:recommended` and grouping stay in the project because they differ: one project
   extends a framework's preset with `group:all` instead.
 
-### Committing `renovate.json` does not turn Renovate on
+## Committing `renovate.json` does not turn Renovate on
 
 The config is inert until the Renovate GitHub App is granted access to the repository, and
 nothing in the repository can tell you whether that happened. There is no error, no failed check
@@ -88,7 +88,7 @@ as errors and invites you to "fix" a working config:
 npx --yes --package renovate@<current> -- renovate-config-validator
 ```
 
-### Turn on the dependency graph, alerts and security updates
+## Turn on the dependency graph, alerts and security updates
 
 These are repository settings, not files, so a repository can carry a perfectly good
 `dependabot.yml` and have none of it running. They form a chain, and each link is a
@@ -134,7 +134,7 @@ and for a uv project it stacks with
 three independent switches, none of which reports anything when off, all of which have to be on
 before a published advisory reaches a pull request.
 
-### Split Renovate and Dependabot by job, not by ecosystem
+## Split Renovate and Dependabot by job, not by ecosystem
 
 **iglootools' own releases are exempt.** The `base` preset sets `minimumReleaseAge` to zero for
 packages from the `iglootools` organization: the shared workflows and presets, the `iglootools`
@@ -178,7 +178,7 @@ updates:
 `poetry.lock` and understands neither `uv.lock` nor `[dependency-groups]`, so after a migration
 it keeps running, finds nothing, and reports green — indistinguishable from working coverage.
 
-### Give every copy of a pin the same datasource
+## Give every copy of a pin the same datasource
 
 Some versions are pinned in more than one place: the uv in `mise.toml` and in a test image's
 Dockerfile, say. Renovate updates each copy through whichever manager found it, and the

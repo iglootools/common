@@ -10,15 +10,15 @@ goes from here.
 <!-- toc -->
 **On this page**
 
-  - [Ignore OS and editor cruft, and generated iglootools output, in the committed `.gitignore`](#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore)
-  - [Merge pull requests with a merge commit](#merge-pull-requests-with-a-merge-commit)
-  - [Protect the default branch and release tags](#protect-the-default-branch-and-release-tags)
-  - [Inherit the code of conduct and security policy from the organization](#inherit-the-code-of-conduct-and-security-policy-from-the-organization)
+- [Ignore OS and editor cruft, and generated iglootools output, in the committed `.gitignore`](#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore)
+- [Merge pull requests with a merge commit](#merge-pull-requests-with-a-merge-commit)
+- [Protect the default branch and release tags](#protect-the-default-branch-and-release-tags)
+- [Inherit the code of conduct and security policy from the organization](#inherit-the-code-of-conduct-and-security-policy-from-the-organization)
 - [Python Projects](#python-projects)
 - [CLI Projects](#cli-projects)
 <!-- tocstop -->
 
-### Ignore OS and editor cruft, and generated iglootools output, in the committed `.gitignore`
+## Ignore OS and editor cruft, and generated iglootools output, in the committed `.gitignore`
 
 Not in `.git/info/exclude` or a personal `core.excludesfile`. Those are not shared on clone, so
 they look like coverage to whoever set them up while giving none to anyone else. This is not
@@ -32,7 +32,7 @@ of output needs no new `.gitignore` entry in every project. Nothing in it is eve
 file a project should commit, such as settings for a tool, belongs somewhere else, so the
 directory never mixes generated and committed files.
 
-### Merge pull requests with a merge commit
+## Merge pull requests with a merge commit
 
 Merge, do not squash or rebase, unless the project has a reason to do otherwise. A merge commit
 keeps the history, lets merged branches be deleted with `git branch -d`, and keeps stacked pull
@@ -47,7 +47,7 @@ a branch whose commits are throwaway by design, say an automated update that lan
 series of fix-ups — documents it in its `docs/guidelines.md` and adds the method to its
 ruleset, rather than having maintainers pick per merge.
 
-### Protect the default branch and release tags
+## Protect the default branch and release tags
 
 Every repository carries two rulesets: one on the default branch, one on release tags. Branch
 protection is the older mechanism; use rulesets, which cover tags as well and are readable
@@ -139,7 +139,7 @@ repositories only with a paid plan. That is a documented exception in the projec
 `docs/guidelines.md`, retired when the organization moves to a paid plan or the repository
 becomes public.
 
-### Inherit the code of conduct and security policy from the organization
+## Inherit the code of conduct and security policy from the organization
 
 The code of conduct and the security policy are the same for every iglootools repository, so they
 live once, in the public [iglootools/.github](https://github.com/iglootools/.github) repository,
