@@ -171,6 +171,19 @@ Dependabot.
   either file. Filenames cannot collide within a directory, so deriving the name
   from the file makes that collision impossible by construction.
 
+- **Name each job after the task it runs, without the `ci-` prefix.** The job
+  that runs `ci-preflight` is `preflight`, the one that runs `ci-build` is
+  `build`, so a failing check in a pull request names the command that
+  reproduces it: `mise run preflight`. Where a workflow splits `preflight`
+  across jobs that run side by side, each job takes its own task's name
+  (`preflight-quick`, `test-docker`), and the job that waits on all of them,
+  and fails unless they all passed, is the one named `preflight`.
+
+  The job name is also the check name a ruleset requires
+  ([repository.md](repository.md#protect-the-default-branch-and-release-tags)),
+  so renaming a job that a ruleset requires is a change to the ruleset too:
+  see that section for the order that keeps pull requests mergeable.
+
 - **Give every workflow a concurrency group, and pick the variant by whether a
   half-finished run can be abandoned and redone.** There are two. The test is
   not whether the workflow writes to something outside the repository — plenty

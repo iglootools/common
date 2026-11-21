@@ -8,6 +8,12 @@ project type goes from here.
   project.
 - A `CONTRIBUTING.md` indexing the project's documentation, and the rest of
   `docs/` — see [documentation.md](documentation.md)
+- The two rulesets, on the default branch and on release tags, with the
+  `preflight` job as the required check, applied when the repository is
+  created and recorded as commands in its docs — see
+  [Protect the default branch and release tags](#protect-the-default-branch-and-release-tags)
+  and
+  [documentation.md](documentation.md#record-repository-settings-as-commands-in-one-place)
 
 <!-- toc -->
 **On this page**
@@ -60,7 +66,7 @@ tags. Branch protection is the older mechanism; use rulesets, which cover tags
 as well and are readable through the API.
 
 **The default branch** — no deletion, no force-push, changes only through a pull
-request merged with a merge commit, and the project's CI check green first:
+request merged with a merge commit, and the `preflight` job green first:
 
 ```bash
 gh api --method POST repos/<owner>/<repo>/rulesets --input - <<'EOF'
@@ -82,7 +88,7 @@ gh api --method POST repos/<owner>/<repo>/rulesets --input - <<'EOF'
     { "type": "required_status_checks", "parameters": {
         "strict_required_status_checks_policy": false,
         "do_not_enforce_on_create": false,
-        "required_status_checks": [{ "context": "<check>", "integration_id": 15368 }] } }
+        "required_status_checks": [{ "context": "preflight", "integration_id": 15368 }] } }
   ]
 }
 EOF
@@ -94,11 +100,32 @@ EOF
   pull request, where CI runs and the change is recorded — not that a second
   person approves, which a single-maintainer project cannot satisfy. Raise it
   when a project has more than one maintainer.
-- `<check>` is the name of the CI job that runs on every pull request (`test` in
-  the Python projects). It must run on *every* pull request: a workflow with
-  `paths` filters never reports on a docs-only change, and the required check
-  then blocks that pull request forever. A repository with no such job omits the
+- `preflight` is the CI job that runs `ci-preflight` on every pull request,
+  named after its task ([workflows.md](workflows.md)).
+  It must run on *every* pull request: a workflow with `paths` filters never
+  reports on a docs-only change, and the required check then blocks that pull
+  request forever. A repository with no such job omits the
   `required_status_checks` rule and says so in its docs.
+- **Renaming the required job** changes the check name the ruleset waits for, so
+  the two move together, in this order: open the pull request that renames the
+  job, let its CI pass under the new name, then point the ruleset at the new
+  name and merge. Switched any earlier, the ruleset waits on the old name for a
+  check the renamed job never reports, and blocks that pull request; switched
+  later, `main` requires a check nothing reports any more. Other open pull
+  requests report the old name until they are rebased, and wait until then.
+  Update the ruleset's JSON in the project's docs in the same pull request.
+  Switch the live ruleset with:
+
+  ```bash
+  id=$(gh api repos/<owner>/<repo>/rulesets -q '.[] | select(.name=="main") | .id')
+  gh api "repos/<owner>/<repo>/rulesets/$id" \
+    | jq '{name, target, enforcement, conditions, bypass_actors, rules: [.rules[]
+          | if .type == "required_status_checks"
+            then .parameters.required_status_checks[0].context = "<new check>"
+            else . end]}' \
+    | gh api --method PUT "repos/<owner>/<repo>/rulesets/$id" --input -
+  ```
+
 - `integration_id: 15368` is GitHub Actions, so a status reported under the same
   name by any other app does not satisfy the check.
 - `strict_required_status_checks_policy: false`: requiring branches to be up to
@@ -138,7 +165,7 @@ For the tag ruleset there is no equivalent endpoint, so read its
 `conditions.ref_name.include` back and check it is non-empty and names the
 project's tag prefixes.
 
-**Record it in the project.** List the two rulesets, the project's `<check>`,
+**Record it in the project.** List the two rulesets, the required check,
 and the commands that created them with the project's other repository settings
 — see
 [Record repository settings as commands in one place](documentation.md#record-repository-settings-as-commands-in-one-place)
