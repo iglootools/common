@@ -14,6 +14,10 @@ lockfile and compares. Each guard below was earned by hitting the failure it pre
   local experiment in the working copy of mise.toml.
 - It removes MISE_PYTHON_VERSION, which `mise lock` honours, so an interpreter chosen
   through the environment is not locked in place of the committed pin.
+- It copies the staged dependency locks under .mise/locks/ into the scratch directory too.
+  mise locks an npm tool's dependency tree there, and mise.lock pins each lock by digest.
+  Without them `mise lock` resolves the tree afresh, picks up whatever transitive versions
+  are newest that day, and reports a lockfile that only differs by that digest as stale.
 - A failing `mise lock` is an error. Treating its exit status as "no difference" would let
   the check pass in the very situation it exists to catch.
 """
@@ -26,6 +30,9 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+
+DEPENDENCY_LOCKS = ".mise/locks"
+"""Where mise locks an npm tool's dependency tree, relative to the project root."""
 
 type Run = Callable[
     [Sequence[str], Path, Mapping[str, str]], subprocess.CompletedProcess[str]
@@ -80,10 +87,17 @@ def compare(
 ) -> LockComparison:
     config = _staged(root, "mise.toml", run, environ)
     staged = _staged(root, "mise.lock", run, environ)
+    dependency_locks = {
+        name: _staged(root, name, run, environ)
+        for name in _staged_names(root, DEPENDENCY_LOCKS, run, environ)
+    }
     with tempfile.TemporaryDirectory() as scratch:
         directory = Path(scratch)
         (directory / "mise.toml").write_text(config, encoding="utf-8")
         (directory / "mise.lock").write_text(staged, encoding="utf-8")
+        for name, content in dependency_locks.items():
+            (directory / name).parent.mkdir(parents=True, exist_ok=True)
+            (directory / name).write_text(content, encoding="utf-8")
         result = run(["mise", "lock"], directory, _lock_environment(environ, directory))
         if result.returncode != 0:
             raise LockCheckError(LockCheckErrorKind.MISE_LOCK_FAILED, result.stderr)
@@ -98,6 +112,13 @@ def _lock_environment(environ: Mapping[str, str], scratch: Path) -> dict[str, st
         **{k: v for k, v in environ.items() if k != "MISE_PYTHON_VERSION"},
         "MISE_TRUSTED_CONFIG_PATHS": str(scratch),
     }
+
+
+def _staged_names(
+    root: Path, directory: str, run: Run, environ: Mapping[str, str]
+) -> list[str]:
+    result = run(["git", "ls-files", "--cached", "-z", "--", directory], root, environ)
+    return [name for name in result.stdout.split("\0") if name]
 
 
 def _staged(root: Path, name: str, run: Run, environ: Mapping[str, str]) -> str:
