@@ -2,21 +2,21 @@
 
 How an iglootools CLI ships its demo: an [asciinema](https://asciinema.org)
 recording of a scripted session against seeded data, recorded by a mise task,
-run by CI on every release, and embedded at the top of the README. Sibling
-files: [repository.md](repository.md#cli-projects) for the rest of what a CLI
-project carries, [workflows.md](workflows.md) for the rules every workflow
-follows, and [python-tooling.md](python-tooling.md#mise-tasks) for the task set
-the demo tasks join.
+run by CI on every release, and embedded at the top of the README. Read it
+before adding a demo to a CLI or changing `demo/`, the `demo-*` tasks or
+`demo.yml`. The workflow is the shared one in
+[shared-workflows.md](shared-workflows.md#call-the-shared-demo-recorder), and
+the `iglootools demo` commands are in [iglootools-cli.md](iglootools-cli.md).
 
 The pieces, as `nbkp` and `photree` lay them out:
 
 | Path | What it is |
 |---|---|
 | `demo/demo.sh` | the scripted session: the commands the viewer watches, in order |
-| `demo/demo-magic.sh` | vendored [demo-magic](https://github.com/paxtonhare/demo-magic), which types each command out before running it. Marked `linguist-vendored` in `.gitattributes`, so the shellcheck task skips it — see [mise.md](mise.md#lint-every-shell-script-with-shellcheck) |
+| `demo/demo-magic.sh` | vendored [demo-magic](https://github.com/paxtonhare/demo-magic), which types each command out before running it. Marked `linguist-vendored` in `.gitattributes`, so the shellcheck task skips it ([mise.md](mise.md#lint-every-shell-script-with-shellcheck)) |
 | `<tool> demo seed` | a command the tool itself ships, which creates the data the demo runs against |
 | `mise.toml` | the `demo-*` tasks and the `asciinema`/`agg` pins |
-| `.github/workflows/demo.yml` | records the demo on every release and keeps the cast as an artifact |
+| `.github/workflows/demo.yml` | a stub calling the shared `reusable-demo.yml`, which records the demo on every release and keeps the cast as an artifact |
 | [`iglootools demo record`](iglootools-cli.md) | runs `demo.sh` under `asciinema rec` and writes `demo/demo.cast` |
 | [`iglootools demo upload`](iglootools-cli.md) | publishes the newest CI recording and repoints the README at it |
 
@@ -36,26 +36,25 @@ The pieces, as `nbkp` and `photree` lay them out:
 
 ## Record a cast, not a GIF or a screen video
 
-A cast is the terminal's output stream with timings, not pictures of it. The
-README embed plays it back as text, so a reader can pause it and copy a command
-out of it; it stays small (tens to hundreds of KB where the equivalent GIF is
-close to a megabyte); and it is the real output of the real commands, colors and
-all, so it cannot show a screen the tool does not produce. It is also
-reviewable: `demo/demo.cast` is JSON lines, and a failed run's cast can be read
-to see exactly what the session printed before it died.
+A cast is the terminal's output stream with timings, not pictures of it.
 
-`agg` converts a cast to a GIF, for places that cannot embed a player. Nothing
-consumes a GIF today, so `iglootools demo record` does not make one. Add the
-conversion and the GIF in the workflow's artifact together, not one without the
-other.
+**Why:** the README embed plays it back as text, so a reader can pause it and
+copy a command out of it. It stays small, and it is the real output of the real
+commands, so it cannot show a screen the tool does not produce.
+
+- A cast is tens to hundreds of KB, where the equivalent GIF is close to a
+  megabyte.
+- `demo/demo.cast` is JSON lines, so a failed run's cast shows exactly what the
+  session printed before it died.
+- `agg` converts a cast to a GIF, for a place that cannot embed a player. Add
+  the conversion and the GIF in the workflow's artifact in the same change, not
+  one without the other.
 
 ## Script the session; do not record it by hand
 
-A hand-recorded demo is recorded once, on one machine, with whatever typos and
-stale state that session had, and nobody can re-record it the same way after the
-next release. `demo/demo.sh` is the session written down: a `p` line narrates, a
-`pe` line types a command and runs it, and a `pause` gives the viewer time to
-read the output.
+`demo/demo.sh` is the session written down: a `p` line narrates, a `pe` line
+types a command and runs it, and a `pause` gives the viewer time to read the
+output.
 
 ```bash
 # Auto-advance (no ENTER required) for scripted recording
@@ -67,8 +66,12 @@ pe "nbkp config show --config $CFG"
 pause 3
 ```
 
-Make the session deterministic, because anything that varies between runs shows
-up as noise in the recording and as a failure that only reproduces sometimes:
+**Why:** a hand-recorded demo is recorded once, with whatever typos and stale
+state that session had, and nobody can re-record it the same way after the next
+release.
+
+Make the session deterministic, since anything that varies between runs shows up
+as noise in the recording and as a failure that only reproduces sometimes:
 
 - Work in a fixed directory (`DEMO_DIR="/tmp/<tool>-demo"`) and `rm -rf` it
   first, so the paths on screen are the same on every recording and no earlier
@@ -78,181 +81,129 @@ up as noise in the recording and as a failure that only reproduces sometimes:
   terminal and on a runner that has none.
 - Make the script run on CI's Linux runner as well as a developer's Mac. A
   command the platform lacks gets a shim inside the script rather than a skipped
-  step: photree's demo writes a fake `sips` when the real one is absent, which
-  answers the same queries the tool makes.
-
-Grow the script with the tool. On a major release, add scenarios for what the
-release introduced, so the demo keeps showing what the tool is for rather than
-what it was for at 0.1.
+  step: photree's demo writes a fake `sips` when the real one is absent.
+- Grow the script with the tool. On a major release, add scenarios for what the
+  release introduced, so the demo keeps showing what the tool is for.
 
 ## Seed the data with a command the tool ships
 
 The demo runs against data created by `<tool> demo seed --base-dir "$DEMO_DIR"`,
-a subcommand of the CLI itself, not by fixtures kept in `demo/` or by setup
-steps someone performs first. That puts "demo commands with fake data, no manual
-setup" from
+a subcommand of the CLI, not by fixtures kept in `demo/` or by setup steps
+someone performs first.
+
+**Why:** the recording needs nothing prepared, a user can try the tool without
+risking their own files, and a developer gets a realistic environment in one
+command, as
 [Shorten every feedback loop](../philosophy.md#shorten-every-feedback-loop)
-to work three times over: the recording needs nothing prepared, a user can run
-the seed to try the tool without risking their own files, and a developer gets a
-realistic environment in one command for manual testing. Because it is part of
-the CLI, it is in `docs/cli-reference.md` like any other command.
+asks.
 
-Build the seed from the same testkit fixtures the tests use, so the demo data
-stays valid when the model changes. Its sibling, `<tool> demo output`, renders
-every output function with fake data, which is how a change to formatting is
-reviewed without reproducing each state.
-
-`nbkp` also exposes the demo app as a separate `nbkp-demo` entry point in
-`[project.scripts]`; `photree` does not. The `<tool> demo` subcommand is the
-convention, and a second entry point is optional.
+- Being part of the CLI, it is in `docs/cli-reference.md` like any other
+  command.
+- Build the seed from the same testkit fixtures the tests use, so the demo data
+  stays valid when the model changes.
+- Its sibling, `<tool> demo output`, renders every output function with fake
+  data, so a change to formatting is reviewed without reproducing each state.
 
 ## Make a failing command fail the recording
 
-A demo whose third command errors still produces a cast, and a cast that shows a
-stack trace looks like a successful recording to every check that does not watch
-it. Two settings close that, and both are needed:
+`demo.sh` starts with `set -euo pipefail`, and `iglootools demo record` passes
+`--return` to `asciinema rec`. Both are needed.
 
-- `demo.sh` starts with `set -euo pipefail`, so the session stops at the first
-  failing command.
-- `iglootools demo record` passes `--return` to `asciinema rec`. Without it
-  asciinema exits 0 whatever the recorded command did, which is how a demo that
-  died on its first command once recorded and "succeeded" on CI.
+**Why:** a demo whose third command errors still produces a cast, and without
+`--return` asciinema exits 0 whatever the recorded command did, so a cast of a
+stack trace passes every check that does not watch it.
 
 ## Record through mise tasks, with the tools pinned
 
-The demo is recorded by a mise task, so a developer and CI record it with the
-same command — see "Keep workflows thin" in [workflows.md](workflows.md).
+The demo is recorded by a mise task, named as
+[mise.md › Name tasks by family](mise.md#name-tasks-by-family) describes.
 
-```toml
-[tools]
-"aqua:asciinema/asciinema" = "3.2.1"
-"aqua:asciinema/agg" = "1.9.0"
-
-[tasks.demo-record]
-run = "uv run --no-sync iglootools demo record"
-
-[tasks.demo-upload-latest]
-run = "uv run --no-sync iglootools demo upload"
-
-[tasks.ci-demo-record]
-run = [{ task = "install" }, { task = "demo-record" }]
-```
+**Why:** a developer and CI then record it with the same command, as
+[workflows.md](workflows.md#keep-workflows-thin-set-up-the-toolchain-then-run-one-ci--task)
+asks.
 
 | Task | Does |
 |---|---|
-| `demo-record` | records `demo/demo.cast`, titled with the installed version |
-| `demo-upload` | `asciinema upload demo/demo.cast` — publishes a local recording |
+| `demo-record` | `iglootools demo record`: records `demo/demo.cast`, titled with the installed version |
+| `demo-upload` | `asciinema upload demo/demo.cast`: publishes a local recording |
 | `demo` | `demo-record` then `demo-upload` |
-| `demo-upload-latest` | publishes the newest CI recording and repoints the README (see below) |
-| `ci-demo-record` | `install` then `demo-record`; what the workflow runs |
-| `ci-demo` | `install`, `demo-record`, `demo-upload`; for when CI can publish again |
+| `demo-upload-latest` | `iglootools demo upload`: publishes the newest CI recording and repoints the README |
+| `ci-demo-record` | `install` then `demo-record`; what the shared workflow runs |
 
-The project's installed version becomes the cast title, which is what names the
-recording on asciinema.org. It is read from the installed package rather than
-the build tool because a VCS-derived version only exists once installed. The
-command also puts the project environment's `bin/` first on `PATH`: on a fresh
-clone mise resolves the environment before the venv exists, so the demo would
-otherwise run with no CLI on the `PATH` at all.
-
-`asciinema` and `agg` come from `mise.toml` like every other tool. What the demo
-itself calls beyond the CLI — `pv` for demo-magic's simulated typing, `tree` for
-directory listings — is a system package: `brew install` locally, an
-`apt-get install` step in the workflow.
+- `asciinema` and `agg` are pinned in `mise.toml` (`aqua:asciinema/asciinema`,
+  `aqua:asciinema/agg`) like every other tool.
+- What the session calls beyond the CLI, such as `pv` for demo-magic's typing
+  and `tree` for directory listings, comes from mise where a lockable backend
+  has it (nbkp pins `conda:pv`), and otherwise is a system package:
+  `brew install` locally and the `apt-packages` input of the shared workflow in
+  CI.
+- A `demo-preflight` task that `demo-record` depends on, checking those tools
+  are installed, turns a missing tool into a clear error instead of a failure
+  visible only inside the cast (nbkp has one).
 
 ## Keep the cast out of git
 
-`demo/demo.cast` and `demo/demo.gif` are in `.gitignore`. A recording is a build
-output, one per release, and committing it would add a few hundred KB to the
-history every time it is refreshed for no reader: the README embeds the copy on
-asciinema.org, and CI keeps the one it recorded.
+`demo/demo.cast` and `demo/demo.gif` are in `.gitignore`.
+
+**Why:** a recording is a build output, one per release, and committing it adds
+a few hundred KB to the history at every refresh for no reader: the README
+embeds the copy on asciinema.org, and CI keeps the one it recorded.
 
 ## Record the demo in CI on every release
 
-`.github/workflows/demo.yml` calls the shared `reusable-demo.yml`
-([shared-workflows.md](shared-workflows.md#call-the-shared-demo-recorder)),
-which runs `mise run ci-demo-record` and uploads the cast as the
-`demo-recording` artifact, retained 90 days.
+`demo.yml` calls the shared demo recorder, as
+[shared-workflows.md](shared-workflows.md#call-the-shared-demo-recorder) shows.
+Its triggers, guards and artifact are in
+[reusable-demo.yml](../../.github/workflows/reusable-demo.yml).
 
-- **Triggers:** `push` of a `v*` tag, `workflow_run` on the `release` workflow
-  completing, `workflow_dispatch` and `repository_dispatch`. The `workflow_run`
-  trigger is not redundant with the tag: a tag pushed by the release workflow's
-  `GITHUB_TOKEN` does not trigger other workflows, so without it a release would
-  never record its demo.
-- **Skip the job when the release failed.** `workflow_run` fires when the
-  release completes, whether it succeeded or failed, so without a guard a failed
-  release still records a demo of a version that was never published. Use the
-  guard
+**Why:** every release then has a recording made from its own tagged commit,
+ready to publish, without anyone remembering to make one.
+
+- It listens for the `release` run as well as `v*` tags, for the reason
   [pypi-publishing.md](pypi-publishing.md#chain-publish-to-release-with-workflow_run-and-also-listen-for-v-tags)
-  gives `publish.yml`, which still runs for every other trigger:
-
-  ```yaml
-  if: >-
-    github.event.workflow_run.conclusion == 'success'
-    || github.event_name != 'workflow_run'
-  ```
-
-- **`UV_LOCKED: 1` in the workflow `env`**, as in the test and publish
-  workflows, so a stale `uv.lock` fails the recording instead of being
-  re-resolved on the runner.
-- **Upload the artifact `if: ${{ !cancelled() }}`**, not only on success. When
-  the demo fails, the cast is the only record of what the recorded session
-  printed, since the job log shows the recording but not the terminal inside it.
-  Set `if-no-files-found: error`, so a recording that never happened fails the
-  job instead of uploading nothing.
-- **Concurrency** uses the shared group expression from
-  [workflows.md](workflows.md), including the
-  `github.event.workflow_run.head_sha` term that this workflow's `workflow_run`
-  trigger needs.
+  gives.
 
 ## Publish from a machine that can reach asciinema.org
 
 Publishing is manual, from a developer machine:
 
 ```bash
-mise run demo-upload-latest                # newest successful run: upload, repoint README, commit
-mise run demo-upload-latest --dry-run      # fetch and report only
-mise run demo-upload-latest --no-commit    # update README, leave it uncommitted
-mise run demo-upload-latest --no-readme    # upload only
+mise run demo-upload-latest                  # newest successful run: upload, repoint README, commit
+mise run demo-upload-latest -- --dry-run     # fetch and report only
+mise run demo-upload-latest -- --no-commit   # update README, leave it uncommitted
+mise run demo-upload-latest -- --no-readme   # upload only
 ```
 
-GitHub-hosted runners have no route to asciinema.org: IPv6 has no route and the
-A record times out at the TCP level, while the same address answers from outside
-CI. Each attempt burned about two minutes of SYN retries and then failed the
-workflow after an otherwise successful release. The upload steps are therefore
-commented out in `demo.yml`, with the reason above them, and
-`iglootools demo upload` does the publishing half instead: it downloads the
-`demo-recording` artifact from the newest successful run (preferring `main`,
-falling back to tag-triggered runs), uploads it unchanged so the title CI
-recorded is kept, and commits the README change on its own.
+**Why:** GitHub-hosted runners cannot reach asciinema.org, and each attempt
+failed an otherwise successful release after minutes of retries;
+`reusable-demo.yml`'s header has the details.
 
-The CI path is kept wired up so it can be re-enabled by uncommenting two steps:
-`HAS_ASCIINEMA_INSTALL_ID` in the workflow's `env`, and the
-`ASCIINEMA_INSTALL_ID` repository secret, which ties uploads to the maintainer's
-asciinema.org account. Set the secret up as part of the repository's GitHub
-configuration in `docs/building-and-testing.md`:
-
-1. Run `asciinema auth` and follow the link it prints.
-2. Store the content of `~/.local/state/asciinema/install-id` in the
-   `ASCIINEMA_INSTALL_ID` secret.
-
-Re-enable CI publishing only once a run shows the host is reachable from a
-runner again.
+- `iglootools demo upload` downloads the `demo-recording` artifact from the
+  newest successful run (preferring `main`, falling back to tag-triggered
+  runs), uploads it unchanged so the title CI recorded is kept, and commits the
+  README change on its own.
+- Run `asciinema auth` once on the publishing machine and follow the link it
+  prints, so uploads belong to the maintainer's asciinema.org account.
+- Publish from CI again only once a run shows the host is reachable from a
+  runner.
 
 ## Embed the cast at the top of the README
 
 The README carries the player directly under the one-paragraph description,
-before the first section, so the first screen shows what the tool does:
+before the first section, on one line in exactly this shape:
 
 ```markdown
 [![asciicast](https://asciinema.org/a/<id>.svg)](https://asciinema.org/a/<id>)
 ```
 
-Keep it on one line in exactly this shape. `iglootools demo upload` finds the
-embed with a regular expression and rewrites it in place, and it fails loudly
-when it cannot find one rather than appending a second.
+**Why:** the first screen shows what the tool does. `iglootools demo upload`
+finds the embed with a regular expression and rewrites it in place, failing
+loudly rather than appending a second when it cannot find one.
 
-Refresh it on every major release, after adding the release's scenarios to
-`demo.sh`: run `mise run demo-upload-latest` once the release's demo workflow
-has succeeded. List both steps in the Release Process of
-`docs/building-and-testing.md`, because nothing else prompts them. Between major
-releases, refresh when a release visibly changes what the demo shows.
+- Refresh it on every major release, after adding the release's scenarios to
+  `demo.sh`: run `mise run demo-upload-latest` once the release's demo workflow
+  has succeeded.
+- List both steps in the release process in `docs/releasing-and-publishing.md`,
+  because nothing else prompts them.
+- Between major releases, refresh when a release visibly changes what the demo
+  shows.

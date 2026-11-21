@@ -1,33 +1,110 @@
 # Shared Workflow Guidelines
 
 Five workflows are identical across projects, so they live in this repository as
-reusable workflows and each project calls them with a thin stub. Publishing to
-PyPI is the exception that stays in each project: see
-[Keep publishing in the project](#keep-publishing-in-the-project). The general
-rules a workflow has to follow — pinning, concurrency, timeouts, naming — are in
-[workflows.md](workflows.md).
+`reusable-*.yml` and each project calls them from a thin stub. Read this before
+adding or editing a caller of one. The rules every workflow follows are in
+[workflows.md](workflows.md); changing a shared workflow here is in
+[docs/releasing-and-publishing.md](../../docs/releasing-and-publishing.md#the-shared-workflows).
+Publishing to PyPI stays in each project:
+[Keep publishing in the project](#keep-publishing-in-the-project).
 
 <!-- toc -->
 **On this page**
 
-- [Call the shared link checker instead of copying it](#call-the-shared-link-checker-instead-of-copying-it)
-- [Call the shared lock regenerator too](#call-the-shared-lock-regenerator-too)
-- [A uv project must submit its own dependency graph](#a-uv-project-must-submit-its-own-dependency-graph)
-- [Call the shared release workflow](#call-the-shared-release-workflow)
-- [Call the shared demo recorder](#call-the-shared-demo-recorder)
-- [Keep publishing in the project](#keep-publishing-in-the-project)
+- [Call any shared workflow the same way](#call-any-shared-workflow-the-same-way)
+  - [Pin `uses:` to the commit a `v*` tag names](#pin-uses-to-the-commit-a-v-tag-names)
+  - [Declare permissions in the caller](#declare-permissions-in-the-caller)
+  - [Keep triggers and concurrency in the caller](#keep-triggers-and-concurrency-in-the-caller)
+  - [Pass the mise version as an input named `version`](#pass-the-mise-version-as-an-input-named-version)
+- [The shared workflows](#the-shared-workflows)
+  - [Call the shared link checker instead of copying it](#call-the-shared-link-checker-instead-of-copying-it)
+  - [Call the shared lock regenerator on Renovate branches](#call-the-shared-lock-regenerator-on-renovate-branches)
+  - [Submit a uv project's dependency graph through the shared workflow](#submit-a-uv-projects-dependency-graph-through-the-shared-workflow)
+  - [Re-inspect the submission action on every version bump](#re-inspect-the-submission-action-on-every-version-bump)
+  - [Call the shared release workflow](#call-the-shared-release-workflow)
+  - [Call the shared demo recorder](#call-the-shared-demo-recorder)
+  - [Keep publishing in the project](#keep-publishing-in-the-project)
 <!-- tocstop -->
 
-## Call the shared link checker instead of copying it
+## Call any shared workflow the same way
 
-Link checking is identical in every project, so it lives here as a reusable
-workflow rather than as a file each repository keeps its own copy of:
+### Pin `uses:` to the commit a `v*` tag names
 
-```text
-iglootools/common/.github/workflows/reusable-check-links.yml
+Pin the ref to a full commit SHA, with the version in a trailing comment:
+`uses: iglootools/common/.github/workflows/<workflow>.yml@<sha> # v<version>`.
+
+**Why:** a tag or branch ref here would change what CI does in every project at
+once, with no diff anywhere to review. The trailing comment is what Renovate
+reads to raise the update pull request.
+
+- Resolve the SHA for a release with:
+
+  ```bash
+  gh api repos/iglootools/common/commits/v<version> --jq .sha
+  ```
+
+- Not `git ls-remote … refs/tags/v<version>`: for an annotated tag it returns
+  the tag object's SHA, which also looks right, but Actions resolves `uses:` to
+  a commit. Dereference it as `'refs/tags/v<version>^{}'`, or use the API call.
+- Use the plain `v<version>` tag, not `iglootools--v<version>`:
+  [releasing-and-publishing.md › Releasing](../../docs/releasing-and-publishing.md#releasing)
+  says why there are two.
+- This repository's own callers use a local path ref
+  (`./.github/workflows/<workflow>.yml`), so it exercises each workflow as
+  changed rather than as last released.
+
+### Declare permissions in the caller
+
+The calling job declares every permission the shared workflow needs. The
+`permissions` block in the called workflow is a ceiling on what the caller
+granted, never a grant of its own.
+
+**Why:** a permission declared only in the shared workflow is never granted, and
+the job fails at the step that needed it, for the link checker only on a run
+that found a broken link.
+
+- Each stub below shows its block. The header of each `reusable-*.yml` says what
+  each grant is for.
+- Declare the whole block: omitted scopes become none, and `contents: read`
+  fails only in private repositories, as
+  [workflows.md › Declare `permissions` on every job](workflows.md#declare-permissions-on-every-job-at-least-privilege)
+  describes.
+
+### Keep triggers and concurrency in the caller
+
+The stub holds the `on:` triggers and the `concurrency` group, even where the
+expression is the same in every project.
+
+**Why:** concurrency governs the run the triggers create, and the triggers are
+the caller's. A group defined in the called workflow depends on how GitHub
+resolves `github.workflow` across the call boundary, and getting that wrong
+groups unrelated workflows and cancels them silently.
+
+- Pick the group by
+  [workflows.md › Supersede runs that can be redone](workflows.md#supersede-runs-that-can-be-redone-but-never-a-push-to-main)
+  and
+  [Queue runs whose partial state cannot be redone](workflows.md#queue-runs-whose-partial-state-cannot-be-redone).
+
+### Pass the mise version as an input named `version`
+
+A shared workflow that sets up mise takes the caller's mise version as an input
+named `version`, written under the `# renovate:` marker:
+
+```yaml
+with:
+  # renovate: datasource=github-releases depName=jdx/mise
+  version: <the version mise.lock was generated with>
 ```
 
-A consuming repository keeps only what is genuinely its own:
+**Why:** the version has to match the one the project's `mise.lock` was
+generated with, which is a per-project fact. The custom manager in
+[renovate/base.json](../../renovate/base.json), which every project extends,
+matches the marker followed by a literal `version:` line, so any other name,
+such as `mise-version`, silently freezes the pin.
+
+## The shared workflows
+
+### Call the shared link checker instead of copying it
 
 ```yaml
 name: check-links
@@ -50,73 +127,22 @@ jobs:
     uses: iglootools/common/.github/workflows/reusable-check-links.yml@<sha> # v<version>
 ```
 
-The workflow keeps one report open at a time: a run that finds broken links
-updates the open issue with the caller's `issue-title`, or files one when there
-is none, and a run that finds none closes it. So an open report is always
-current, and closing one by hand is safe.
+**Why:** link checking is the same everywhere, so a fix to the lychee invocation
+or the report reaches every project through one version bump.
 
-Four things about that stub are load-bearing:
+- It keeps one report open at a time: a run that finds broken links updates the
+  open issue titled with the caller's `issue-title`, or files one, and a run
+  that finds none closes it. An open report is always current, and closing one
+  by hand is safe.
+- Without `issues: write` the run fails with a 403 only when it finds a broken
+  link, which is the moment the report was wanted.
+- `.lycheeignore` stays in the caller, and is the per-repository knob: the
+  shared workflow checks out the calling repository. List hosts that answer from
+  a browser but never from a GitHub-hosted runner there. They are blocked, not
+  slow: a longer `--timeout` only delays the same failure, and each one buries a
+  genuine 404 in known noise.
 
-- **Pin the `uses:` ref to a full commit SHA, with the version in a trailing
-  comment**, for the same reason [actions are pinned](workflows.md) — a tag or
-  branch ref can be repointed under you, and here it would change what CI does
-  in every project at once with no diff anywhere to review. The trailing comment
-  is what Renovate reads to raise the update PR, so the pin stays updatable
-  rather than frozen. Resolve the SHA for a release with:
-
-  ```bash
-  gh api repos/iglootools/common/commits/v<version> --jq .sha
-  ```
-
-  Not `git ls-remote refs/tags/v<version>`: for an annotated tag that returns
-  the tag *object's* SHA, which is also 40-hex and also looks right, but Actions
-  resolves a `uses:` ref to a commit. Dereference it as
-  `'refs/tags/v<version>^{}'` or use the API call above.
-
-  Releases carry two tags at the same commit: `iglootools--v<version>` for the
-  plugin, and a plain `v<version>` for git refs like this one. The plain tag
-  exists because Renovate resolves ordinary version tags and not the prefixed
-  spelling.
-
-- **Both permissions have to be in the caller.** A called workflow's
-  `permissions` is a ceiling on what the caller granted, never a grant of its
-  own, so declaring them only in the reusable workflow leaves the token without
-  them. Note also that declaring *any* permission zeroes every one left out, so
-  this block is not a place to list only what looks relevant:
-
-  - Without `issues: write`, the run 403s while filing the issue — and only on a
-    run that found a broken link, which is the moment you most wanted the
-    report.
-  - Without `contents: read`, `actions/checkout` cannot clone.
-    **In a private repository only**: a public one keeps working, because
-    checkout falls back to an anonymous clone. A stub verified against public
-    repositories will therefore pass and still be wrong, which is how this
-    reached a private caller as `fatal: repository not found`.
-
-- **`concurrency` stays in the caller**, even though it is the same expression
-  everywhere. Concurrency governs the run the *triggers* create, and the
-  triggers are the caller's; a group defined in the called workflow would depend
-  on how GitHub resolves `github.workflow` across the call boundary, and getting
-  that wrong groups unrelated workflows together and cancels them — silently,
-  which is the failure the [concurrency rules](workflows.md) exist to prevent.
-
-- **`.lycheeignore` stays in the caller too**, and is the intended
-  per-repository knob. The reusable workflow checks out the *calling*
-  repository, because the `github` context inside a called workflow is the
-  caller's, so lychee reads that repository's ignore file with no flag needed.
-  Use it for hosts that answer normally from a browser but never from a
-  GitHub-hosted runner. Those are blocked, not slow: raising `--timeout` for
-  them only buys a longer wait before the same failure, and each one pads every
-  report so a genuine 404 arrives buried in known-good noise.
-
-## Call the shared lock regenerator too
-
-The other workflow that is identical everywhere, for the same reason and with
-the same shape:
-
-```text
-iglootools/common/.github/workflows/reusable-renovate-mise-lock.yml
-```
+### Call the shared lock regenerator on Renovate branches
 
 ```yaml
 name: renovate-mise-lock
@@ -140,55 +166,27 @@ jobs:
       version: <the version mise.lock was generated with>
 ```
 
-It regenerates `uv.lock` as well whenever the repository has one, which is what
-lets a Renovate bump to `[tool.uv] build-constraint-dependencies` pass CI:
-Renovate's regex custom manager rewrites the pin in `pyproject.toml` but never
-re-locks, while `uv.lock` records those constraints in its `[manifest]` — see
-[python-tooling.md](python-tooling.md#pin-the-build-backend-explicitly). The
-caller declares nothing extra for it. The job installs only uv and Python
-through mise, and runs `uv lock` against that Python with downloads off:
-`env: false` keeps mise's `[env]`, and with it the project's `UV_PYTHON` pin,
-out of the job, so the step has to restate the pin.
+**Why:** Renovate's hosted runner has no `mise`, so it bumps `mise.toml` but
+cannot regenerate `mise.lock`, and every tool bump stays red until someone runs
+it by hand.
 
-It also runs `dprint fmt` whenever the repository has a `dprint.json`, and
-commits whatever it changed with the lock files. Renovate writes `mise.toml`,
-`dprint.json`, `renovate.json` and the workflows in its own style, and without
-this step `dprint check` would hold its pull request red until someone ran
-`mise run fmt` on the branch — see
-[formatting.md](formatting.md#format-renovate-branches-in-ci). The caller
-declares nothing extra for this either: the `dprint` pin comes from its
-`mise.toml`.
+- It regenerates `uv.lock` too, when the repository has one. Renovate does not
+  re-lock a pin its regex custom manager bumps, such as
+  `build-constraint-dependencies`; why that leaves `uv.lock` stale is in
+  [python-tooling.md](python-tooling.md#pin-the-build-backend-explicitly).
+- It runs `dprint fmt` when the repository has a `dprint.json`, and commits what
+  it changed with the lock files. Renovate writes `mise.toml`, `dprint.json`,
+  `renovate.json` and the workflows in its own style, and without this
+  `dprint check` holds its pull request red until someone runs `mise run fmt` on
+  the branch.
+- The caller declares nothing extra for either: uv, Python and dprint come from
+  its `mise.toml`.
+- It sets up mise with `install: false` and `env: false`, the one legitimate use
+  ([workflows.md](workflows.md#pair-install-false-with-env-false)).
 
-The mise version stays in the caller rather than becoming a constant in the
-shared workflow, for two reasons that both point the same way. The
-[rule on pinning mise](workflows.md) requires it to match the version the
-project locked with locally, which is a per-project fact. And the pin is kept
-current by the Renovate custom manager in the project's own `renovate.json` —
-this repository runs no Renovate, so a version moved here would be exactly the
-pin nothing updates that
-[Version Management](../coding/general.md#version-management) warns about.
+### Submit a uv project's dependency graph through the shared workflow
 
-That is also why the input is named `version` and not `mise-version`: the custom
-manager matches a `# renovate:` marker followed by whitespace and a literal
-`version:` line, so a more descriptive name would silently stop matching and
-freeze the pin.
-
-## A uv project must submit its own dependency graph
-
-GitHub's dependency graph does not parse `uv.lock`. A uv project therefore has
-an **empty** graph, and because Dependabot alerts are generated *from* the graph
-and Dependabot security updates are triggered *by* alerts, both are silently
-off. Migrating from Poetry to uv turns vulnerability detection off without a
-single error: the old `poetry.lock` alerts are left orphaned against a file that
-no longer exists, and no new alert can ever be raised.
-
-Note that `package-ecosystem: "uv"` in `dependabot.yml` does not fix this. That
-entry is supported, but it configures Dependabot *updates*, which read the
-manifest directly. Paired with `open-pull-requests-limit: 0` — version updates
-off, security updates the only reason Dependabot is there — it produces nothing
-at all, because the security path runs through alerts.
-
-Call the shared workflow, which submits the graph from `uv.lock`:
+A uv project calls the submission workflow, from a workflow of its own:
 
 ```yaml
 jobs:
@@ -198,33 +196,41 @@ jobs:
     uses: iglootools/common/.github/workflows/reusable-uv-dependency-submission.yml@<sha> # v<version>
 ```
 
-**It runs third-party code with `contents: write`, and that grant cannot be
-narrowed.** There is no `dependency-graph` permission scope — the complete set
-is `actions`, `artifact-metadata`, `attestations`, `checks`, `contents`,
-`deployments`, `discussions`, `id-token`, `issues`, `models`, `packages`,
-`pages`, `pull-requests`, `repository-projects`, `security-events`, `statuses` —
-and the snapshot API sits behind `contents: write`, the same permission that
-pushes commits and moves tags.
+**Why:** GitHub's dependency graph does not parse `uv.lock`, so a uv project's
+graph is empty, and Dependabot alerts and security updates, which run from it,
+are silently off.
 
-So the safeguards are structural rather than permission-based, and the shared
-workflow applies them: an immutable commit-SHA pin, `persist-credentials: false`
-on checkout, and a job that contains no other step which could use the grant.
-Callers should give it a workflow of its own rather than adding it to an
-existing one, so nothing else shares the token.
+- `package-ecosystem: "uv"` in `dependabot.yml` does not fix this. It configures
+  Dependabot updates, which read the manifest directly. With
+  `open-pull-requests-limit: 0` it produces nothing, because security updates
+  run through alerts.
+- It runs third-party code with `contents: write`, the permission that pushes
+  commits and moves tags, and no narrower scope reaches the snapshot API. The
+  workflow's header lists GitHub's complete set of scopes.
+- The safeguards are therefore structural, and the shared workflow applies them:
+  an immutable SHA pin, `persist-credentials: false` on checkout, and no other
+  step that could use the grant. Its own workflow means nothing else in the
+  caller shares the token.
 
-**Re-inspect the action on every version bump.** A Renovate PR moving that pin
-is not a routine dependency update: it swaps code that holds `contents: write`
-on the repository. Read the diff of the action's own sources between the two
-commits, and treat a new network call, a file write, an added dependency, or a
-change in how the token is passed as a reason to stop rather than a detail. The
-pin living in this repository rather than in each project is deliberate — it
-makes that review happen once, here, instead of once per consumer.
+### Re-inspect the submission action on every version bump
 
-## Call the shared release workflow
+A Renovate pull request moving the `rmuir/uv-dependency-submission` pin in
+`reusable-uv-dependency-submission.yml` is reviewed by reading the diff of the
+action's own sources between the two commits.
 
-Python projects that release from conventional commits (see
-[pypi-publishing.md](pypi-publishing.md#let-the-release-workflow-pick-the-bump-from-conventional-commits))
-call it from a `release.yml` stub:
+**Why:** the bump swaps code that holds `contents: write` on every consuming
+repository, so it is not a routine dependency update.
+
+- Treat a new network call, a file write, an added dependency, or a change in
+  how the token is passed as a reason to stop.
+- The pin lives here rather than in each project so that the review happens
+  once.
+
+### Call the shared release workflow
+
+Python projects that release from conventional commits
+([pypi-publishing.md](pypi-publishing.md#let-the-release-workflow-pick-the-bump-from-conventional-commits))
+call it from `release.yml`:
 
 ```yaml
 name: release
@@ -244,17 +250,18 @@ jobs:
     uses: iglootools/common/.github/workflows/reusable-release.yml@<sha> # v<version>
 ```
 
-- **Keep the stub named `release`.** The tag is pushed with `GITHUB_TOKEN`,
-  which triggers no other workflow, so `publish.yml` and `demo.yml` start on
-  `workflow_run` of the workflow named `release`: the caller's name, not the
-  reusable workflow's.
-- **The concurrency group queues**, never cancels, as for any workflow that
-  pushes a tag ([workflows.md](workflows.md)). It stays in the caller for the
-  same reason as the link checker's.
-- **Rehearse with `dry-run: true`** under `with:`: it computes the next version
-  and changelog, writes them to the run summary, and pushes nothing.
+**Why:** the stub's name is what the publish and demo workflows listen for.
 
-## Call the shared demo recorder
+- Keep the stub named `release`. `publish.yml` and `demo.yml` start on
+  `workflow_run` of the caller's name, not the shared workflow's, for the reason
+  [pypi-publishing.md](pypi-publishing.md#chain-publish-to-release-with-workflow_run-and-also-listen-for-v-tags)
+  gives.
+- Its concurrency group queues, as for any workflow that pushes a tag
+  ([workflows.md](workflows.md#queue-runs-whose-partial-state-cannot-be-redone)).
+- Rehearse with `dry-run: true` under `with:`: it writes the next version and
+  changelog to the run summary and pushes nothing.
+
+### Call the shared demo recorder
 
 CLI projects with an asciinema demo ([cli-demo.md](cli-demo.md)) call it from
 `demo.yml`:
@@ -286,16 +293,25 @@ jobs:
       apt-packages: pv tree
 ```
 
-The job runs `mise run ci-demo-record` and uploads the cast as the
-`demo-recording` artifact. It skips a `workflow_run` whose release failed.
-`apt-packages` lists what the session needs beyond mise's tools; `pv` is
-demo-magic's and stays in the list.
+**Why:** the recording steps and their release guards are the same in every CLI
+project.
 
-## Keep publishing in the project
+- It runs `mise run ci-demo-record` and uploads the cast as the `demo-recording`
+  artifact. Its inputs and guards are in `reusable-demo.yml`.
+- It skips a `workflow_run` whose release failed or released nothing, with the
+  checks
+  [pypi-publishing.md](pypi-publishing.md#skip-a-release-run-that-did-not-release)
+  describes.
+- `apt-packages` lists the system packages the session calls beyond mise's
+  tools. It replaces the default, `pv`, which demo-magic needs, so keep `pv` in
+  the list.
 
-`publish.yml` and `publish-test.yml` are near-identical across projects and
-still are not shared. Trusted publishing ties a PyPI project to a workflow file
-in the publishing repository, and `pypa/gh-action-pypi-publish` does not support
-running inside a reusable workflow, so the upload has to happen in the project's
-own workflow. Keep them as the project's files, written as
-[pypi-publishing.md](pypi-publishing.md) describes.
+### Keep publishing in the project
+
+`publish.yml` and `publish-test.yml` stay the project's own files, written as
+[pypi-publishing.md](pypi-publishing.md) describes, although they are
+near-identical across projects.
+
+**Why:** trusted publishing ties a PyPI project to a workflow file in the
+publishing repository, and `pypa/gh-action-pypi-publish` does not support
+running inside a reusable workflow.
