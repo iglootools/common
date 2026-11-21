@@ -31,7 +31,10 @@ what it governs:
   [dependency-automation.md](guidelines/project-setup/dependency-automation.md).
 - `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the format and
   Markdown lint tasks: [formatting.md](guidelines/project-setup/formatting.md).
-- Any document: [documentation/layout.md](guidelines/documentation/layout.md).
+- Any document: [documentation/layout.md](guidelines/documentation/layout.md)
+  and [documentation/types.md](guidelines/documentation/types.md).
+- `guidelines/`:
+  [documentation/writing-guidelines.md](guidelines/documentation/writing-guidelines.md).
 
 ## Where things are
 

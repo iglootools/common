@@ -217,11 +217,7 @@ title (`# Building and Testing` lives in `building-and-testing.md`).
 | `docs/features.md` | the full feature list the README summarizes |
 | `docs/tutorial.md` | one end-to-end walkthrough of a realistic setup, when usage examples are not enough |
 
-- **One question per document**: *what* the project is about (`domain.md`),
-  *where* the code for it lives (`architecture.md`), *how* and *why* it behaves
-  the way it does (`internals.md`), and *exactly what* a user can type or
-  configure (the references). Open each with a sentence saying who it is for and
-  what it answers, and link to its neighbours for the rest.
+- **Each document is one kind**, written as [types.md](types.md) describes.
 - **Renaming a document changes every file that points at it**: the
   `CONTRIBUTING.md` line, the `AGENTS.md` link, cross-links, the README's
   absolute URLs, and any `description` in `mise.toml`. Search for the old name:

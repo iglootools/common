@@ -40,6 +40,8 @@ session, the rest are read only when a change reaches the files they govern:
 | [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, the repository settings both depend on, `lint-renovate` and `renovate-dry-run` |
 | [`project-setup/repository.md`](guidelines/project-setup/repository.md) | `.gitignore`, setting up a new repository, repository rulesets and merge settings, the code of conduct and security policy |
 | [`documentation/layout.md`](guidelines/documentation/layout.md) | `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, `docs/**` |
+| [`documentation/types.md`](guidelines/documentation/types.md) | writing or reworking any document |
+| [`documentation/writing-guidelines.md`](guidelines/documentation/writing-guidelines.md) | adding or reworking a rule in a guideline, `docs/guidelines.md` or an area-conventions document |
 | [`project-setup/pypi-publishing.md`](guidelines/project-setup/pypi-publishing.md) | the release and publish workflows, cutting a release |
 | [`project-setup/iglootools-cli.md`](guidelines/project-setup/iglootools-cli.md) | `[tool.iglootools]`, the `iglootools` pin, a task that calls `iglootools` |
 | [`project-setup/cli-demo.md`](guidelines/project-setup/cli-demo.md) | `demo/**`, the demo workflow and tasks |
