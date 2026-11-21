@@ -6,16 +6,23 @@ import pytest
 
 from iglootools.mise import lockcheck
 
-STAGED = {"mise.toml": '[tools]\nuv = "0.13.7"\n', "mise.lock": "[[tools.uv]]\nold\n"}
+DEPENDENCY_LOCK = ".mise/locks/npm-renovate/44.239.1~026f02c4/aube-lock.yaml"
+STAGED = {
+    "mise.toml": '[tools]\nuv = "0.13.7"\n',
+    "mise.lock": "[[tools.uv]]\nold\n",
+    DEPENDENCY_LOCK: "lockfileVersion: 1\n",
+}
 
 
 class FakeTools:
-    """`git show :<file>` answers from STAGED; `mise lock` writes *regenerated*."""
+    """`git show :<file>` and `git ls-files` answer from STAGED; `mise lock` writes
+    *regenerated*, and records the dependency lock it found in the scratch directory."""
 
     def __init__(self, regenerated: str, lock_status: int = 0) -> None:
         self.regenerated = regenerated
         self.lock_status = lock_status
         self.lock_env: Mapping[str, str] = {}
+        self.dependency_lock_seen: str | None = None
 
     def __call__(
         self, command: Sequence[str], directory: Path, env: Mapping[str, str]
@@ -27,8 +34,13 @@ class FakeTools:
                 return subprocess.CompletedProcess(
                     command, 0 if found else 128, STAGED.get(name, ""), ""
                 )
+            case ["git", "ls-files", "--cached", "-z", "--", prefix]:
+                names = [name for name in STAGED if name.startswith(prefix + "/")]
+                return subprocess.CompletedProcess(command, 0, "\0".join(names), "")
             case ["mise", "lock"]:
                 self.lock_env = env
+                lock = directory / DEPENDENCY_LOCK
+                self.dependency_lock_seen = lock.read_text() if lock.exists() else None
                 assert (directory / "mise.toml").read_text() == STAGED["mise.toml"]
                 (directory / "mise.lock").write_text(self.regenerated)
                 return subprocess.CompletedProcess(
@@ -50,6 +62,12 @@ def test_a_changed_lock_is_reported_as_a_diff(tmp_path: Path) -> None:
     assert not result.up_to_date
     assert "-old\n" in result.diff()
     assert "+new\n" in result.diff()
+
+
+def test_mise_lock_sees_the_staged_dependency_locks(tmp_path: Path) -> None:
+    tools = FakeTools(STAGED["mise.lock"])
+    lockcheck.compare(tmp_path, run=tools, environ={})
+    assert tools.dependency_lock_seen == STAGED[DEPENDENCY_LOCK]
 
 
 def test_mise_lock_runs_without_the_python_override_and_trusts_only_scratch(

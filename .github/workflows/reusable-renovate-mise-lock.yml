@@ -93,18 +93,20 @@ jobs:
           mise install dprint
           "$(mise which dprint)" fmt
 
-      # `git diff --name-only` collects whatever the steps above changed: a project without uv has
-      # no uv.lock, and dprint may touch any file it formats. Untracked files are not picked up,
-      # since none of the steps creates one.
+      # Stages whatever the steps above changed: a project without uv has no uv.lock, and dprint
+      # may touch any file it formats. `git add --all` rather than the tracked files alone, because
+      # `mise lock` writes an npm tool's dependency lock to a new directory under .mise/locks/ when
+      # the tool's version moves, and deletes the old one; mise.lock pins it by digest, so leaving
+      # the new one out breaks every locked install. Nothing else the steps write is tracked or
+      # outside .gitignore.
       - name: Commit changes if any
         run: |
-          mapfile -t changed < <(git diff --name-only)
-          if [ "${#changed[@]}" -eq 0 ]; then
+          git add --all
+          if git diff --cached --quiet; then
             echo "Lock files are up to date and everything is formatted."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "${changed[@]}"
           git commit -m "chore(deps): regenerate lock files and format"
           git push

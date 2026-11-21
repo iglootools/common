@@ -4,6 +4,18 @@ uv = "0.13.7"
 shellcheck = "0.11.0"
 dprint = "0.64.3"
 rumdl = "0.3.4"
+# Renovate, for lint-renovate and renovate-dry-run (guidelines/project-setup/dependency-automation.md).
+# The exclusion exempts one dependency release from mise's no-trust-downgrade check: Yarn's
+# lead maintainer published @yarnpkg/libzip@3.2.2 by hand, without the provenance its
+# CI-published predecessors carry. Reviewed 2026-11-21: its tarball matches Yarn's source (three
+# lines adding parentPath, TypeScript 5.9 typings) and its compiled libzip is byte-identical to
+# the attested 3.2.1. Drop the exclusion once Renovate no longer resolves to 3.2.2.
+# allow_builds lets re2 alone run its build script: without its native module Renovate falls
+# back to JavaScript's regex engine, and lint-renovate would accept custom-manager patterns
+# that Renovate itself, which runs RE2, rejects.
+"npm:renovate" = { version = "44.239.1", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"], allow_builds = ["re2"] }
+node = "24.22.3"
+jq = "1.8.2"
 
 [env]
 # Pin uv to the interpreter mise installed, by absolute path: a bare version number does not
@@ -107,6 +119,7 @@ run = [
   { task = "lint-lock-mise" },
   { task = "lint-lock-uv" },
   { task = "lint-toc" },
+  { task = "lint-renovate" },
 ]
 
 # The formatters exit 0 whether or not they changed anything, so they cannot be the gate. rumdl
@@ -163,3 +176,13 @@ run = "uv lock --check"
 [tasks.lint-toc]
 description = "Check that the Markdown tables of contents are up to date (fix with `mise run toc`)"
 run = "uv run --no-sync iglootools docs toc --check"
+
+# --strict fails on a config Renovate would migrate, which a plain run reports only as a
+# warning. Run with no argument it validates renovate.json as repository config; the presets
+# every project extends are validated as files.
+[tasks.lint-renovate]
+description = "Validate the Renovate config and presets with Renovate's validator, strictly"
+run = [
+  "renovate-config-validator --strict",
+  "renovate-config-validator --strict renovate/base.json renovate/python.json",
+]

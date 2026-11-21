@@ -8,6 +8,11 @@ with only the fast tests (here, every test). `mise tasks` lists the rest. Tasks
 come in families: `fmt*` and `toc` rewrite files, `lint*` fail without writing,
 and `lint` runs every one of them.
 
+`mise run lint-renovate` validates `renovate.json` and the presets with
+Renovate's own validator, and `mise run renovate-dry-run` lists the updates
+Renovate would propose from this checkout, writing nothing; see
+[dependency-automation.md](../guidelines/project-setup/dependency-automation.md#validate-and-preview-the-config-with-renovate-itself).
+
 `mise run fmt` formats every file: ruff the Python, dprint the JSON, TOML and
 YAML, rumdl the Markdown. `lint-fmt` and `lint-markdown` fail on a file it would
 change, so run it after editing anything. The tools and their configuration are
