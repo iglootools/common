@@ -42,6 +42,7 @@ session, the rest are read only when a change reaches the files they govern:
 | [`project-setup/pypi-publishing.md`](guidelines/project-setup/pypi-publishing.md) | the release and publish workflows, cutting a release |
 | [`project-setup/iglootools-cli.md`](guidelines/project-setup/iglootools-cli.md) | `[tool.iglootools]`, the `iglootools` pin, a task that calls `iglootools` |
 | [`project-setup/cli-demo.md`](guidelines/project-setup/cli-demo.md) | `demo/**`, the demo workflow and tasks |
+| [`project-setup/formatting.md`](guidelines/project-setup/formatting.md) | `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the format and Markdown lint tasks |
 | [`project-setup/ide.md`](guidelines/project-setup/ide.md) | `.vscode/**`, `*.code-workspace`, `[tool.pyright]` |
 | [`project-setup/claude-code.md`](guidelines/project-setup/claude-code.md) | `.claude/settings.json` |
 

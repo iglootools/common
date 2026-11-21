@@ -237,11 +237,13 @@ to run something from an unactivated shell.
 Add dependencies with `uv add` / `uv remove`, which update `pyproject.toml` and
 `uv.lock` together. `mise deps add` does not support uv — its ecosystems are
 npm, yarn, pnpm, bun, deno, aube, dart and flutter — so do not go looking for a
-mise verb.
+mise verb. Both write `pyproject.toml` in uv's style, so run `mise run format`
+before committing ([formatting.md](formatting.md)).
 
 ## Code Quality Tools
 
-Use `ruff` for linting and formatting, `pyright` for type-checking,
+Use `ruff` for linting and formatting the Python (the other files are formatted
+as [formatting.md](formatting.md) describes), `pyright` for type-checking,
 `import-linter` for module boundaries, and `deadcode` for code nothing uses.
 There is no compatibility check (`vermin`): projects support only the version
 they are developed on, so nothing can be too new (see the

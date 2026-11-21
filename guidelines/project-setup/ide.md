@@ -11,6 +11,7 @@ editor points at, see
 - [Pyright environment resolution](#pyright-environment-resolution)
 - [VSCode](#vscode)
   - [Commit the extension set to `.vscode/extensions.json`](#commit-the-extension-set-to-vscodeextensionsjson)
+  - [Format on save with the tools the tasks run](#format-on-save-with-the-tools-the-tasks-run)
   - [Check the in-project venv into `.vscode/settings.json`](#check-the-in-project-venv-into-vscodesettingsjson)
   - [Let `hverlin.mise-vscode` write the other tools' paths, but fence it in](#let-hverlinmise-vscode-write-the-other-tools-paths-but-fence-it-in)
   - [Reload after changing interpreter or pyright settings](#reload-after-changing-interpreter-or-pyright-settings)
@@ -72,7 +73,9 @@ nobody reads before opening the editor:
         "ms-python.vscode-python-envs",
         "charliermarsh.ruff",
         "hverlin.mise-vscode",
-        "tombi-toml.tombi"
+        "tombi-toml.tombi",
+        "dprint.dprint",
+        "rvben.rumdl"
     ]
 }
 ```
@@ -84,13 +87,39 @@ nobody reads before opening the editor:
 | `ms-python.vscode-python-envs` | projects committing `python-envs.*` settings | owns those keys; without it the committed `pythonProjects` entry does nothing |
 | `charliermarsh.ruff` | projects using ruff | `editor.defaultFormatter` names it, so format-on-save silently stops working |
 | `hverlin.mise-vscode` | projects using mise | the `mise.enable` setting has no reader; tasks and tool versions stop surfacing |
-| `tombi-toml.tombi` | projects with TOML — in practice all of them, via `pyproject.toml` and `mise.toml` | no TOML validation or formatting |
+| `tombi-toml.tombi` | projects with TOML — in practice all of them, via `pyproject.toml` and `mise.toml` | no TOML validation against the schemas of `pyproject.toml` and the other files it knows |
+| `dprint.dprint` | projects with a `dprint.json` ([formatting.md](formatting.md)) | the per-language `editor.defaultFormatter` below names it, so format-on-save stops for JSON, TOML and YAML |
+| `rvben.rumdl` | projects with a `.rumdl.toml` | no Markdown lint findings in the editor, and format-on-save stops for Markdown |
 
 The rule behind the list:
 **every extension a committed setting depends on belongs in `extensions.json`.**
 A setting whose extension is absent is not an error — it is a silent no-op, and
 the developer who cloned the repo has no way to tell the difference from a
 working setup.
+
+### Format on save with the tools the tasks run
+
+Several of those extensions can format the same file: tombi and dprint both
+format TOML, and VSCode's built-in formatters handle JSON and Markdown. Name the
+one the `format` task runs for each language in `.vscode/settings.json`, so a
+file saved in the editor passes `format-check`, and turn on `formatOnSave`,
+without which they run only on **Format Document**:
+
+```json
+{
+    "editor.formatOnSave": true,
+    "[json]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[jsonc]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[toml]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[yaml]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[dockerfile]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[markdown]": { "editor.defaultFormatter": "rvben.rumdl" },
+    "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
+}
+```
+
+tombi stays for what dprint does not do: it validates `pyproject.toml` and the
+other TOML files it has schemas for.
 
 ### Check the in-project venv into `.vscode/settings.json`
 

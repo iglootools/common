@@ -9,7 +9,7 @@ calls, and the `iglootools` command.
 - `mise run check-all`: every check and test CI runs. `mise tasks` lists the
   rest.
 - `mise run toc` after adding, renaming or removing a heading in a Markdown
-  file.
+  file, and `mise run format` after editing any file.
 
 ## Guidelines
 
@@ -29,6 +29,8 @@ what it governs:
   [mise.md](guidelines/project-setup/mise.md).
 - `renovate.json`, `renovate/`:
   [dependency-automation.md](guidelines/project-setup/dependency-automation.md).
+- `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the format and
+  Markdown lint tasks: [formatting.md](guidelines/project-setup/formatting.md).
 - Any document: [documentation.md](guidelines/project-setup/documentation.md).
 
 ## Where things are
