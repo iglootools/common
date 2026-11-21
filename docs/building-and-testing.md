@@ -5,6 +5,12 @@
 `mise run check-all` runs every check and test, which is what the `test`
 workflow runs on each pull request; `mise tasks` lists the rest.
 
+`mise run format` formats every file: ruff the Python, dprint the JSON, TOML and
+YAML, rumdl the Markdown. `format-check` and `lint-markdown`, both part of
+`check`, fail on a file it would change, so run it after editing anything. The
+tools and their configuration are described in
+[formatting.md](../guidelines/project-setup/formatting.md).
+
 Each guideline file, `philosophy.md`, `README.md` and each file under `docs/`
 open with a table of contents between `<!-- toc -->` and `<!-- tocstop -->`. Do
 not edit it by hand: after adding, renaming or removing a `##` or `###` heading,

@@ -10,10 +10,13 @@
 ## Toolchain
 
 Install [mise](https://mise.jdx.dev/), then run `mise install` in the
-repository. It installs the pinned Python and uv, and the first `mise run`
-creates `.venv` with the dev dependencies. `mise run check-all` runs every check
-and test, which is what the `test` workflow runs on each pull request;
-`mise tasks` lists the rest.
+repository. It installs the pinned tools — Python, uv, shellcheck, and the
+formatters dprint and rumdl — and the first `mise run` creates `.venv` with the
+dev dependencies. VSCode prompts for the extensions in `.vscode/extensions.json`
+on opening the repository; `.vscode/settings.json` formats each file on save
+with the tool `mise run format` uses. `mise run check-all` runs every check and
+test, which is what the `test` workflow runs on each pull request; `mise tasks`
+lists the rest.
 
 ## Loading the plugin from the working tree
 
