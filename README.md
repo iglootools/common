@@ -33,7 +33,7 @@ session, the rest are read only when a change reaches the files they govern:
 | Read when a change reaches it | Triggered by |
 |---|---|
 | [`project-setup/python-tooling.md`](guidelines/project-setup/python-tooling.md) | `pyproject.toml` (including the import-linter and dead-code checks), the Python settings in `mise.toml`, `uv.lock`, the Python version policy |
-| [`project-setup/mise.md`](guidelines/project-setup/mise.md) | `mise.toml`, `mise-tasks/**`, `mise.lock`, a shell script, adding a mise task |
+| [`project-setup/mise.md`](guidelines/project-setup/mise.md) | `mise.toml`, `mise-tasks/**`, `mise.lock`, a shell script, adding, renaming or naming a mise task |
 | [`project-setup/workflows.md`](guidelines/project-setup/workflows.md) | `.github/workflows/**` |
 | [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
 | [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, and the repository settings both depend on |
@@ -42,7 +42,7 @@ session, the rest are read only when a change reaches the files they govern:
 | [`project-setup/pypi-publishing.md`](guidelines/project-setup/pypi-publishing.md) | the release and publish workflows, cutting a release |
 | [`project-setup/iglootools-cli.md`](guidelines/project-setup/iglootools-cli.md) | `[tool.iglootools]`, the `iglootools` pin, a task that calls `iglootools` |
 | [`project-setup/cli-demo.md`](guidelines/project-setup/cli-demo.md) | `demo/**`, the demo workflow and tasks |
-| [`project-setup/formatting.md`](guidelines/project-setup/formatting.md) | `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the format and Markdown lint tasks |
+| [`project-setup/formatting.md`](guidelines/project-setup/formatting.md) | `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the `fmt*`, `lint-fmt*` and `lint-markdown` tasks |
 | [`project-setup/ide.md`](guidelines/project-setup/ide.md) | `.vscode/**`, `*.code-workspace`, `[tool.pyright]` |
 | [`project-setup/claude-code.md`](guidelines/project-setup/claude-code.md) | `.claude/settings.json` |
 

@@ -154,7 +154,7 @@ It also runs `dprint fmt` whenever the repository has a `dprint.json`, and
 commits whatever it changed with the lock files. Renovate writes `mise.toml`,
 `dprint.json`, `renovate.json` and the workflows in its own style, and without
 this step `dprint check` would hold its pull request red until someone ran
-`mise run format` on the branch — see
+`mise run fmt` on the branch — see
 [formatting.md](formatting.md#format-renovate-branches-in-ci). The caller
 declares nothing extra for this either: the `dprint` pin comes from its
 `mise.toml`.

@@ -101,7 +101,7 @@ looks skippable is usually the part that names the failure.
 | Read | When the change touches |
 |---|---|
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Python building, packaging and dependencies, `uv.lock`, the import-linter setup, the dead-code check, the patching checks (ruff `TID251`, the failing `monkeypatch` fixture), the Python settings in `mise.toml` (`[deps.uv]`, the `python` and `uv` pins), or the Python task set. Adding a dependency counts wherever the edit lands. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/mise.md` | `mise.toml`, anything under `mise-tasks/`, `mise.lock`, or a shell script, in any project. Adding or changing a mise task counts wherever the edit lands. Read it *with* `python-tooling.md` when the edit is to a Python project's mise settings. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/mise.md` | `mise.toml`, anything under `mise-tasks/`, `mise.lock`, or a shell script, in any project. Adding, renaming or changing a mise task — including choosing its name — counts wherever the edit lands. Read it *with* `python-tooling.md` when the edit is to a Python project's mise settings. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, or a question about why a dependency update did or did not appear. |
@@ -110,7 +110,7 @@ looks skippable is usually the part that names the failure.
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/pypi-publishing.md` | `release.yml`, `publish.yml` or `publish-test.yml`, the version scheme, or cutting a release by hand. Read it *with* `workflows.md` when the edit is to a workflow. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/iglootools-cli.md` | `[tool.iglootools]` in `pyproject.toml`, the `iglootools` dependency or its pin, a mise task that calls `iglootools`, or a bug found in one of its commands (which is fixed in iglootools/common, not worked around in the project). |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/cli-demo.md` | `demo/`, `.github/workflows/demo.yml`, the `demo-*` mise tasks, or the README's asciinema embed. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/formatting.md` | `dprint.json`, `.rumdl.toml` or `.git-blame-ignore-revs`; the `format`, `format-check` or `lint-markdown` tasks; or a formatting or Markdown lint failure to fix. Read it *with* `mise.md` when the edit is to those tasks. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/formatting.md` | `dprint.json`, `.rumdl.toml` or `.git-blame-ignore-revs`; the `fmt*` or `lint-fmt*` tasks, or `lint-markdown`; or a formatting or Markdown lint failure to fix. Read it *with* `mise.md` when the edit is to those tasks. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md` | `.vscode/`, a `*.code-workspace`, or the `[tool.pyright]` section of `pyproject.toml`. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/claude-code.md` | `.claude/settings.json`, or which Claude Code plugins the project enables. |
 

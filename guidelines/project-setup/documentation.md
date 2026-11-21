@@ -149,7 +149,7 @@ nbkp is an rsync-based backup tool for sources and destinations that come and go
 
 ## Commands
 
-- `mise run check-all`: every check and test CI runs. `mise tasks` lists the rest.
+- `mise run preflight`: every lint and test CI runs. `mise tasks` lists the rest.
 - Run a mise task when one does the job, and `uv run --no-sync <tool>` otherwise, never a bare
   tool.
 
@@ -289,12 +289,12 @@ committed copy differs:
 
 | Generated | From | Tasks | Command |
 |---|---|---|---|
-| `docs/cli-reference.md` — the whole file | the Typer app | `clidocs` / `clidocs-check` | `iglootools docs cli` |
-| the field tables in `docs/config-reference.md` | the config models | `configdocs` / `configdocs-check` | the project's own script, since the models are its own |
-| the Module Overview in `docs/architecture.md` | the import graph | `depgraph` / `depgraph-check` | `iglootools docs depgraph` |
-| the "On this page" list in each long document | its `##` and `###` headings | `toc` / `toc-check` | `iglootools docs toc` |
+| `docs/cli-reference.md` — the whole file | the Typer app | `clidocs` / `lint-clidocs` | `iglootools docs cli` |
+| the field tables in `docs/config-reference.md` | the config models | `configdocs` / `lint-configdocs` | the project's own script, since the models are its own |
+| the Module Overview in `docs/architecture.md` | the import graph | `depgraph` / `lint-depgraph` | `iglootools docs depgraph` |
+| the "On this page" list in each long document | its `##` and `###` headings | `toc` / `lint-toc` | `iglootools docs toc` |
 
-- **Every generator has a `-check` task, and `check` runs it.** The tasks are
+- **Every generator has a `lint-*` task, and `lint` runs it.** The tasks are
   one-line calls to the [`iglootools`](iglootools-cli.md) commands with
   `--check`, which exit non-zero when the output would change and name the task
   that regenerates it. The task set is in
@@ -314,7 +314,7 @@ committed copy differs:
   ```
 
   Keep the Markdown formatter out of both, or it reformats what the generator
-  wrote and the `-check` task fails on the next run:
+  wrote and its `lint-*` task fails on the next run:
   [formatting.md](formatting.md#leave-generated-documents-to-their-generator).
 - **A CLI project shows itself in the README** with an
   [asciinema](https://asciinema.org/) recording near the top, re-recorded on a

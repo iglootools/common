@@ -76,12 +76,12 @@ version moves builds anything.
 
 ## Call it from one-line mise tasks
 
-Keep the project's task names and make each one a single call, run through
-`uv run --no-sync` like every other tool
+Name the tasks as [mise.md](mise.md#name-tasks-by-family) describes, and make
+each one a single call, run through `uv run --no-sync` like every other tool
 ([python-tooling.md](python-tooling.md#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare)):
 
 ```toml
-[tasks.depgraph-check]
+[tasks.lint-depgraph]
 description = "Check that the Module Overview in docs/architecture.md is up to date"
 run = "uv run --no-sync iglootools docs depgraph --check"
 ```

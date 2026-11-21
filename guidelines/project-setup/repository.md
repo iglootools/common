@@ -196,7 +196,7 @@ Consider providing:
 
 - an asciinema demo: a scripted, seeded session recorded by mise tasks and CI
   and embedded in the README — see [cli-demo.md](cli-demo.md)
-- a generated CLI reference with `clidocs`/`clidocs-check` tasks — see
+- a generated CLI reference with `clidocs`/`lint-clidocs` tasks — see
   [Generate references from the code](documentation.md#generate-references-from-the-code-and-check-them)
 - Provide preflight checks wherever applicable and troubleshooting instructions
   with the specific commands that need to be executed to fix the problem.
