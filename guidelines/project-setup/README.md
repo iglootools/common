@@ -1,10 +1,11 @@
 # Project Setup Guidelines
 
-How an iglootools repository is configured, as opposed to how its code is written. These are read
-**on demand**: the `guidelines` skill routes to the one file a change actually reaches, because
-each is long and stays in context for the rest of the session once read. One file per trigger is
-deliberate — this was a single 501-line file, so a one-line workflow change pulled the Renovate
-rules and the editor settings along with it.
+How an iglootools repository is configured, as opposed to how its code is
+written. These are read **on demand**: the `guidelines` skill routes to the one
+file a change actually reaches, because each is long and stays in context for
+the rest of the session once read. One file per trigger is deliberate — this was
+a single 501-line file, so a one-line workflow change pulled the Renovate rules
+and the editor settings along with it.
 
 | File | What is in it | Read it when the change touches |
 |---|---|---|

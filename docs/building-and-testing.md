@@ -2,32 +2,37 @@
 
 ## Checks and tests
 
-`mise run check-all` runs every check and test, which is what the `test` workflow runs on each
-pull request; `mise tasks` lists the rest.
+`mise run check-all` runs every check and test, which is what the `test`
+workflow runs on each pull request; `mise tasks` lists the rest.
 
-Each guideline file, `philosophy.md`, `README.md` and each file under `docs/` open with a table of contents
-between `<!-- toc -->` and `<!-- tocstop -->`. Do not edit it by hand: after adding, renaming or
-removing a `##` or `###` heading, run `mise run toc` to regenerate every list.
-`mise run toc-check`, part of `check`, fails on a list that is out of date. To give a new file
-one, run `mise run toc --add <file>`.
+Each guideline file, `philosophy.md`, `README.md` and each file under `docs/`
+open with a table of contents between `<!-- toc -->` and `<!-- tocstop -->`. Do
+not edit it by hand: after adding, renaming or removing a `##` or `###` heading,
+run `mise run toc` to regenerate every list. `mise run toc-check`, part of
+`check`, fails on a list that is out of date. To give a new file one, run
+`mise run toc --add <file>`.
 
-The script's tests are in `tests/` and run with `mise run test`. The expected anchors in them
-come from [github-slugger](https://github.com/Flet/github-slugger), which reproduces GitHub's
-rules: when a heading's anchor seems wrong, compare against it again rather than editing the
-expected values.
+The script's tests are in `tests/` and run with `mise run test`. The expected
+anchors in them come from
+[github-slugger](https://github.com/Flet/github-slugger), which reproduces
+GitHub's rules: when a heading's anchor seems wrong, compare against it again
+rather than editing the expected values.
 
 ## GitHub Config
 
-Configured as [repository.md](../guidelines/project-setup/repository.md#protect-the-default-branch-and-release-tags)
+Configured as
+[repository.md](../guidelines/project-setup/repository.md#protect-the-default-branch-and-release-tags)
 describes. Two rulesets:
 
-- **`main`** (default branch): no deletion or force-push, changes through a pull request merged
-  with a merge commit, and the `test` check from `test.yml` must pass. `test` has to keep
-  running on every pull request (no `paths` filter on its workflow), or a pull request it skips
-  can never be merged. `integration_id` 15368 is GitHub Actions, which keeps a check with the
-  same name from another app from satisfying the rule.
-- **`release tags`** (`refs/tags/v*`, `refs/tags/iglootools--v*`): no deletion or update. Both
-  prefixes are release tags — see [releasing-and-publishing.md](releasing-and-publishing.md#releasing).
+- **`main`** (default branch): no deletion or force-push, changes through a pull
+  request merged with a merge commit, and the `test` check from `test.yml` must
+  pass. `test` has to keep running on every pull request (no `paths` filter on
+  its workflow), or a pull request it skips can never be merged.
+  `integration_id` 15368 is GitHub Actions, which keeps a check with the same
+  name from another app from satisfying the rule.
+- **`release tags`** (`refs/tags/v*`, `refs/tags/iglootools--v*`): no deletion
+  or update. Both prefixes are release tags — see
+  [releasing-and-publishing.md](releasing-and-publishing.md#releasing).
 
 Created with:
 
@@ -67,5 +72,7 @@ gh api --method POST repos/iglootools/common/rulesets --input - <<'JSON'
 JSON
 ```
 
-Verify with `gh api repos/iglootools/common/rules/branches/main -q '[.[].type]'`, which should
-print `["deletion","non_fast_forward","pull_request","required_status_checks"]`.
+Verify with
+`gh api repos/iglootools/common/rules/branches/main -q '[.[].type]'`, which
+should print
+`["deletion","non_fast_forward","pull_request","required_status_checks"]`.
