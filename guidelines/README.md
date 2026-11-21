@@ -6,6 +6,7 @@ change.
 | Read | When |
 |---|---|
 | [philosophy.md](philosophy.md) | you want the reasoning behind a rule, or are weighing an exception to one |
+| [cross-cutting-concerns.md](cross-cutting-concerns.md) | a change touches a concern no single file owns, such as security, logging or error handling, and you need the principle and the rules for it |
 | [coding/](coding/) | writing or committing code: always, since the plugin loads these files into every session |
 | [project-setup/](project-setup/) | changing how a repository is configured: its build, tasks, workflows, dependencies, editor |
 | [documentation/](documentation/) | writing a document, or a guideline, or changing where documents live |
