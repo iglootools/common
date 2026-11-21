@@ -10,6 +10,7 @@ mise is in
 **On this page**
 
 - [Tasks](#tasks)
+  - [Name tasks by family](#name-tasks-by-family)
   - [One `ci-*` task per workflow job](#one-ci--task-per-workflow-job)
   - [Put a multi-line task body in a file task under `mise-tasks/`](#put-a-multi-line-task-body-in-a-file-task-under-mise-tasks)
 - [Lint every shell script with shellcheck](#lint-every-shell-script-with-shellcheck)
@@ -18,12 +19,50 @@ mise is in
 
 ## Tasks
 
+### Name tasks by family
+
+Every project names its tasks the same way, so the same command does the same
+thing in each one. The name says whether a task writes:
+
+| Family | What it does | Examples |
+|---|---|---|
+| a writer, named for what it writes | rewrites files | `fmt`, `toc`, `clidocs`, `depgraph`, `configdocs` |
+| `lint-*` | fails without writing anything | `lint-ruff`, `lint-types`, `lint-fmt`, `lint-toc`, `lint-lock-uv` |
+| `test`, `test-*` | runs tests | `test`, `test-unit`, `test-integration` |
+| `preflight`, `preflight-quick` | everything to run before a push | — |
+| `ci-*` | one per workflow job | `ci-preflight`, `ci-build` |
+
+- **Anything that fails without writing is a lint**: a linter in the usual
+  sense (`lint-ruff`, `lint-shell`, `lint-markdown`), the type checker
+  (`lint-types`), import contracts (`lint-boundaries`), unused code
+  (`lint-dead-code`), a formatter run as a check (`lint-fmt-ruff`,
+  `lint-fmt-dprint`), and a check that a generated or locked file is up to date
+  (`lint-toc`, `lint-clidocs`, `lint-lock-mise`, `lint-lock-uv`). One word
+  for all of them is what lets `lint` run them all. No task ends in `-check`.
+- **A check of build output belongs to the build**, not to `lint`: it needs the
+  build to have run, and `lint` runs without one. `build-verify`, which reads
+  the wheel `build` wrote, runs in `ci-build` after `build`.
+- **A family name runs the family**: `fmt` runs every `fmt-*`, `lint` every
+  `lint-*`, and `lint-fmt` every `lint-fmt-*`. The per-tool tasks exist so one
+  check can be run and fixed alone: `lint-fmt-dprint` fails, `fmt-dprint`
+  fixes it.
+- **A lint's description names its fix** when a writer has one:
+  ``"… (fix with `mise run toc`)"``.
+- **`preflight` runs every lint and every test**, and is what CI runs.
+  `preflight-quick` runs every lint and only the fast tests, leaving out suites
+  that need Docker, a real filesystem or the network. Where every test is
+  fast, the two run the same thing, and `preflight-quick` still exists, so the
+  command works in every project.
+- **There is no `check`, `check-all` or `format` task.** Projects named their
+  tasks that way before; a task that survives under an old name is one nobody
+  finds by the convention.
+
 ### One `ci-*` task per workflow job
 
 Each workflow job runs one `ci-*` task, which chains the project's ordinary
-tasks and adds no logic of its own: `ci-test` (`install`, `build`, `check-all`),
+tasks and adds no logic of its own: `ci-preflight` (`install`, `preflight`),
 `ci-build` (`install`, `build`, `build-verify`), or several jobs that split
-`check-all` when its parts are slow enough to be worth running side by side. A
+`preflight` when its parts are slow enough to be worth running side by side. A
 workflow job is then a single `mise run`, and CI runs exactly what a developer
 can run. See [Keep workflows thin](workflows.md).
 
@@ -32,11 +71,11 @@ can run. See [Keep workflows thin](workflows.md).
 A `run =` value in `mise.toml` is one command. When a task body needs a second
 line — another command, a variable, a conditional, a loop — it moves into an
 executable file under `mise-tasks/`, which mise turns into a task named after
-the file. `mise-tasks/site-check`:
+the file. `mise-tasks/lint-links`:
 
 ```bash
 #!/usr/bin/env bash
-#MISE description="Build the site and check its links"
+#MISE description="Build the site and check its links offline"
 #MISE depends=["install"]
 set -euo pipefail
 
@@ -52,8 +91,8 @@ be linted with shellcheck and run directly, shows up in review as code, and has
 room for the comments that explain it.
 
 - **Name the file after the task.** A subdirectory namespaces it:
-  `mise-tasks/ci/test` is the task `ci:test`. The task runs from the project
-  root, as an inline one does.
+  `mise-tasks/ci/preflight` is the task `ci:preflight`. The task runs from the
+  project root, as an inline one does.
 - **Put the metadata in comments**, with the same fields as a `[tasks.*]` table:
   `#MISE description="..."`, `#MISE depends=["build"]`, and `sources`,
   `outputs`, `dir`, `env` and `alias` likewise. Arguments go in `#USAGE`
@@ -85,8 +124,8 @@ room for the comments that explain it.
 ## Lint every shell script with shellcheck
 
 Pin [shellcheck](https://www.shellcheck.net/) in `[tools]` and add a
-`lint-shell` task that runs [`iglootools shell lint`](iglootools-cli.md). Make
-`check` depend on it, so CI runs it wherever it runs `check`:
+`lint-shell` task that runs [`iglootools shell lint`](iglootools-cli.md). `lint`
+runs it, so `preflight` and CI do:
 
 ```toml
 [tools]
@@ -139,13 +178,14 @@ this is the step that lints it.
 
 ## Check `mise.lock` in a scratch copy
 
-A `lock-check` task asserts that the committed `mise.lock` matches `mise.toml`.
+A `lint-lock-mise` task asserts that the committed `mise.lock` matches
+`mise.toml`.
 mise has no read-only check for that, so the check regenerates the lockfile and
 compares, and it must do so **in a scratch copy, never in place**. Run
 [`iglootools mise lock-check`](iglootools-cli.md), which does:
 
 ```toml
-[tasks.lock-check]
+[tasks.lint-lock-mise]
 description = "Check that mise.lock is up to date with mise.toml"
 run = "uv run --no-sync iglootools mise lock-check"
 ```

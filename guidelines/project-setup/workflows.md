@@ -16,7 +16,7 @@ Dependabot.
       with:
         # renovate: datasource=github-releases depName=jdx/mise
         version: 2026.10.7
-    - run: mise run ci-test
+    - run: mise run ci-preflight
   ```
 
   Logic written as inline `run:` lines only runs on a runner. Reproducing a CI
@@ -34,8 +34,8 @@ Dependabot.
   machine, it belongs in a task.
 
   A `ci-*` task chains the project's ordinary tasks (`install`, `build`,
-  `check-all`) and adds no logic of its own. Logic that only lives in a `ci-*`
-  task is CI-only again: `mise run check` would not run it, so CI would be
+  `preflight`) and adds no logic of its own. Logic that only lives in a `ci-*`
+  task is CI-only again: `mise run preflight` would not run it, so CI would be
   checking something local runs never do. See
   [One `ci-*` task per workflow job](mise.md#one-ci--task-per-workflow-job).
 

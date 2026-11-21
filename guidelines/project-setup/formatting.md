@@ -130,7 +130,7 @@ headings = false
 
 A generated document belongs to its generator, which decides its format. Let
 rumdl reflow it, or strip the `$` prompts from its `console` blocks (MD014),
-and the next regeneration produces something else: its `-check` task fails,
+and the next regeneration produces something else: its `lint-*` task fails,
 and fixing the formatting by hand only lasts until the next run. Keep rumdl out
 of everything a generator writes:
 
@@ -164,32 +164,56 @@ still there: a generator that rewrote them would need fixing.
 
 ## Tasks
 
+Named as [mise.md](mise.md#name-tasks-by-family) describes: `fmt-*` rewrite,
+`lint-fmt-*` fail without writing, and `fmt` and `lint-fmt` run their family.
+
 ```toml
-[tasks.format]
-description = "Format every file with ruff, dprint and rumdl (rewrites files; see format-check to verify only)"
+[tasks.fmt]
+description = "Format every file with ruff, dprint and rumdl (rewrites files; lint-fmt verifies only)"
 run = [
-  "uv run --no-sync ruff format .",
-  "dprint fmt",
-  "rumdl fmt .",
+  { task = "fmt-ruff" },
+  { task = "fmt-dprint" },
+  { task = "fmt-rumdl" },
 ]
 
-[tasks.format-check]
-description = "Check that every file is formatted (fails instead of reformatting; fix with `mise run format`)"
+[tasks.fmt-ruff]
+description = "Format the Python with ruff"
+run = "uv run --no-sync ruff format ."
+
+[tasks.fmt-dprint]
+description = "Format the JSON, TOML, YAML and Dockerfiles with dprint"
+run = "dprint fmt"
+
+[tasks.fmt-rumdl]
+description = "Format the Markdown with rumdl"
+run = "rumdl fmt ."
+
+[tasks.lint-fmt]
+description = "Check that every file is formatted (fix with `mise run fmt`)"
 run = [
-  "uv run --no-sync ruff format --check .",
-  "dprint check",
+  { task = "lint-fmt-ruff" },
+  { task = "lint-fmt-dprint" },
 ]
+
+[tasks.lint-fmt-ruff]
+description = "Check that the Python is formatted (fix with `mise run fmt-ruff`)"
+run = "uv run --no-sync ruff format --check ."
+
+[tasks.lint-fmt-dprint]
+description = "Check that the JSON, TOML, YAML and Dockerfiles are formatted (fix with `mise run fmt-dprint`)"
+run = "dprint check"
 
 [tasks.lint-markdown]
-description = "Lint the Markdown with rumdl (configured in .rumdl.toml; fix what it can with `mise run format`)"
+description = "Lint the Markdown with rumdl (configured in .rumdl.toml; fix what it can with `mise run fmt-rumdl`)"
 run = "rumdl check ."
 ```
 
-- **`check` runs `format-check` and `lint-markdown`**, so CI runs both. A
-  project without Python drops the ruff lines.
-- **rumdl has no separate format check.** `rumdl check` reports what `rumdl fmt`
+- **`lint` runs `lint-fmt` and `lint-markdown`**, so `preflight` and CI run
+  both. A project without Python drops the ruff tasks; one whose code another
+  tool formats, such as ESLint in a Nuxt project, leaves that tool where it is.
+- **rumdl has no `lint-fmt-rumdl`.** `rumdl check` reports what `rumdl fmt`
   would change along with what it cannot fix, so `lint-markdown` is the gate
-  for both, beside `lint` and `lint-shell`.
+  for both.
 - **dprint and rumdl are run bare**, not through `uv run`: mise puts its own
   tools on `PATH`, and the foreign-venv problem that
   [python-tooling.md](python-tooling.md#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare)
@@ -207,9 +231,9 @@ and out of `git blame`:
 2. Run `dprint fmt` and `rumdl fmt .` and commit the result alone, with both
    commands in the message
    ([git.md](../coding/git.md#keep-refactoring-apart-from-behaviour-changes)).
-   Check that every generator's `-check` task still passes: `toc-check`, and
-   `clidocs-check`, `configdocs-check` and `depgraph-check` where the project
-   has them.
+   Check that every generator's lint still passes: `lint-toc`, and
+   `lint-clidocs`, `lint-configdocs` and `lint-depgraph` where the project has
+   them.
 3. Fix what `rumdl check` still reports in a commit of its own: findings it has
    no fix for, such as bold text used as a heading (MD036), or an inline code
    span too long to wrap, which moves into a code block (MD013).
@@ -226,10 +250,10 @@ in its own style. The
 [shared lock regenerator](shared-workflows.md#call-the-shared-lock-regenerator-too)
 runs `dprint fmt` on Renovate branches whenever the project has a
 `dprint.json`, and commits the result with the lock files, so its pull requests
-pass `format-check` without anyone running `mise run format` on them.
+pass `lint-fmt` without anyone running `mise run fmt` on them.
 
 `uv add` and `uv remove` rewrite `pyproject.toml` in uv's style too. Run
-`mise run format` after them, before committing.
+`mise run fmt` after them, before committing.
 
 ## Editor
 

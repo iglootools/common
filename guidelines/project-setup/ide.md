@@ -31,7 +31,7 @@ venv = ".venv"
 
 Pyright finds third-party packages through a Python environment, and with
 nothing configured it falls back to the `python` on `PATH`. That is the
-asymmetry behind a confusing symptom: `mise run type-check` passes, while an
+asymmetry behind a confusing symptom: `mise run lint-types` passes, while an
 editor reports `Import "<dep>" could not be resolved` on the same file. Tasks
 run in an activated environment; a language server spawned by an editor inherits
 no such activation and lands on the system python, where none of the project's
@@ -101,8 +101,8 @@ working setup.
 
 Several of those extensions can format the same file: tombi and dprint both
 format TOML, and VSCode's built-in formatters handle JSON and Markdown. Name the
-one the `format` task runs for each language in `.vscode/settings.json`, so a
-file saved in the editor passes `format-check`, and turn on `formatOnSave`,
+one the `fmt` task runs for each language in `.vscode/settings.json`, so a
+file saved in the editor passes `lint-fmt`, and turn on `formatOnSave`,
 without which they run only on **Format Document**:
 
 ```json

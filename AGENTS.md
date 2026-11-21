@@ -6,10 +6,10 @@ calls, and the `iglootools` command.
 
 ## Commands
 
-- `mise run check-all`: every check and test CI runs. `mise tasks` lists the
+- `mise run preflight`: every lint and test CI runs. `mise tasks` lists the
   rest.
 - `mise run toc` after adding, renaming or removing a heading in a Markdown
-  file, and `mise run format` after editing any file.
+  file, and `mise run fmt` after editing any file.
 
 ## Guidelines
 

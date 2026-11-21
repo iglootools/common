@@ -237,7 +237,7 @@ to run something from an unactivated shell.
 Add dependencies with `uv add` / `uv remove`, which update `pyproject.toml` and
 `uv.lock` together. `mise deps add` does not support uv — its ecosystems are
 npm, yarn, pnpm, bun, deno, aube, dart and flutter — so do not go looking for a
-mise verb. Both write `pyproject.toml` in uv's style, so run `mise run format`
+mise verb. Both write `pyproject.toml` in uv's style, so run `mise run fmt`
 before committing ([formatting.md](formatting.md)).
 
 ## Code Quality Tools
@@ -259,7 +259,7 @@ Add `import-linter>=2.15,<3.0` to the dev dependency group, and declare the
 contracts in `pyproject.toml`:
 
 ```toml
-# Module boundaries, enforced by `mise run boundaries-check` (part of `check`).
+# Module boundaries, enforced by `mise run lint-boundaries` (part of `lint`).
 # The rationale for each rule is in docs/architecture.md#layering.
 [tool.importlinter]
 root_package = "<pkg>"
@@ -272,19 +272,18 @@ architecture section that explains the rules. A comment naming a task that has
 since been renamed points the next reader at something that does not exist, and
 nothing fails to say so.
 
-Expose it as a `boundaries-check` task, run through `uv run --no-sync` like
-every other tool, and add it to `check` so CI runs it through `check-all`:
+Expose it as a `lint-boundaries` task, run through `uv run --no-sync` like
+every other tool, and add it to `lint` so `preflight` and CI run it:
 
 ```toml
-[tasks.boundaries-check]
+[tasks.lint-boundaries]
 description = "Check module boundaries (import-linter contracts in pyproject.toml)"
 run = "uv run --no-sync lint-imports"
 ```
 
-The name follows the `*-check` convention and says what is asserted. It is
-neither `lint-imports`, which names the tool rather than the property, nor
-`import-check`, which a CLI that imports anything (photos, files) may already
-use for one of its own commands.
+The name follows the `lint-*` family ([mise.md](mise.md#name-tasks-by-family))
+and says what is asserted. It is not `lint-imports`, which names the tool
+rather than the property, and is easily mistaken for the tool's own command.
 
 **Prefer contracts whose coverage follows the code.** A `forbidden` contract
 with an enumerated `source_modules` list covers exactly the modules listed. A
@@ -332,17 +331,17 @@ Ruff or ty detects unused definitions across files: that is a check the project
 already runs, with one tool fewer to pin.
 
 Add `deadcode>=2.7.0,<3.0` to the dev dependency group (2.6.0 is the first
-release that runs on Python 3.15), expose it as a `dead-code-check` task in
-`check`, and configure it in `pyproject.toml`:
+release that runs on Python 3.15), expose it as a `lint-dead-code` task in
+`lint`, and configure it in `pyproject.toml`:
 
 ```toml
-[tasks.dead-code-check]
+[tasks.lint-dead-code]
 description = "Check for unused code (deadcode, configured in pyproject.toml)"
 run = "uv run --no-sync deadcode <pkg> tests"
 ```
 
 ```toml
-# Unused code, enforced by `mise run dead-code-check` (part of `check`). Each entry is code
+# Unused code, enforced by `mise run lint-dead-code` (part of `lint`). Each entry is code
 # that runs without being named in the project, so the scan cannot see it used.
 [tool.deadcode]
 ignore-names-if-decorated-with = [
@@ -494,20 +493,21 @@ before the tests are converted.
 
 Consider providing:
 
-- `configdocs`/`configdocs-check`, and `depgraph`/`depgraph-check` tasks for
+- `configdocs`/`lint-configdocs`, and `depgraph`/`lint-depgraph` tasks for
   config and dependency documentation, respectively; `depgraph` runs
   `iglootools docs depgraph`
-- `format`, `lint`, `type-check`, `boundaries-check`, `dead-code-check` tasks
-  for code quality checks
+- `fmt`, `lint-ruff`, `lint-types`, `lint-boundaries` and `lint-dead-code`
+  tasks for code quality, named as [mise.md](mise.md#name-tasks-by-family)
+  describes
 
 The rules for tasks in any project — `ci-*` tasks, multi-line bodies as file
 tasks under `mise-tasks/`, and checking `mise.lock` — are in [mise.md](mise.md).
 
 ### Lock checks
 
-A `lock-check-uv` task runs `uv lock --check`, which asks whether `uv.lock` is
+A `lint-lock-uv` task runs `uv lock --check`, which asks whether `uv.lock` is
 consistent with `pyproject.toml`, while `UV_LOCKED` in CI asks whether a sync
-would *change* it. Its `mise.lock` counterpart, `lock-check`, is in
+would *change* it. Its `mise.lock` counterpart, `lint-lock-mise`, is in
 [mise.md](mise.md#check-miselock-in-a-scratch-copy).
 
 ### Reinstalling the environment
