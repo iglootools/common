@@ -31,6 +31,7 @@ project is [python-tooling.md](../project-setup/python-tooling.md)'s.
 - [Module Boundaries](#module-boundaries)
   - [Change the import-linter contracts deliberately, never to let an edge through](#change-the-import-linter-contracts-deliberately-never-to-let-an-edge-through)
 - [Tests](#tests)
+  - [Build serialized test data from the models](#build-serialized-test-data-from-the-models)
   - [Make a seam a keyword parameter whose default is the real function](#make-a-seam-a-keyword-parameter-whose-default-is-the-real-function)
 - [Target only the latest stable Python](#target-only-the-latest-stable-python)
   - [When a dependency lags](#when-a-dependency-lags)
@@ -271,6 +272,14 @@ The Python form of [general.md › Testability](general.md#testability), enforce
 as
 [python-tooling.md](../project-setup/python-tooling.md#enforce-the-patching-rule)
 sets up.
+
+### Build serialized test data from the models
+
+Write a test's YAML or JSON input by dumping the model (`model_dump`, then the
+serializer), not as a hand-written string.
+
+**Why:** a hand-written string keeps passing after the model's fields change,
+testing a format the code no longer reads.
 
 ### Make a seam a keyword parameter whose default is the real function
 

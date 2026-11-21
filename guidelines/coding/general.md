@@ -33,6 +33,10 @@ rules, and [git.md](git.md) how the change is committed.
 - [Command Line](#command-line)
   - [Make the CLI navigable from its own output](#make-the-cli-navigable-from-its-own-output)
   - [Provide preflight checks and troubleshooting commands](#provide-preflight-checks-and-troubleshooting-commands)
+  - [Treat a file that exists but cannot be read as an error, never as absent](#treat-a-file-that-exists-but-cannot-be-read-as-an-error-never-as-absent)
+  - [Report every failure in a batch, apart from the skips](#report-every-failure-in-a-batch-apart-from-the-skips)
+  - [Expand `~` in every path a user writes](#expand--in-every-path-a-user-writes)
+  - [Exit with 0, 1 or 2](#exit-with-0-1-or-2)
 - [Version Management](#version-management)
   - [Pin or lock every dependency, and have CI assert the lock](#pin-or-lock-every-dependency-and-have-ci-assert-the-lock)
 <!-- tocstop -->
@@ -251,6 +255,43 @@ Check preconditions before acting wherever a failure is predictable, and print
 the exact commands that fix a failure.
 
 **Why:** an error that names its fix is resolved in seconds.
+
+- Declare each external program the tool runs in one module, with what it is
+  for and how to install it, and check for it once per run, before the first
+  change, not once per item.
+
+### Treat a file that exists but cannot be read as an error, never as absent
+
+Report a file as missing only when it does not exist. One that exists but is
+empty, truncated or invalid raises an error that says so.
+
+**Why:** code that treats a corrupt file as absent recreates it with fresh
+values, silently orphaning whatever referred to the old ones, as photree learned
+when a truncated `album.yaml` lost its album ID.
+
+### Report every failure in a batch, apart from the skips
+
+Print each item that failed, with its reason, count failures separately from
+skipped items, and exit non-zero if any item failed.
+
+**Why:** a failure counted as a skip, or summed into a total, reads as success
+in a script and on the screen alike.
+
+### Expand `~` in every path a user writes
+
+Expand `~` in each path read from configuration or from an argument the shell
+did not already expand.
+
+**Why:** users write `~` in configuration files as they do on the command line,
+and only the shell expands it there.
+
+### Exit with 0, 1 or 2
+
+Exit 0 on success, including when there is nothing to do; 1 when the operation
+or a check fails; 2 on a usage or configuration error.
+
+**Why:** a script can tell "fix the input" from "the work failed", and 2 is what
+the CLI framework already uses for a usage error, so the two agree.
 
 ## Version Management
 
