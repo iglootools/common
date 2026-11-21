@@ -8,13 +8,13 @@ holds only how this repository is built and released.
 ## Getting started
 
 - [docs/setup-development-environment.md](docs/setup-development-environment.md):
-  the toolchain, and loading the plugin from the working tree
-- [docs/building-and-testing.md](docs/building-and-testing.md): the checks and
-  tests, the tables of contents, and the GitHub settings the repository depends
-  on
-- [docs/releasing-and-publishing.md](docs/releasing-and-publishing.md): changing
-  the plugin, the `iglootools` command or the shared workflows without breaking
-  the repositories that pin them, and cutting a release
+  follow to set up the toolchain and load the plugin from the working tree
+- [docs/building-and-testing.md](docs/building-and-testing.md): follow to run
+  the checks and tests and regenerate the tables of contents, and look up the
+  GitHub settings the repository depends on
+- [docs/releasing-and-publishing.md](docs/releasing-and-publishing.md): follow
+  to change the plugin, the `iglootools` command or the shared workflows without
+  breaking the repositories that pin them, and to cut a release
 
 ## Guidelines
 
@@ -27,20 +27,21 @@ the bar a documented exception has to meet.
 
 ## Understanding the repository
 
-- [README.md](README.md): what is here
-- [guidelines/README.md](guidelines/README.md): which guideline governs which
-  change
-- [guidelines/philosophy.md](guidelines/philosophy.md): the reasoning behind the
-  guidelines
-- [docs/internals.md](docs/internals.md): how the plugin delivers the
-  guidelines, and how the `iglootools` command is organized. Read it before
-  changing `skills/`, `hooks/` or `agents/`
+- [README.md](README.md): find what is here
+- [guidelines/README.md](guidelines/README.md): find which guideline governs
+  which change
+- [guidelines/philosophy.md](guidelines/philosophy.md): understand the
+  reasoning behind the guidelines
+- [docs/internals.md](docs/internals.md): understand how the plugin delivers
+  the guidelines and how the `iglootools` command is organized, before changing
+  `skills/`, `hooks/` or `agents/`
 
 ## Reference
 
-- [docs/installation.md](docs/installation.md): how projects install and update
-  the plugin
+- [docs/installation.md](docs/installation.md): follow to install the plugin
+  in a project, or update it
 - [guidelines/project-setup/shared-workflows.md](guidelines/project-setup/shared-workflows.md):
-  the reusable workflows this repository hosts, and what a caller must declare
+  know what a caller of the reusable workflows this repository hosts must
+  declare
 - [guidelines/project-setup/iglootools-cli.md](guidelines/project-setup/iglootools-cli.md):
-  the `iglootools` command, as projects install and configure it
+  know how projects install, configure and pin the `iglootools` command

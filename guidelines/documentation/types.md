@@ -15,6 +15,7 @@ written is in [writing-guidelines.md](writing-guidelines.md).
   - [Give each fact one home, and link to it](#give-each-fact-one-home-and-link-to-it)
   - [Use real examples](#use-real-examples)
 - [Map](#map)
+  - [Start each link's description with its kind's verb](#start-each-links-description-with-its-kinds-verb)
 - [Tutorial](#tutorial)
 - [How-to guide](#how-to-guide)
 - [Reference](#reference)
@@ -31,11 +32,11 @@ A document's kind is set by what its reader came to do:
 |---|---|---|
 | [Map](#map) | find where something is | `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, each `guidelines/*/README.md` |
 | [Tutorial](#tutorial) | learn by doing, start to finish | nbkp's `tutorial.md` |
-| [How-to guide](#how-to-guide) | get a known task done | `installation.md`, `usage.md`, `setup-development-environment.md`, `releasing-and-publishing.md`, network-infra's `operations.md` |
+| [How-to guide](#how-to-guide) | follow the steps of a known task | `installation.md`, `usage.md`, `setup-development-environment.md`, `releasing-and-publishing.md`, network-infra's `operations.md` |
 | [Reference](#reference) | look up an exact fact | `cli-reference.md`, `config-reference.md`, `features.md` |
 | [Explanation](#explanation) | understand what something is and why it works that way | `domain.md`, `architecture.md`, `internals.md`, `philosophy.md` |
 | [Rules](#rules) | know what a change must respect | the shared guidelines, `docs/guidelines.md` or `docs/guidelines/`, a subsystem's `guidelines.md` |
-| [Record](#record) | recover what was decided or done, and why | `architecture-decision-record.md`, `divergence-from-the-template.md`, network-infra's host log |
+| [Record](#record) | find out what was decided or done, and why | `architecture-decision-record.md`, `divergence-from-the-template.md`, network-infra's host log |
 
 The first five are [Diátaxis](https://diataxis.fr/)'s four kinds plus the maps
 that link them; rules and records are what a codebase adds. Posts written for
@@ -94,6 +95,25 @@ project has is set by [layout.md](layout.md).
 
 **Why:** everyone reads a map first, so every line in it costs every reader, and
 any content it holds is a second copy of something else.
+
+### Start each link's description with its kind's verb
+
+Each line says when to go there with the verb of the destination's kind, from
+[the table](#the-kinds): *learn* for a tutorial, *follow* for a how-to guide,
+*look up* for a reference, *understand* for an explanation,
+*know what … must respect* for rules, *find out* for a record, and *find* for
+another map. The `CONTRIBUTING.md` scaffold in
+[layout.md](layout.md#split-readmemd-contributingmd-and-docs-by-reader) shows
+it:
+
+```markdown
+- [docs/domain.md](docs/domain.md) — understand the domain concepts and how they relate
+- [docs/config-reference.md](docs/config-reference.md) — look up every configuration field
+```
+
+**Why:** the reader learns what the document will do for them without knowing
+the kinds' names, and the verb matches the document's own
+[opening sentence](#open-with-who-it-is-for-and-what-it-answers).
 
 ## Tutorial
 
