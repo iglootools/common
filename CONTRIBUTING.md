@@ -33,9 +33,10 @@ the bar a documented exception has to meet.
   guidelines
 - [docs/internals.md](docs/internals.md): how the plugin delivers the
   guidelines, and how the `iglootools` command is organized
-- [guidelines/coding/README.md](guidelines/coding/README.md) and
-  [guidelines/project-setup/README.md](guidelines/project-setup/README.md): the
-  index of each half of the guidelines
+- [guidelines/coding/README.md](guidelines/coding/README.md),
+  [guidelines/project-setup/README.md](guidelines/project-setup/README.md) and
+  [guidelines/documentation/README.md](guidelines/documentation/README.md): the
+  index of each part of the guidelines
 
 ## Reference
 

@@ -19,9 +19,10 @@ Renamed from `common-guidelines`, which described only the first of those.
 The rules themselves live in [**`guidelines/`**](guidelines/), split into
 [`coding/`](guidelines/coding/) for how code is written and
 [`project-setup/`](guidelines/project-setup/) for how a repository is
-configured, and [`review/`](guidelines/review/) for auditing a codebase against
-both. Each has its own index. They divide by how they are delivered rather than
-by subject: three govern every edit and are in context from the start of a
+configured, [`documentation/`](guidelines/documentation/) for how its documents
+are written, and [`review/`](guidelines/review/) for auditing a codebase against
+all three. Each has its own index. They divide by how they are delivered rather
+than by subject: three govern every edit and are in context from the start of a
 session, the rest are read only when a change reaches the files they govern:
 
 | Always on | |
@@ -38,7 +39,7 @@ session, the rest are read only when a change reaches the files they govern:
 | [`project-setup/shared-workflows.md`](guidelines/project-setup/shared-workflows.md) | adding or changing a caller of a workflow this repository hosts |
 | [`project-setup/dependency-automation.md`](guidelines/project-setup/dependency-automation.md) | `renovate.json`, `dependabot.yml`, the repository settings both depend on, `lint-renovate` and `renovate-dry-run` |
 | [`project-setup/repository.md`](guidelines/project-setup/repository.md) | `.gitignore`, setting up a new repository, repository rulesets and merge settings, the code of conduct and security policy |
-| [`project-setup/documentation.md`](guidelines/project-setup/documentation.md) | `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, `docs/**` |
+| [`documentation/layout.md`](guidelines/documentation/layout.md) | `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, `docs/**` |
 | [`project-setup/pypi-publishing.md`](guidelines/project-setup/pypi-publishing.md) | the release and publish workflows, cutting a release |
 | [`project-setup/iglootools-cli.md`](guidelines/project-setup/iglootools-cli.md) | `[tool.iglootools]`, the `iglootools` pin, a task that calls `iglootools` |
 | [`project-setup/cli-demo.md`](guidelines/project-setup/cli-demo.md) | `demo/**`, the demo workflow and tasks |

@@ -1,9 +1,9 @@
 # Review Guidelines
 
-How an iglootools codebase is audited against the [coding](../coding/) and
-[project-setup](../project-setup/) guidelines. Read by the plugin's `audit-pr`
-and `audit-full` skills and the `auditor` agent they start, and usable by hand
-as a review checklist.
+How an iglootools codebase is audited against the [coding](../coding/),
+[project-setup](../project-setup/) and [documentation](../documentation/)
+guidelines. Read by the plugin's `audit-pr` and `audit-full` skills and the
+`auditor` agent they start, and usable by hand as a review checklist.
 
 | File | What is in it |
 |---|---|
