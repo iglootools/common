@@ -15,13 +15,19 @@ written is in [writing-guidelines.md](writing-guidelines.md).
   - [Give each fact one home, and link to it](#give-each-fact-one-home-and-link-to-it)
   - [Use real examples](#use-real-examples)
 - [Map](#map)
+  - [Say when to go there, not what is inside](#say-when-to-go-there-not-what-is-inside)
   - [Start each link's description with its kind's verb](#start-each-links-description-with-its-kinds-verb)
 - [Tutorial](#tutorial)
+  - [Follow one realistic path, end to end](#follow-one-realistic-path-end-to-end)
 - [How-to guide](#how-to-guide)
+  - [Get a reader who knows the goal through one task](#get-a-reader-who-knows-the-goal-through-one-task)
 - [Reference](#reference)
+  - [Describe everything, the same way for each entry](#describe-everything-the-same-way-for-each-entry)
 - [Explanation](#explanation)
+  - [Answer one question, with the reasoning beside it](#answer-one-question-with-the-reasoning-beside-it)
 - [Rules](#rules)
 - [Record](#record)
+  - [Keep what was decided or done, as it was at the time](#keep-what-was-decided-or-done-as-it-was-at-the-time)
 <!-- tocstop -->
 
 ## The kinds
@@ -85,6 +91,8 @@ and wrong in a way someone will notice later.
 
 ## Map
 
+### Say when to go there, not what is inside
+
 A map lists where each thing is, one line per destination, saying when to go
 there rather than what is inside. It fits on a screen, and holds no content of
 its own. The README is the one exception: it also makes the case for the
@@ -117,7 +125,7 @@ the kinds' names, and the verb matches the document's own
 
 ## Tutorial
 
-A tutorial follows one realistic path, end to end:
+### Follow one realistic path, end to end
 
 - **It does not branch.** Alternatives and options belong in the how-to guides,
   linked at the end.
@@ -132,7 +140,7 @@ breaks at step seven loses them for good.
 
 ## How-to guide
 
-A how-to guide gets a reader who knows their goal to the end of one task:
+### Get a reader who knows the goal through one task
 
 - **Title each section by its task**: "Release a version", "Initializing a
   drive".
@@ -149,7 +157,7 @@ a mistake, not just time.
 
 ## Reference
 
-A reference describes everything there is, the same way for each entry:
+### Describe everything, the same way for each entry
 
 - **Complete, and generated from the code wherever it can be**, as
   [layout.md](layout.md#generate-references-from-the-code-and-check-them)
@@ -163,9 +171,11 @@ option sends them to the code, and then for every option after that.
 
 ## Explanation
 
-An explanation answers one question: *what* the project models
-(`domain.md`), *where* its code lives (`architecture.md`), or *how* and *why* it
-behaves as it does (`internals.md`):
+### Answer one question, with the reasoning beside it
+
+An explanation answers *what* the project models (`domain.md`), *where* its code
+lives (`architecture.md`), or *how* and *why* it behaves as it does
+(`internals.md`):
 
 - **It uses the domain's vocabulary**, defined once in `domain.md`'s glossary.
 - **It puts the reasoning next to what it explains**, as `Why …` subsections. A
@@ -184,7 +194,7 @@ as [writing-guidelines.md](writing-guidelines.md) describes.
 
 ## Record
 
-A record keeps what was decided or done, as it was at the time:
+### Keep what was decided or done, as it was at the time
 
 - **Append, never rewrite.** Add new entries at the end, dated. A changed
   decision is a new entry that supersedes the old one.

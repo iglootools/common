@@ -1,13 +1,12 @@
 # Writing Guidelines
 
-How a guideline is written: the shared guidelines in this directory tree, a
-project's guidelines, at the paths
+How to write a rule: in the shared guidelines, and in a project's guidelines
+files at the paths
 [layout.md](layout.md#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean)
-names. Read it
-before adding or reworking a rule. Rules are one of the
+names. Read it before adding or reworking a rule. Rules are one of the
 [documentation types](types.md), so the rules for
-[every kind](types.md#every-kind) apply too; `philosophy.md` is an
-[explanation](types.md#explanation), so these rules do not apply to it.
+[every kind](types.md#every-kind) apply too. `philosophy.md` is an
+[explanation](types.md#explanation), and these rules do not apply to it.
 
 <!-- toc -->
 **On this page**
@@ -17,6 +16,7 @@ before adding or reworking a rule. Rules are one of the
   - [Head each rule with the rule itself](#head-each-rule-with-the-rule-itself)
   - [State the rule, then why, then the details](#state-the-rule-then-why-then-the-details)
   - [Move a long why out of the rule](#move-a-long-why-out-of-the-rule)
+  - [Write one idea per sentence](#write-one-idea-per-sentence)
 - [Content](#content)
   - [Own each rule in one file, and cite it everywhere else](#own-each-rule-in-one-file-and-cite-it-everywhere-else)
   - [Make an index say when to read a file, not what it says](#make-an-index-say-when-to-read-a-file-not-what-it-says)
@@ -54,7 +54,7 @@ Each rule follows the same shape:
 One to three sentences stating the rule precisely enough to follow it.
 
 **Why:** what breaks, or what is lost, when it is not followed, in one or two
-sentences. [More](#pin-every-action-to-a-commit-sha-1) when it needs more.
+sentences. [Rationale](#pin-every-action-to-a-commit-sha-1) when it needs more.
 
 - The specifics: the cases, the commands, the exceptions already known.
 ```
@@ -73,29 +73,38 @@ rule's **Why:** line. Reasoning that more than one guideline rests on goes in
 **Why:** the rules stay compact enough to scan, and the argument is still one
 click away for the reader who needs it.
 
+### Write one idea per sentence
+
+Use bullets for parallel cases and tables for mappings.
+
+**Why:** a sentence carrying two ideas hides the second, and a list of cases in
+prose cannot be scanned.
+
 ## Content
 
 ### Own each rule in one file, and cite it everywhere else
 
-State a rule in the guideline whose trigger covers it. Any other guideline that
-touches the subject cites it in one line, linking to the section: "Name the task
-as
+This is
+[Give each fact one home](types.md#give-each-fact-one-home-and-link-to-it)
+applied to rules. State a rule in the guideline whose trigger covers it. Any
+other guideline that touches the subject cites it in one line, linking to the
+section: "Name the task as
 [mise.md › Name tasks by family](../project-setup/mise.md#name-tasks-by-family)
 describes." Do not summarize it. If the other file's readers need the rule in
 front of them, route them to both files from the `guidelines` skill rather than
 copying the rule.
 
 **Why:** a summary is a copy, and copies drift without anything failing. The
-reader cannot tell which version wins. See
-[State each fact once](../philosophy.md#state-each-fact-once).
+reader cannot tell which version wins.
 
 ### Make an index say when to read a file, not what it says
 
-Each `README.md` index, the skill's routing table and the root README give one
-line per file: the change that should send a reader there.
+The guidelines' indexes, each directory's `README.md` and the skill's routing
+table, are [maps](types.md#say-when-to-go-there-not-what-is-inside): one line
+per file, naming the change that should send a reader there.
 
 **Why:** an index that summarizes each file is a second copy of every file, and
-this repository has four indexes.
+the guidelines have several indexes.
 
 ### Say how firmly a rule holds
 
@@ -126,10 +135,11 @@ check. When the check changes, the prose quietly goes wrong.
   return to it, and then write it as the reason.
 - **No hedging, and no addressing an agent.** Write the rule for a person
   ([Documentation for people first](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps)).
-  When an agent reads which file is the skill's and the hook's concern, not the
-  guideline's.
-- **One idea per sentence.** Use bullets for parallel cases and tables for
-  mappings.
+  Which file an agent reads, and when, is for the skill and the hooks to
+  decide.
+- **Move what is not a rule to where it belongs**: an argument to the
+  `## Rationale` section or `philosophy.md`, a procedure or a reference to the
+  project's `docs/`, and a description of how a tool works to its code.
 
 **Why:** length hides the rule. The always-on guidelines are paid for in every
 session, and the others each time they are read.

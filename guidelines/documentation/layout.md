@@ -5,10 +5,10 @@ and under what names, and how agents are pointed at them. Read this when adding,
 renaming or restructuring `README.md`, `CONTRIBUTING.md`, `AGENTS.md` or
 anything under `docs/`.
 
-The principle behind every rule here is in
-[Documentation for people first, agent configuration for the gaps](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps):
-the documentation is written for people, in the project's docs, and `AGENTS.md`,
-skills and hooks only decide when an agent reads it.
+The documentation is written for people, in the project's docs; `AGENTS.md`,
+skills and hooks only decide when an agent reads it, as
+[Documentation for people first](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps)
+argues. What makes each document good is in [types.md](types.md).
 
 <!-- toc -->
 **On this page**
@@ -44,14 +44,12 @@ that code, as
 [Let the people who own an area set its conventions](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps)
 argues.
 
-- **Only the entry file is loaded in every session.** The plugin's
-  `SessionStart` hook emits it after the shared guidelines, so a project rule
-  overrides a shared one while the code is written. It then lists the path of
-  every other guidelines file, and the skill has the agent read the ones that
-  govern a file before changing it.
 - **The entry file holds rules and links**: deviations from the shared
   guidelines, which shared sections are out of scope, the project's own rules,
-  and a link to everything else. Every line in it is paid for in every session.
+  and a link to everything else. It is loaded into every agent session, after
+  the shared guidelines so that it overrides them, and every line is paid for
+  each time. The other guidelines files are read when a change reaches what they
+  govern.
 - **Anything long moves into its own file under `docs/guidelines/`**, linked
   from the entry under a heading that names the task: an implementation
   checklist (adding a CLI command, a config field, a migration), a testing
@@ -86,6 +84,10 @@ argues.
 | `README.md` | someone deciding whether to use the project | the case for the project, and links to everything else, as [below](#make-the-readme-a-pitch-that-links-out) |
 | `CONTRIBUTING.md` | someone changing it | the index of the contributor documentation, one line per document — nothing else |
 | `docs/` | either | every document longer than a README section, user-facing and contributor-facing alike |
+
+**Why:** each reader comes with a different question, and a file that answers
+both answers neither: a prospective user does not need the build instructions,
+and a contributor needs more than the pitch.
 
 - **Every project has a `CONTRIBUTING.md`**, even one with no `docs/`, where it
   indexes whatever plays those roles and says why its shape differs. GitHub
@@ -167,9 +169,11 @@ open.
 `AGENTS.md` at the project root is what every coding agent reads first. It is a
 map, not a manual: what the project is, the commands that build and check it,
 the guidelines to read, where the documentation index is, and what only an agent
-needs, such as which
-MCP server answers questions about a framework that moves faster than any
-model's training data.
+needs, such as which MCP server answers questions about a framework that moves
+faster than any model's training data.
+
+**Why:** it is read in every session, so every line costs, and a rule kept only
+there is invisible to the people who review the agent's work.
 
 ```markdown
 # AGENTS.md
@@ -201,16 +205,14 @@ architecture. Read a document when the task reaches it, not up front.
 ```
 
 - **Point at `CONTRIBUTING.md` instead of listing documents.** It is the one
-  index of the documentation, and the skill reads it too.
-  **Why:** a second list drifts from the first, and a renamed or added
-  document should change one line.
+  index of the documentation, and a second list drifts from it.
 - **Link, do not `@`-import.** An import loads the document into every session,
   needed or not. Write paths as links or in backticks: Claude Code treats a bare
   `@path` as an import.
 - **Keep it under a screen**, since it is read every session. What applies only
   to some files belongs in the document that covers them.
 - **Do not restate** the shared guidelines, the project's documents, or
-  `docs/guidelines.md`, which the plugin's `SessionStart` hook already emits.
+  `docs/guidelines.md`, which agents already receive.
 
 ## What to write
 
@@ -220,6 +222,9 @@ Create each document when the project has something to put in it, not as an
 empty placeholder. The skill finds them through `CONTRIBUTING.md`, so the names
 are not enforced, but every project uses the same one per role, matching the
 title (`# Building and Testing` lives in `building-and-testing.md`).
+
+**Why:** a contributor moving between projects finds the same document under the
+same name, and an empty placeholder is a promise nobody keeps.
 
 **For contributors:**
 
@@ -277,22 +282,27 @@ bottom, each numbered and titled with the decision itself:
 ### Consequences
 ```
 
-- **Do not edit an entry to change the decision.** Add a new one whose `Status`
-  names the entry it supersedes, so the log keeps what was believed at the time.
+**Why:** without the reasoning on record, the next person to question the choice
+reargues it from scratch, or reverses it without knowing what it was protecting.
+
+- **Write it as a [record](types.md#record)**: append, supersede rather than
+  edit, and name what would retire the decision.
 - **The bar is a choice worth arguing.** Where the project simply does what its
   framework does, or a one-line comment at the setting carries the reasoning,
   the comment is enough.
-- **Name what would retire it**, as for a documented exception in
-  [Documented Exceptions](../coding/general.md#documented-exceptions).
 
 ### Record repository settings as commands in one place
 
-Rulesets, Dependabot alerts and security updates, Actions secrets, the Pages
-source, the dependency graph: none of these live in a file, so none are
-reviewed, and a repository recreated from its contents comes back without them.
-Record each one in the `## GitHub Config` section of
+Record each setting that lives outside the repository's files, such as
+rulesets, Dependabot alerts and security updates, Actions secrets, the Pages
+source and the dependency graph, in the `## GitHub Config` section of
 `docs/building-and-testing.md` (`CONTRIBUTING.md` in a repository with no
-`docs/`), as:
+`docs/`).
+
+**Why:** none of these settings live in a file, so none are reviewed, and a
+repository recreated from its contents comes back without them.
+
+Record each one as:
 
 - the command that applies it (`gh api --method POST …`), so it can be
   re-applied rather than reconstructed from the UI;
@@ -303,10 +313,8 @@ Record each one in the `## GitHub Config` section of
 
 The publishing *target* — a PyPI trusted publisher and the GitHub environments
 it names — is release configuration, in `docs/releasing-and-publishing.md`,
-linked from that section. A shared setting the project cannot apply (rulesets on
-a private repository on a free plan) is a documented exception in
-`docs/guidelines.md`, with the commands to apply once it retires. What the
-rulesets contain is in
+linked from that section. What the rulesets contain, and what to do when a plan
+cannot have them, is in
 [repository.md](../project-setup/repository.md#protect-the-default-branch-and-release-tags).
 
 ## Keeping it true
@@ -314,7 +322,10 @@ rulesets contain is in
 ### Generate references from the code, and check them
 
 Generate what can be derived from the code, and fail the build when the
-committed copy differs:
+committed copy differs.
+
+**Why:** a hand-kept reference drifts from the code without failing anything; a
+generated one with a check cannot.
 
 | Generated | From | Tasks | Command |
 |---|---|---|---|
@@ -326,8 +337,8 @@ committed copy differs:
 - **Every generator has a `lint-*` task, and `lint` runs it.** The tasks are
   one-line calls to the [`iglootools`](../project-setup/iglootools-cli.md)
   commands with `--check`, which exit non-zero when the output would change and
-  name the task that regenerates it. The task set is in
-  [python-tooling.md](../project-setup/python-tooling.md#mise-tasks).
+  name the task that regenerates it. Their names follow
+  [mise.md › Name tasks by family](../project-setup/mise.md#name-tasks-by-family).
 - **Any document long enough to scroll gets a table of contents**:
   `mise run toc --add <file>` puts it between `<!-- toc -->` and
   `<!-- tocstop -->`.
@@ -355,3 +366,6 @@ the documents it has to touch: a new config field updates `config-reference.md`
 (regenerate, then the prose the generator cannot derive) and `usage.md`; a
 change to an entity or invariant updates `domain.md`; a new module updates the
 layering rules in `architecture.md`.
+
+**Why:** a change that does not say which documents it reaches leaves them to be
+noticed later, by a reader who finds them wrong.
