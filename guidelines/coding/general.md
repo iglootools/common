@@ -103,7 +103,7 @@ Adopt a practice because it helps the people working on the project; that it
 also helps AI agents should be a consequence.
 
 - Write documentation for people first, in the project's docs. `AGENTS.md`,
-  `CLAUDE.md`, skills, plugins, hooks and commands point agents at that
+  skills, plugins, hooks and commands point agents at that
   documentation and fill the gaps only agents have — they are never the only
   copy of a rule.
 - Conventions for a layer or area (storage, CLI, event schema, CI) are written
