@@ -1,6 +1,6 @@
 ---
 description: The iglootools shared guidelines — how these projects write and review code, package Python, configure CI and dependency automation, format and lint files, set up the editor, and record a documented exception where a rule does not fit. Use before changing any source file, GitHub workflow, dependency or build configuration, or editor and Claude Code settings; before calling a change done; and before departing from a rule.
-when_to_use: Writing or reviewing code; editing .github/workflows, renovate.json, dependabot.yml or .gitignore; editing dprint.json or .rumdl.toml, or fixing a formatting or Markdown lint failure; adding or restructuring project documentation (CONTRIBUTING.md, AGENTS.md, CLAUDE.md, docs/); editing pyproject.toml, mise.toml, a file under mise-tasks/, a shell script or a lock file; adding a dependency or a mise task; editing .vscode/, .claude/settings.json or a *.code-workspace; setting up a new repository; departing from a shared rule; adding a ruff ignore, a noqa, or a pyright suppression.
+when_to_use: Writing or reviewing code; editing .github/workflows, renovate.json, dependabot.yml or .gitignore; editing dprint.json or .rumdl.toml, or fixing a formatting or Markdown lint failure; adding or restructuring project documentation (CONTRIBUTING.md, AGENTS.md, docs/); editing pyproject.toml, mise.toml, a file under mise-tasks/, a shell script or a lock file; adding a dependency or a mise task; editing .vscode/, .claude/settings.json or a *.code-workspace; setting up a new repository; departing from a shared rule; adding a ruff ignore, a noqa, or a pyright suppression.
 paths:
   - "**/*.py"
   - "**/*.pyi"
@@ -26,7 +26,6 @@ paths:
   - ".git-blame-ignore-revs"
   - "CONTRIBUTING.md"
   - "AGENTS.md"
-  - "CLAUDE.md"
   - "docs/*.md"
   - "**/guidelines.md"
   - "**/guidelines/**/*.md"
@@ -105,7 +104,7 @@ looks skippable is usually the part that names the failure.
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, the `lint-renovate` or `renovate-dry-run` tasks, the `npm:renovate` pin and `.mise/locks/`, or a question about why a dependency update did or did not appear. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/repository.md` | The committed `.gitignore`, setting up a new repository, its rulesets (branch or tag protection), how pull requests are merged, or the code of conduct and security policy. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/layout.md` | Adding, renaming or restructuring project documentation: `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, or a file under `docs/` — including `docs/guidelines.md` and a new area-conventions document. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/layout.md` | Adding, renaming or restructuring project documentation: `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, or a file under `docs/` — including `docs/guidelines.md` and a new area-conventions document. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/types.md` | Writing a new document, or reworking what one says, anywhere in the project. Read it *with* `layout.md` when the document is new or moves. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/writing-guidelines.md` | Adding or reworking a rule in any of the project's guidelines files. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/pypi-publishing.md` | `release.yml`, `publish.yml` or `publish-test.yml`, the version scheme, or cutting a release by hand. Read it *with* `workflows.md` when the edit is to a workflow. |

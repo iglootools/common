@@ -2,8 +2,8 @@
 
 Where an iglootools project keeps its documentation, which documents it writes
 and under what names, and how agents are pointed at them. Read this when adding,
-renaming or restructuring `README.md`, `CONTRIBUTING.md`, `AGENTS.md`,
-`CLAUDE.md` or anything under `docs/`.
+renaming or restructuring `README.md`, `CONTRIBUTING.md`, `AGENTS.md` or
+anything under `docs/`.
 
 The principle behind every rule here is in
 [Documentation for people first, agent configuration for the gaps](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps):
@@ -16,7 +16,7 @@ skills and hooks only decide when an agent reads it.
 - [Where documentation lives](#where-documentation-lives)
   - [Keep the project's guidelines at conventional paths, and the entry file lean](#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean)
   - [Split `README.md`, `CONTRIBUTING.md` and `docs/` by reader](#split-readmemd-contributingmd-and-docs-by-reader)
-  - [Keep `AGENTS.md` a short map, with no `CLAUDE.md` beside it](#keep-agentsmd-a-short-map-with-no-claudemd-beside-it)
+  - [Keep `AGENTS.md` a short map](#keep-agentsmd-a-short-map)
 - [What to write](#what-to-write)
   - [Write the documents the project's shape calls for, one name per role](#write-the-documents-the-projects-shape-calls-for-one-name-per-role)
   - [Record architectural decisions in an append-only log](#record-architectural-decisions-in-an-append-only-log)
@@ -141,7 +141,7 @@ describes.
 - [docs/config-reference.md](docs/config-reference.md) — every configuration field
 ```
 
-### Keep `AGENTS.md` a short map, with no `CLAUDE.md` beside it
+### Keep `AGENTS.md` a short map
 
 `AGENTS.md` at the project root is what every coding agent reads first. It is a
 map, not a manual: what the project is, the commands that build and check it,
@@ -180,9 +180,6 @@ Read a document when the task reaches it, not up front:
 - [docs/building-and-testing.md](docs/building-and-testing.md): test suites and their tasks.
 ```
 
-- **No `CLAUDE.md`.** Claude Code reads `AGENTS.md` itself (since 2.1.277), but
-  only when there is no `CLAUDE.md`: one beside it replaces it for Claude, and
-  is a second entry point only one agent reads.
 - **Link, do not `@`-import.** An import loads the document into every session,
   needed or not. Write paths as links or in backticks: Claude Code treats a bare
   `@path` as an import.
@@ -331,4 +328,3 @@ The `Documentation` checklist in `docs/guidelines.md` maps a kind of change to
 the documents it has to touch: a new config field updates `config-reference.md`
 (regenerate, then the prose the generator cannot derive) and `usage.md`; a
 change to an entity or invariant updates `domain.md`; a new module updates the
-layering rules in `architecture.md`.

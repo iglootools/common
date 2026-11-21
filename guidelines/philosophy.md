@@ -501,7 +501,7 @@ agent is a sign of a gap in the human setup, and that gap is the thing to fix.
 
 Write the documentation a person needs — architecture, conventions, how to build
 and test, why things are the way they are — in the project's docs, where people
-read it. Do not start with `AGENTS.md` or `CLAUDE.md`. A rule that exists only
+read it. Do not start with `AGENTS.md`. A rule that exists only
 in agent configuration is invisible to the people who review the agent's work,
 so nobody notices when it goes stale, and the human contributors never get it at
 all.
