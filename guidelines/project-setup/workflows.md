@@ -152,15 +152,15 @@ Dependabot.
   lost, because a lock-regenerating workflow needs the mise binary and the
   config, not a tool environment.
 
-- **Name every workflow after its own file.** `name: test` in `test.yml`,
-  `name: renovate-mise-lock` in `renovate-mise-lock.yml` — the filename's stem,
-  verbatim, kebab-case included. GitHub exposes both identifiers and neither one
-  substitutes for the other: the status-badge URL, the REST
-  `/actions/workflows/{file}` endpoint, and `gh workflow run` address a workflow
-  by filename, while the Actions UI, the `workflows:` list of a `workflow_run`
-  trigger, and `${{ github.workflow }}` address it by name. Letting them diverge
-  means holding a mapping between the two in your head every time you read a
-  badge, a trigger, or a run listing.
+- **Name every workflow after its own file.** `name: preflight` in
+  `preflight.yml`, `name: renovate-mise-lock` in `renovate-mise-lock.yml` — the
+  filename's stem, verbatim, kebab-case included. GitHub exposes both
+  identifiers and neither one substitutes for the other: the status-badge URL,
+  the REST `/actions/workflows/{file}` endpoint, and `gh workflow run` address a
+  workflow by filename, while the Actions UI, the `workflows:` list of a
+  `workflow_run` trigger, and `${{ github.workflow }}` address it by name.
+  Letting them diverge means holding a mapping between the two in your head
+  every time you read a badge, a trigger, or a run listing.
 
   Two failures make this more than tidiness. A workflow with no `name:` at all
   gets `github.workflow` set to its *path*, so the concurrency group below
@@ -178,6 +178,12 @@ Dependabot.
   across jobs that run side by side, each job takes its own task's name
   (`preflight-quick`, `test-docker`), and the job that waits on all of them,
   and fails unless they all passed, is the one named `preflight`.
+
+  The workflow that runs on every pull request follows the same name:
+  `preflight.yml`, with `name: preflight`, holding the `preflight` job. A
+  workflow, its job, its `ci-*` task and the command to reproduce it locally
+  then all read `preflight`, and nothing is called `test`, `ci` or `check` that
+  runs more than tests, CI plumbing or one check.
 
   The job name is also the check name a ruleset requires
   ([repository.md](repository.md#protect-the-default-branch-and-release-tags)),

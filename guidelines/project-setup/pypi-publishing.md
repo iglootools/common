@@ -277,11 +277,11 @@ is the step after it:
   a version that may already be taken.
 - **`build-verify` runs before the upload, in the same job.** It reads the built
   wheel's metadata and fails on the fallback version. A guard that runs after
-  the upload, or only in `test.yml`, cannot stop it. Its design is in
+  the upload, or only in `preflight.yml`, cannot stop it. Its design is in
   [python-tooling.md](python-tooling.md#guard-against-a-000-release).
 - **`UV_LOCKED: 1` in the workflow `env`.** It is set for the same reason as in
-  `test.yml`: a release is built from exactly the locked dependencies, or not at
-  all.
+  `preflight.yml`: a release is built from exactly the locked dependencies, or
+  not at all.
 
 ### Publish with trusted publishing, never an API token
 

@@ -34,7 +34,7 @@ describes. Two rulesets:
 
 - **`main`** (default branch): no deletion or force-push, changes through a pull
   request merged with a merge commit, and the `preflight` check (the job in
-  `test.yml` that runs `ci-preflight`) must pass. It has to keep running on
+  `preflight.yml` that runs `ci-preflight`) must pass. It has to keep running on
   every pull request (no `paths` filter on its workflow), or a pull request it
   skips can never be merged. `integration_id` 15368 is GitHub Actions, which
   keeps a check with the same name from another app from satisfying the rule.
