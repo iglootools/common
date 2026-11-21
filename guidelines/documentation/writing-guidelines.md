@@ -1,7 +1,9 @@
 # Writing Guidelines
 
 How a guideline is written: the shared guidelines in this directory tree, a
-project's `docs/guidelines.md`, and its `docs/<area>-conventions.md`. Read it
+project's guidelines, at the paths
+[layout.md](layout.md#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean)
+names. Read it
 before adding or reworking a rule. Rules are one of the
 [documentation types](types.md), so the rules for
 [every kind](types.md#every-kind) apply too; `philosophy.md` is an

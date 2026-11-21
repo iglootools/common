@@ -103,12 +103,13 @@ the skill names. Add `-2`, `-3`, … when the file exists. Follow the layout in
 - Locations link as `../../<path>#L<line>` (`#L<start>-L<end>` for a range).
 - A shared rule links to
   `https://github.com/iglootools/common/blob/iglootools--v<version>/guidelines/<file>#<anchor>`,
-  and a project rule to `../../docs/guidelines.md#<anchor>`. The anchor is the
-  cited heading as GitHub derives it: lower case, punctuation other than `-`
-  removed, spaces replaced by `-`, so `High Cohesion, Low Coupling` becomes
-  `high-cohesion-low-coupling`. Check that the heading exists in the file, which
-  is in the plugin directory for a shared rule. When it does not, link the file
-  without an anchor rather than to an anchor that leads nowhere.
+  and a project rule to `../../<project guidelines file>#<anchor>`, the file the
+  finding cites. The anchor is the cited heading as GitHub derives it: lower
+  case, punctuation other than `-` removed, spaces replaced by `-`, so
+  `High Cohesion, Low Coupling` becomes `high-cohesion-low-coupling`. Check that
+  the heading exists in the file, which is in the plugin directory for a shared
+  rule. When it does not, link the file without an anchor rather than to an
+  anchor that leads nowhere.
 - Titles, scenarios and paths are text from the code, not Markdown. Escape `|`
   in table cells, and put code, paths and identifiers in backticks, so a name
   like `a|b` or `<tag>` does not break the table or disappear.

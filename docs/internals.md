@@ -80,12 +80,16 @@ away.
 
 Emission can be conditional: `coding/python.md` goes out only when the project
 has a `pyproject.toml`, so a project with no Python does not pay for it. The
-project's own `docs/guidelines.md` goes out last, when it exists, under a
-heading that says it overrides the shared rules above it: an override the agent
-only reads on demand is one it does not have in front of it while writing the
-code it overrides. If a file cannot be read, the hook says so in the injected
-text rather than emitting nothing, because a guideline that failed to load must
-not be indistinguishable from one that does not apply.
+project's guidelines entry file goes out last, when it exists
+(`docs/guidelines.md`, or `docs/guidelines/README.md` when the guidelines are
+split), under a heading that says it overrides the shared rules above it: an
+override the agent only reads on demand is one it does not have in front of it
+while writing the code it overrides. Every other `guidelines.md` and
+`guidelines/**/*.md` the project tracks is listed after it by path, with what it
+governs, and read when a change reaches that: loading them all would make every
+session pay for every area's conventions. If a file cannot be read, the hook
+says so in the injected text rather than emitting nothing, because a guideline
+that failed to load must not be indistinguishable from one that does not apply.
 
 ## The `iglootools` command
 
