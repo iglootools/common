@@ -207,11 +207,16 @@ title (`# Building and Testing` lives in `building-and-testing.md`).
 | `docs/setup-development-environment.md` (not `project-setup.md`, which collides with the shared guidelines' `project-setup/` about configuring a repository) | how to get the project running: the toolchain, the editor, installing the plugin | always |
 | `docs/building-and-testing.md` (not `build-test.md`) | the task reference, testing strategy, the checks CI runs, and the [GitHub settings](#record-repository-settings-as-commands-in-one-place) | always |
 | `docs/releasing-and-publishing.md` (not `release-publish.md`) | how a release is cut, what triggers what, and the publishing target's configuration | the project releases anything |
-| `docs/domain.md` | the concepts the code models, in the domain's vocabulary: what each one is, how they relate, and the invariants between them; ends with a glossary | the project models anything a newcomer would have to learn — nearly always |
 | `docs/architecture.md` | how the code is organized: modules or layers, what depends on what, the reasoning behind the import contracts, and where a new piece of code goes | there is more than one module |
 | `docs/internals.md` | runtime behavior and the reasoning behind it: algorithms, on-disk formats, the external commands invoked, and design decisions as `Why …` subsections next to the behavior they explain | the behavior is not obvious from the code, or a decision would otherwise be relitigated |
 | `docs/architecture-decision-record.md` (not `adr/`, `decisions.md`) | the [decision log](#record-architectural-decisions-in-an-append-only-log) | a choice worth arguing has been made |
 | `docs/guidelines/<area>.md`, `<dir>/guidelines.md` | an area's conventions, written by the people who own it | an area has [conventions of its own](#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean) |
+
+**For both**, linked from the README and from `CONTRIBUTING.md`:
+
+| Path | Holds | Write it when |
+|---|---|---|
+| `docs/domain.md` | the concepts the code models, in the domain's vocabulary: what each one is, how they relate, and the invariants between them; ends with a glossary | the project models anything a newcomer would have to learn — nearly always |
 | `docs/cli-reference.md` | every command, option and argument | the project ships a CLI — [generate it](#generate-references-from-the-code-and-check-them) |
 | `docs/config-reference.md` | every configuration field: type, default, validation rule; examples under `docs/config-examples/` | the project reads a configuration file |
 
