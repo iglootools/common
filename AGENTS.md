@@ -44,7 +44,8 @@ what it governs:
   shared workflows) without breaking them, and cutting a release.
 - [docs/internals.md](docs/internals.md): how the plugin's skill and hooks
   deliver the guidelines. Read before changing `skills/`, `hooks/` or `agents/`.
-- [README.md](README.md): what is here, and which guideline each kind of file
-  triggers.
+- [README.md](README.md): what is here.
+- [guidelines/README.md](guidelines/README.md): which guideline governs which
+  change.
 - [guidelines/philosophy.md](guidelines/philosophy.md): the reasoning behind the
   guidelines.

@@ -27,8 +27,9 @@ the bar a documented exception has to meet.
 
 ## Understanding the repository
 
-- [README.md](README.md): what is here, and which guideline is triggered by
-  which file
+- [README.md](README.md): what is here
+- [guidelines/README.md](guidelines/README.md): which guideline governs which
+  change
 - [guidelines/philosophy.md](guidelines/philosophy.md): the reasoning behind the
   guidelines
 - [docs/internals.md](docs/internals.md): how the plugin delivers the
