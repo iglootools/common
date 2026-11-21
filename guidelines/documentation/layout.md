@@ -138,7 +138,8 @@ describes.
 
 `AGENTS.md` at the project root is what every coding agent reads first. It is a
 map, not a manual: what the project is, the commands that build and check it,
-where each kind of knowledge lives, and what only an agent needs, such as which
+the guidelines to read, where the documentation index is, and what only an agent
+needs, such as which
 MCP server answers questions about a framework that moves faster than any
 model's training data.
 
@@ -165,14 +166,14 @@ and its own rules.
 
 ## Where things are
 
-Read a document when the task reaches it, not up front:
-
-- [CONTRIBUTING.md](CONTRIBUTING.md): the index of every document below, and how to set up.
-- [docs/architecture.md](docs/architecture.md): modules and layering, for any structural change.
-- [docs/domain.md](docs/domain.md): volumes, endpoints, syncs, snapshots.
-- [docs/building-and-testing.md](docs/building-and-testing.md): test suites and their tasks.
+[CONTRIBUTING.md](CONTRIBUTING.md) indexes every document, from setup to the domain and the
+architecture. Read a document when the task reaches it, not up front.
 ```
 
+- **Point at `CONTRIBUTING.md` instead of listing documents.** It is the one
+  index of the documentation, and the skill reads it too.
+  **Why:** a second list drifts from the first, and a renamed or added
+  document should change one line.
 - **No `CLAUDE.md`.** Claude Code reads `AGENTS.md` itself (since 2.1.277), but
   only when there is no `CLAUDE.md`: one beside it replaces it for Claude, and
   is a second entry point only one agent reads.
@@ -223,7 +224,7 @@ title (`# Building and Testing` lives in `building-and-testing.md`).
   configure (the references). Open each with a sentence saying who it is for and
   what it answers, and link to its neighbours for the rest.
 - **Renaming a document changes every file that points at it**: the
-  `CONTRIBUTING.md` line, the `AGENTS.md` link, cross-links, the README's
+  `CONTRIBUTING.md` line, cross-links, the README's
   absolute URLs, and any `description` in `mise.toml`. Search for the old name:
   the link checker runs on a schedule and cannot see a name mentioned without a
   link.

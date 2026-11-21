@@ -33,7 +33,8 @@ the bar a documented exception has to meet.
 - [guidelines/philosophy.md](guidelines/philosophy.md): the reasoning behind the
   guidelines
 - [docs/internals.md](docs/internals.md): how the plugin delivers the
-  guidelines, and how the `iglootools` command is organized
+  guidelines, and how the `iglootools` command is organized. Read it before
+  changing `skills/`, `hooks/` or `agents/`
 
 ## Reference
 

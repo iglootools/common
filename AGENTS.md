@@ -35,14 +35,5 @@ what it governs:
 
 ## Where things are
 
-- [CONTRIBUTING.md](CONTRIBUTING.md): the index of the documents below.
-- [docs/releasing-and-publishing.md](docs/releasing-and-publishing.md): how to
-  change what other repositories pin (the plugin, the `iglootools` command, the
-  shared workflows) without breaking them, and cutting a release.
-- [docs/internals.md](docs/internals.md): how the plugin's skill and hooks
-  deliver the guidelines. Read before changing `skills/`, `hooks/` or `agents/`.
-- [README.md](README.md): what is here.
-- [guidelines/README.md](guidelines/README.md): which guideline governs which
-  change.
-- [guidelines/philosophy.md](guidelines/philosophy.md): the reasoning behind the
-  guidelines.
+[CONTRIBUTING.md](CONTRIBUTING.md) indexes every document, including which to
+read before changing the plugin's skills, hooks or agents.
