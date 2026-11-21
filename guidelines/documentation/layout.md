@@ -1,4 +1,4 @@
-# Documentation Guidelines
+# Documentation Layout
 
 Where an iglootools project keeps its documentation, which documents it writes
 and under what names, and how agents are pointed at them. Read this when adding,
@@ -278,7 +278,7 @@ linked from that section. A shared setting the project cannot apply (rulesets on
 a private repository on a free plan) is a documented exception in
 `docs/guidelines.md`, with the commands to apply once it retires. What the
 rulesets contain is in
-[repository.md](repository.md#protect-the-default-branch-and-release-tags).
+[repository.md](../project-setup/repository.md#protect-the-default-branch-and-release-tags).
 
 ## Keeping it true
 
@@ -295,10 +295,10 @@ committed copy differs:
 | the "On this page" list in each long document | its `##` and `###` headings | `toc` / `lint-toc` | `iglootools docs toc` |
 
 - **Every generator has a `lint-*` task, and `lint` runs it.** The tasks are
-  one-line calls to the [`iglootools`](iglootools-cli.md) commands with
-  `--check`, which exit non-zero when the output would change and name the task
-  that regenerates it. The task set is in
-  [python-tooling.md](python-tooling.md#mise-tasks).
+  one-line calls to the [`iglootools`](../project-setup/iglootools-cli.md)
+  commands with `--check`, which exit non-zero when the output would change and
+  name the task that regenerates it. The task set is in
+  [python-tooling.md](../project-setup/python-tooling.md#mise-tasks).
 - **Any document long enough to scroll gets a table of contents**:
   `mise run toc --add <file>` puts it between `<!-- toc -->` and
   `<!-- tocstop -->`.
@@ -315,12 +315,12 @@ committed copy differs:
 
   Keep the Markdown formatter out of both, or it reformats what the generator
   wrote and its `lint-*` task fails on the next run:
-  [formatting.md](formatting.md#leave-generated-documents-to-their-generator).
+  [formatting.md](../project-setup/formatting.md#leave-generated-documents-to-their-generator).
 - **A CLI project shows itself in the README** with an
   [asciinema](https://asciinema.org/) recording near the top, re-recorded on a
   major release when the demo script gains the new commands.
 - **Broken links** are caught by the shared link checker — see
-  [shared-workflows.md](shared-workflows.md#call-the-shared-link-checker-instead-of-copying-it).
+  [shared-workflows.md](../project-setup/shared-workflows.md#call-the-shared-link-checker-instead-of-copying-it).
 
 ### Name which document each kind of change updates
 

@@ -7,13 +7,13 @@ project type goes from here.
 - `git config user.email "<email>"` and `git config user.name "<name>"` in the
   project.
 - A `CONTRIBUTING.md` indexing the project's documentation, and the rest of
-  `docs/` — see [documentation.md](documentation.md)
+  `docs/` — see [documentation/layout.md](../documentation/layout.md)
 - The two rulesets, on the default branch and on release tags, with the
   `preflight` job as the required check, applied when the repository is
   created and recorded as commands in its docs — see
   [Protect the default branch and release tags](#protect-the-default-branch-and-release-tags)
   and
-  [documentation.md](documentation.md#record-repository-settings-as-commands-in-one-place)
+  [documentation.md](../documentation/layout.md#record-repository-settings-as-commands-in-one-place)
 
 <!-- toc -->
 **On this page**
@@ -168,7 +168,7 @@ project's tag prefixes.
 **Record it in the project.** List the two rulesets, the required check,
 and the commands that created them with the project's other repository settings
 — see
-[Record repository settings as commands in one place](documentation.md#record-repository-settings-as-commands-in-one-place)
+[Record repository settings as commands in one place](../documentation/layout.md#record-repository-settings-as-commands-in-one-place)
 — so the configuration can be re-applied and reviewed rather than living only in
 GitHub.
 
@@ -224,6 +224,6 @@ Consider providing:
 - an asciinema demo: a scripted, seeded session recorded by mise tasks and CI
   and embedded in the README — see [cli-demo.md](cli-demo.md)
 - a generated CLI reference with `clidocs`/`lint-clidocs` tasks — see
-  [Generate references from the code](documentation.md#generate-references-from-the-code-and-check-them)
+  [Generate references from the code](../documentation/layout.md#generate-references-from-the-code-and-check-them)
 - Provide preflight checks wherever applicable and troubleshooting instructions
   with the specific commands that need to be executed to fix the problem.
