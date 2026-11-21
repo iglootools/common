@@ -313,6 +313,9 @@ committed copy differs:
   <!-- END CONFIGREF:VOLUMES -->
   ```
 
+  Keep the Markdown formatter out of both, or it reformats what the generator
+  wrote and the `-check` task fails on the next run:
+  [formatting.md](formatting.md#leave-generated-documents-to-their-generator).
 - **A CLI project shows itself in the README** with an
   [asciinema](https://asciinema.org/) recording near the top, re-recorded on a
   major release when the demo script gains the new commands.
