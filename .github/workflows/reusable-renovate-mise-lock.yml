@@ -9,8 +9,12 @@ name: reusable-renovate-mise-lock
 # dependencies its pep621 manager extracts, but not for a pin a regex custom manager bumps — and
 # `[tool.uv] build-constraint-dependencies` is pinned exactly that way, while uv.lock records those
 # constraints in its `[manifest]`. Without this step every build-backend bump leaves uv.lock stale,
-# and CI's `UV_LOCKED=1` rejects the branch before a single test runs. The workflow keeps its name
-# because renaming it would break every caller's `uses:` ref.
+# and CI's `UV_LOCKED=1` rejects the branch before a single test runs.
+#
+# And it runs dprint, in a project that has a dprint.json. Renovate rewrites mise.toml,
+# dprint.json, renovate.json and the workflows in its own style, which `dprint check` can reject,
+# leaving the branch red until someone runs `mise run format` on it by hand. The workflow keeps
+# its name because renaming it would break every caller's `uses:` ref.
 #
 # The caller keeps what is genuinely its own: the push trigger, the concurrency group, the
 # `contents: write` grant and the mise version. `permissions` in a called workflow is a ceiling
@@ -80,17 +84,27 @@ jobs:
         run: |
           UV_PYTHON="$(mise which python)" UV_PYTHON_DOWNLOADS=never "$(mise which uv)" lock
 
-      # `git diff --name-only` rather than naming both files to `git add`: a pathspec that matches
-      # no file is an error for `git add`, and a project without uv has no uv.lock.
-      - name: Commit lock files if changed
+      # Last, so it also formats anything the steps above wrote. Only dprint is installed, and by
+      # path rather than through `mise exec` for the same reason as uv. rumdl is left out:
+      # Renovate does not edit Markdown.
+      - name: Format with dprint
+        if: hashFiles('dprint.json') != ''
         run: |
-          mapfile -t changed < <(git diff --name-only -- mise.lock uv.lock)
+          mise install dprint
+          "$(mise which dprint)" fmt
+
+      # `git diff --name-only` collects whatever the steps above changed: a project without uv has
+      # no uv.lock, and dprint may touch any file it formats. Untracked files are not picked up,
+      # since none of the steps creates one.
+      - name: Commit changes if any
+        run: |
+          mapfile -t changed < <(git diff --name-only)
           if [ "${#changed[@]}" -eq 0 ]; then
-            echo "Lock files are up to date."
+            echo "Lock files are up to date and everything is formatted."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- "${changed[@]}"
-          git commit -m "chore(deps): regenerate lock files"
+          git commit -m "chore(deps): regenerate lock files and format"
           git push

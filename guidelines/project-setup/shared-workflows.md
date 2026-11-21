@@ -150,6 +150,15 @@ through mise, and runs `uv lock` against that Python with downloads off:
 `env: false` keeps mise's `[env]`, and with it the project's `UV_PYTHON` pin,
 out of the job, so the step has to restate the pin.
 
+It also runs `dprint fmt` whenever the repository has a `dprint.json`, and
+commits whatever it changed with the lock files. Renovate writes `mise.toml`,
+`dprint.json`, `renovate.json` and the workflows in its own style, and without
+this step `dprint check` would hold its pull request red until someone ran
+`mise run format` on the branch — see
+[formatting.md](formatting.md#format-renovate-branches-in-ci). The caller
+declares nothing extra for this either: the `dprint` pin comes from its
+`mise.toml`.
+
 The mise version stays in the caller rather than becoming a constant in the
 shared workflow, for two reasons that both point the same way. The
 [rule on pinning mise](workflows.md) requires it to match the version the
