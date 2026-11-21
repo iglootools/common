@@ -6,7 +6,7 @@ so every commit on a branch lands on `main` as it is, for `git log`, `git blame`
 and `git bisect`. A branch is therefore reviewed and kept one commit at a time,
 and should read as the clearest sequence of steps to the final change, not as a
 record of how the author got there. See
-[Small, reviewable changes](../../philosophy.md#small-reviewable-changes) for
+[Small, reviewable changes](../philosophy.md#small-reviewable-changes) for
 the reasoning.
 
 ## A new commit or a new pull request

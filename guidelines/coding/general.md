@@ -28,7 +28,7 @@ guideline, as [Documented Exceptions](#documented-exceptions) describes.
 A project or module may deviate from any shared guideline, or add rules of its
 own, provided the deviation and its reasoning are written down. Divergence for a
 documented reason is fine; drift without one is not. The same holds for the
-principles in [philosophy.md](../../philosophy.md), and between projects: two
+principles in [philosophy.md](../philosophy.md), and between projects: two
 iglootools projects may differ, but the difference traces to a decision someone
 made, not to one of them falling behind.
 
@@ -94,7 +94,7 @@ modules, packages.
   cross-cutting edit.
 
 See
-[High cohesion, low coupling](../../philosophy.md#high-cohesion-low-coupling--at-every-boundary)
+[High cohesion, low coupling](../philosophy.md#high-cohesion-low-coupling--at-every-boundary)
 for the reasoning, including how it applies to repositories and teams.
 
 ## People and AI Agents
@@ -119,7 +119,7 @@ also helps AI agents should be a consequence.
   from commands and event schemas, and destructive operations behind explicit
   opt-in.
 
-See [People and AI agents](../../philosophy.md#people-and-ai-agents) for the
+See [People and AI agents](../philosophy.md#people-and-ai-agents) for the
 reasoning.
 
 ## Code comments
@@ -229,7 +229,7 @@ Core logic returns data; the edge of the program decides how that data looks.
   fail loudly: it silently loses characters or changes meaning, typically only
   for the inputs nobody tested with.
 
-See [Presentation at the edges](../../philosophy.md#presentation-at-the-edges)
+See [Presentation at the edges](../philosophy.md#presentation-at-the-edges)
 for the reasoning.
 
 ## Version Management

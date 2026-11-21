@@ -55,9 +55,10 @@ file, so a change to a workflow pulled the Renovate rules and the editor
 settings into context along with it.
 
 **Two things hold for every file above, which is why none of them repeats
-them.** The reasoning behind the rules is in [philosophy.md](philosophy.md). And
-every rule is a default: deviating is allowed wherever the deviation and its
-reasoning are documented, on the terms in
+them.** The reasoning behind the rules is in
+[guidelines/philosophy.md](guidelines/philosophy.md). And every rule is a
+default: deviating is allowed wherever the deviation and its reasoning are
+documented, on the terms in
 [general.md › Documented Exceptions](guidelines/coding/general.md#documented-exceptions):
 where an exception goes, the bar its rationale has to meet, and naming the
 condition that would retire it.
@@ -66,7 +67,8 @@ condition that would retire it.
 delivered. The rest of the repository supports the guidelines rather than
 stating any:
 
-- [philosophy.md](philosophy.md) — the reasoning behind the guidelines
+- [guidelines/philosophy.md](guidelines/philosophy.md) — the reasoning behind
+  the guidelines
 - [skills/](skills/) — the Claude Code skills: `guidelines`, which routes an
   agent to whichever guideline governs the edit it is about to make, and
   `audit-pr` and `audit-full`, which audit a branch or the whole codebase. None

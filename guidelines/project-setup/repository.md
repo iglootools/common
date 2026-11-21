@@ -50,7 +50,7 @@ A merge commit keeps the history, lets merged branches be deleted with
 [git.md](../coding/git.md#merge-with-a-merge-commit-not-a-squash-or-a-rebase),
 along with the cleanup that makes the commits worth keeping. See also "Preserve
 data, build tooling around it" in
-[philosophy.md](../../philosophy.md#event-driven-append-only-replayable).
+[philosophy.md](../philosophy.md#event-driven-append-only-replayable).
 
 The default-branch ruleset below enforces it
 (`allowed_merge_methods: ["merge"]`), so the choice is made once per repository

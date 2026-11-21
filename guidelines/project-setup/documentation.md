@@ -6,7 +6,7 @@ renaming or restructuring `README.md`, `CONTRIBUTING.md`, `AGENTS.md`,
 `CLAUDE.md` or anything under `docs/`.
 
 The principle behind every rule here is in
-[Documentation for people first, agent configuration for the gaps](../../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps):
+[Documentation for people first, agent configuration for the gaps](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps):
 the documentation is written for people, in the project's docs, and `AGENTS.md`,
 skills and hooks only decide when an agent reads it.
 
@@ -232,7 +232,7 @@ title (`# Building and Testing` lives in `building-and-testing.md`).
 
 A decision that affects more than one component, and that someone would
 otherwise argue about again
-([Document the why, not the what](../../philosophy.md#document-the-why-not-the-what)),
+([Document the why, not the what](../philosophy.md#document-the-why-not-the-what)),
 goes in `docs/architecture-decision-record.md`: one file, newest entry at the
 bottom, each numbered and titled with the decision itself:
 

@@ -43,4 +43,5 @@ what it governs:
   deliver the guidelines. Read before changing `skills/`, `hooks/` or `agents/`.
 - [README.md](README.md): what is here, and which guideline each kind of file
   triggers.
-- [philosophy.md](philosophy.md): the reasoning behind the guidelines.
+- [guidelines/philosophy.md](guidelines/philosophy.md): the reasoning behind the
+  guidelines.

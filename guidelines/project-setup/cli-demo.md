@@ -91,7 +91,7 @@ The demo runs against data created by `<tool> demo seed --base-dir "$DEMO_DIR"`,
 a subcommand of the CLI itself, not by fixtures kept in `demo/` or by setup
 steps someone performs first. That puts "demo commands with fake data, no manual
 setup" from
-[Shorten every feedback loop](../../philosophy.md#shorten-every-feedback-loop)
+[Shorten every feedback loop](../philosophy.md#shorten-every-feedback-loop)
 to work three times over: the recording needs nothing prepared, a user can run
 the seed to try the tool without risking their own files, and a developer gets a
 realistic environment in one command for manual testing. Because it is part of

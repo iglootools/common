@@ -18,12 +18,12 @@ YAML, rumdl the Markdown. `lint-fmt` and `lint-markdown` fail on a file it would
 change, so run it after editing anything. The tools and their configuration are
 described in [formatting.md](../guidelines/project-setup/formatting.md).
 
-Each guideline file, `philosophy.md`, `README.md` and each file under `docs/`
-open with a table of contents between `<!-- toc -->` and `<!-- tocstop -->`. Do
-not edit it by hand: after adding, renaming or removing a `##` or `###` heading,
-run `mise run toc` to regenerate every list. `mise run lint-toc` fails on a list
-that is out of date. To give a new file one, run
-`mise run toc --add <file>`.
+Each guideline file (`guidelines/philosophy.md` among them), `README.md` and
+each file under `docs/` open with a table of contents between `<!-- toc -->` and
+`<!-- tocstop -->`. Do not edit it by hand: after adding, renaming or removing a
+`##` or `###` heading, run `mise run toc` to regenerate every list.
+`mise run lint-toc` fails on a list that is out of date. To give a new file one,
+run `mise run toc --add <file>`.
 
 The script's tests are in `tests/` and run with `mise run test`. The expected
 anchors in them come from

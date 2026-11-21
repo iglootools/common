@@ -385,7 +385,7 @@ Add `pytest-xdist` to the dev dependency group and pass `-n auto` in every test
 task whose tests are isolated — each one working under its own `tmp_path`,
 taking its dependencies as fakes, and sharing no module-level state. It spreads
 the suite across one worker per CPU, which is what keeps the common case of
-[Shorten every feedback loop](../../philosophy.md#shorten-every-feedback-loop)
+[Shorten every feedback loop](../philosophy.md#shorten-every-feedback-loop)
 running in seconds as the suite grows.
 
 ```toml

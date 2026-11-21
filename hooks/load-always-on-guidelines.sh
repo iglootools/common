@@ -33,10 +33,10 @@ printf '(emitted at the end of this context when it exists), the project wins; u
 printf 'divergence is drift, not an override.\n\n'
 # The guideline files do not repeat, one per file, that they are defaults and where the
 # reasoning lives: stating it once here reaches every session.
-printf 'The reasoning behind these rules is in %s/philosophy.md, and the terms for departing\n' "$plugin_root"
+printf 'The reasoning behind these rules is in %s/guidelines/philosophy.md, and the terms for departing\n' "$plugin_root"
 printf 'from one are in coding/general.md, Documented Exceptions, below.\n\n'
 # guidelines/, not the plugin root: these files sit one directory down, and a relative link such
-# as general.md's ../../philosophy.md only resolves if you know that.
+# as general.md's ../philosophy.md only resolves if you know that.
 printf 'These files live in %s/guidelines/coding/, where the relative links inside them resolve.\n\n' "$plugin_root"
 
 emit "$plugin_root/guidelines/coding/general.md"

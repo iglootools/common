@@ -29,7 +29,8 @@ the bar a documented exception has to meet.
 
 - [README.md](README.md): what is here, and which guideline is triggered by
   which file
-- [philosophy.md](philosophy.md): the reasoning behind the guidelines
+- [guidelines/philosophy.md](guidelines/philosophy.md): the reasoning behind the
+  guidelines
 - [docs/internals.md](docs/internals.md): how the plugin delivers the
   guidelines, and how the `iglootools` command is organized
 - [guidelines/coding/README.md](guidelines/coding/README.md) and
