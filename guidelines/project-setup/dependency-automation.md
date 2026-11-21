@@ -50,7 +50,7 @@ own: its grouping and schedule, its holds, and its own custom managers.
       "automerge": false
     }
   ],
-  "dependencyDashboard": true
+  "dependencyDashboard": { "enabled": true }
 }
 ```
 
@@ -72,9 +72,9 @@ repository, and nothing in the repository can tell you whether that happened.
 There is no error, no failed check and no log — the pins simply never move,
 which looks exactly like having nothing to update.
 
-**The tell is the Dependency Dashboard issue.** With
-`dependencyDashboard: true`, Renovate opens one on its first run, so its absence
-means it has never run:
+**The tell is the Dependency Dashboard issue.** With `dependencyDashboard`
+enabled, Renovate opens one on its first run, so its absence means it has never
+run:
 
 ```bash
 gh issue list --repo <owner>/<repo> --state all --search "Dependency Dashboard in:title"
@@ -91,8 +91,13 @@ old release, which reports valid modern options as errors and invites you to
 "fix" a working config:
 
 ```bash
-npx --yes --package renovate@<current> -- renovate-config-validator
+npx --yes --package renovate@<current> -- renovate-config-validator --strict
 ```
+
+**Pass `--strict`.** Without it, a config that Renovate has renamed or
+restructured an option of passes with only a warning, and Renovate keeps
+migrating it in memory on every run without anyone being told. Strict mode
+fails on it, so the migration lands as a commit rather than going unnoticed.
 
 ## Turn on the dependency graph, alerts and security updates
 
