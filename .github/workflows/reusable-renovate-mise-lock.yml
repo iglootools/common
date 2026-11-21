@@ -13,7 +13,7 @@ name: reusable-renovate-mise-lock
 #
 # And it runs dprint, in a project that has a dprint.json. Renovate rewrites mise.toml,
 # dprint.json, renovate.json and the workflows in its own style, which `dprint check` can reject,
-# leaving the branch red until someone runs `mise run format` on it by hand. The workflow keeps
+# leaving the branch red until someone runs `mise run fmt` on it by hand. The workflow keeps
 # its name because renaming it would break every caller's `uses:` ref.
 #
 # The caller keeps what is genuinely its own: the push trigger, the concurrency group, the

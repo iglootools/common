@@ -1,21 +1,23 @@
 # Building and Testing
 
-## Checks and tests
+## Lints and tests
 
-`mise run check-all` runs every check and test, which is what the `test`
-workflow runs on each pull request; `mise tasks` lists the rest.
+`mise run preflight` runs every lint and test, which is what the `test`
+workflow runs on each pull request, and `mise run preflight-quick` the same
+with only the fast tests (here, every test). `mise tasks` lists the rest. Tasks
+come in families: `fmt*` and `toc` rewrite files, `lint*` fail without writing,
+and `lint` runs every one of them.
 
-`mise run format` formats every file: ruff the Python, dprint the JSON, TOML and
-YAML, rumdl the Markdown. `format-check` and `lint-markdown`, both part of
-`check`, fail on a file it would change, so run it after editing anything. The
-tools and their configuration are described in
-[formatting.md](../guidelines/project-setup/formatting.md).
+`mise run fmt` formats every file: ruff the Python, dprint the JSON, TOML and
+YAML, rumdl the Markdown. `lint-fmt` and `lint-markdown` fail on a file it would
+change, so run it after editing anything. The tools and their configuration are
+described in [formatting.md](../guidelines/project-setup/formatting.md).
 
 Each guideline file, `philosophy.md`, `README.md` and each file under `docs/`
 open with a table of contents between `<!-- toc -->` and `<!-- tocstop -->`. Do
 not edit it by hand: after adding, renaming or removing a `##` or `###` heading,
-run `mise run toc` to regenerate every list. `mise run toc-check`, part of
-`check`, fails on a list that is out of date. To give a new file one, run
+run `mise run toc` to regenerate every list. `mise run lint-toc` fails on a list
+that is out of date. To give a new file one, run
 `mise run toc --add <file>`.
 
 The script's tests are in `tests/` and run with `mise run test`. The expected

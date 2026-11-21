@@ -103,7 +103,7 @@ include = ["src", "tests"]
 venvPath = "."
 venv = ".venv"
 
-# Module boundaries, enforced by `mise run boundaries-check` (part of `check`). The core
+# Module boundaries, enforced by `mise run lint-boundaries` (part of `lint`). The core
 # modules return data and raise structured errors; only the cli modules present them.
 [tool.importlinter]
 root_package = "iglootools"
@@ -121,7 +121,7 @@ type = "protected"
 protected_modules = ["iglootools.cliwiring"]
 allowed_importers = ["iglootools.cli", "iglootools.*.cli"]
 
-# Unused code, enforced by `mise run dead-code-check` (part of `check`). Each entry is code
+# Unused code, enforced by `mise run lint-dead-code` (part of `lint`). Each entry is code
 # that runs without being named in the project, so the scan cannot see it used.
 [tool.deadcode]
 ignore-names-if-decorated-with = [
