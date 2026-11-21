@@ -10,7 +10,8 @@ dynamic = ["version"]
 # one version, because the package installs into each consumer's environment, and photree is
 # held on 3.14 by onnxruntime (no cp315 wheels). The floor is what mise.toml develops and CI
 # tests on, and what ruff and pyright target, so nothing newer than 3.14 slips in; nbkp runs
-# it on 3.15. Narrow to ">=3.15,<3.16", and move the three other pins, when photree moves to
+# it on 3.15. A packageRule in renovate.json keeps Renovate from moving the mise pin to 3.15.
+# Narrow to ">=3.15,<3.16", move the three other pins and drop that rule when photree moves to
 # 3.15.
 requires-python = ">=3.14,<3.16"
 dependencies = [

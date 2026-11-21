@@ -21,6 +21,13 @@
                 "at any time"
             ],
             "automerge": false
+        },
+        {
+            "description": "Hold Python on 3.14, the documented exception to the Python Version Policy next to requires-python in pyproject.toml: the package installs into photree's environment, which onnxruntime holds on 3.14, so CI has to test 3.14. Without this rule Renovate moved the mise pin to 3.15 the day after the exception was introduced. Matched by depName, which is python for both the mise [tools] pin and requires-python; the package name differs (python/cpython for mise), so matchPackageNames would miss the mise pin. Remove this rule when photree moves to 3.15.",
+            "matchDepNames": [
+                "python"
+            ],
+            "allowedVersions": "<3.15"
         }
     ],
     "dependencyDashboard": true
