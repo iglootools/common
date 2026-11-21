@@ -1,0 +1,41 @@
+{
+  // The reasoning for every setting below is in guidelines/project-setup/ide.md.
+
+  // mise-vscode derives the other extensions' tool paths from mise.toml, as symlinks under
+  // .vscode/mise-tools/ (ignored in .gitignore), from this project's tools only. All mise.* keys
+  // are window-scoped, so they apply only when common is opened as the single root.
+  "mise.enable": true,
+  "mise.configureExtensionsAutomatically": true,
+  "mise.configureExtensionsUseSymLinks": true,
+  "mise.configureExtensionsIncludeGlobalTools": false,
+  // biomejs.biome and oxc.oxc-vscode are the extension's defaults, repeated because this setting
+  // replaces the default array. ms-python.python is excluded because its generated value is the
+  // venv directory, not the interpreter pinned below.
+  "mise.configureExtensionsAutomaticallyIgnoreList": [
+    "biomejs.biome",
+    "oxc.oxc-vscode",
+    "ms-python.python"
+  ],
+
+  // The in-project venv, which [tool.pyright] in pyproject.toml also points at. No
+  // "packageManager": the python-envs extension has no uv manager to name.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python-envs.pythonProjects": [
+    {
+      "path": ".",
+      "envManager": "ms-python.python:venv"
+    }
+  ],
+
+  // Format on save with the tool the `format` task runs for each language, so a saved file
+  // passes `format-check`: tombi and VSCode's built-in formatters would otherwise claim TOML,
+  // JSON and Markdown.
+  "editor.formatOnSave": true,
+  "[json]": { "editor.defaultFormatter": "dprint.dprint" },
+  "[jsonc]": { "editor.defaultFormatter": "dprint.dprint" },
+  "[toml]": { "editor.defaultFormatter": "dprint.dprint" },
+  "[yaml]": { "editor.defaultFormatter": "dprint.dprint" },
+  "[dockerfile]": { "editor.defaultFormatter": "dprint.dprint" },
+  "[markdown]": { "editor.defaultFormatter": "rvben.rumdl" },
+  "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
+}

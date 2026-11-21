@@ -1,27 +1,27 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "description": [
-        "Dependencies: the actions in .github/workflows (including those inside the reusable workflows every other iglootools project calls), the tools pinned in mise.toml and locked in mise.lock, the dependencies in pyproject.toml locked in uv.lock, the hatchling build constraints, and the mise version pinned in the workflows.",
-        "The shared rules come from this repository's own presets, renovate/base.json and renovate/python.json, which every iglootools project extends pinned to a release tag. This repository extends them with local>, which reads them from the default branch, so a change to a preset is exercised here once merged rather than at the next release, as check-links.yml does with the shared workflow.",
-        "mise.lock and uv.lock are regenerated on Renovate branches by renovate-mise-lock.yml, since Renovate's runner has no mise and does not re-lock for a regex manager's bump."
-    ],
-    "extends": [
-        "config:recommended",
-        "local>iglootools/common//renovate/base",
-        "local>iglootools/common//renovate/python"
-    ],
-    "separateMajorMinor": false,
-    "packageRules": [
-        {
-            "groupName": "all dependencies",
-            "matchManagers": [
-                "*"
-            ],
-            "schedule": [
-                "at any time"
-            ],
-            "automerge": false
-        }
-    ],
-    "dependencyDashboard": true
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Dependencies: the actions in .github/workflows (including those inside the reusable workflows every other iglootools project calls), the tools pinned in mise.toml and locked in mise.lock, the dependencies in pyproject.toml locked in uv.lock, the hatchling build constraints, and the mise version pinned in the workflows.",
+    "The shared rules come from this repository's own presets, renovate/base.json and renovate/python.json, which every iglootools project extends pinned to a release tag. This repository extends them with local>, which reads them from the default branch, so a change to a preset is exercised here once merged rather than at the next release, as check-links.yml does with the shared workflow.",
+    "mise.lock and uv.lock are regenerated on Renovate branches by renovate-mise-lock.yml, since Renovate's runner has no mise and does not re-lock for a regex manager's bump."
+  ],
+  "extends": [
+    "config:recommended",
+    "local>iglootools/common//renovate/base",
+    "local>iglootools/common//renovate/python"
+  ],
+  "separateMajorMinor": false,
+  "packageRules": [
+    {
+      "groupName": "all dependencies",
+      "matchManagers": [
+        "*"
+      ],
+      "schedule": [
+        "at any time"
+      ],
+      "automerge": false
+    }
+  ],
+  "dependencyDashboard": true
 }

@@ -1,7 +1,8 @@
 # IDE Guidelines
 
-Editor configuration. For the agent side — the Claude Code plugin set and how it resolves
-symbols — see [claude-code.md](claude-code.md). For the toolchain the editor points at, see
+Editor configuration. For the agent side — the Claude Code plugin set and how it
+resolves symbols — see [claude-code.md](claude-code.md). For the toolchain the
+editor points at, see
 [python-tooling.md](python-tooling.md).
 
 <!-- toc -->
@@ -10,6 +11,7 @@ symbols — see [claude-code.md](claude-code.md). For the toolchain the editor p
 - [Pyright environment resolution](#pyright-environment-resolution)
 - [VSCode](#vscode)
   - [Commit the extension set to `.vscode/extensions.json`](#commit-the-extension-set-to-vscodeextensionsjson)
+  - [Format on save with the tools the tasks run](#format-on-save-with-the-tools-the-tasks-run)
   - [Check the in-project venv into `.vscode/settings.json`](#check-the-in-project-venv-into-vscodesettingsjson)
   - [Let `hverlin.mise-vscode` write the other tools' paths, but fence it in](#let-hverlinmise-vscode-write-the-other-tools-paths-but-fence-it-in)
   - [Reload after changing interpreter or pyright settings](#reload-after-changing-interpreter-or-pyright-settings)
@@ -18,8 +20,8 @@ symbols — see [claude-code.md](claude-code.md). For the toolchain the editor p
 
 ## Pyright environment resolution
 
-Pin the project's virtualenv in `pyproject.toml`, so pyright resolves third-party imports the same
-way no matter how it was launched:
+Pin the project's virtualenv in `pyproject.toml`, so pyright resolves
+third-party imports the same way no matter how it was launched:
 
 ```toml
 [tool.pyright]
@@ -27,23 +29,27 @@ venvPath = "."
 venv = ".venv"
 ```
 
-Pyright finds third-party packages through a Python environment, and with nothing configured it falls
-back to the `python` on `PATH`. That is the asymmetry behind a confusing symptom: `mise run
-type-check` passes, while an editor reports `Import "<dep>" could not be resolved` on the same file.
-Tasks run in an activated environment; a language server spawned by an editor inherits no such
-activation and lands on the system python, where none of the project's dependencies exist. The two
-settings remove the ambiguity for every consumer at once — Pylance, the Claude Code pyright server,
-the CLI, and CI. Since uv creates the project environment at `.venv` by default, these keys restate
-that default for the consumers that cannot discover it.
+Pyright finds third-party packages through a Python environment, and with
+nothing configured it falls back to the `python` on `PATH`. That is the
+asymmetry behind a confusing symptom: `mise run type-check` passes, while an
+editor reports `Import "<dep>" could not be resolved` on the same file. Tasks
+run in an activated environment; a language server spawned by an editor inherits
+no such activation and lands on the system python, where none of the project's
+dependencies exist. The two settings remove the ambiguity for every consumer at
+once — Pylance, the Claude Code pyright server, the CLI, and CI. Since uv
+creates the project environment at `.venv` by default, these keys restate that
+default for the consumers that cannot discover it.
 
-Both keys are needed: `venv` is a directory *name* looked up inside `venvPath`, not a path.
-`pythonVersion` is a separate concern — it is the language level to check against, which pyright
-does not infer from the interpreter in `.venv`. Under the
-[Python Version Policy](../coding/python.md#python-version-policy) the two are the same version,
-so state it explicitly and move it with the other version knobs.
+Both keys are needed: `venv` is a directory *name* looked up inside `venvPath`,
+not a path. `pythonVersion` is a separate concern — it is the language level to
+check against, which pyright does not infer from the interpreter in `.venv`.
+Under the [Python Version Policy](../coding/python.md#python-version-policy) the
+two are the same version, so state it explicitly and move it with the other
+version knobs.
 
-Verify it the way a language server sees it, with the venv deliberately off `PATH`. An activated
-shell — or a `uv run` prefix — masks the exact failure being tested:
+Verify it the way a language server sees it, with the venv deliberately off
+`PATH`. An activated shell — or a `uv run` prefix — masks the exact failure
+being tested:
 
 ```bash
 env -u VIRTUAL_ENV PATH=/usr/bin:/bin ./.venv/bin/pyright <file importing a dependency>
@@ -56,8 +62,8 @@ Expect `0 errors`. With `--verbose`, the search paths should include
 
 ### Commit the extension set to `.vscode/extensions.json`
 
-So a fresh clone is prompted for it, instead of documenting it in prose that nobody reads before
-opening the editor:
+So a fresh clone is prompted for it, instead of documenting it in prose that
+nobody reads before opening the editor:
 
 ```json
 {
@@ -67,7 +73,9 @@ opening the editor:
         "ms-python.vscode-python-envs",
         "charliermarsh.ruff",
         "hverlin.mise-vscode",
-        "tombi-toml.tombi"
+        "tombi-toml.tombi",
+        "dprint.dprint",
+        "rvben.rumdl"
     ]
 }
 ```
@@ -79,11 +87,39 @@ opening the editor:
 | `ms-python.vscode-python-envs` | projects committing `python-envs.*` settings | owns those keys; without it the committed `pythonProjects` entry does nothing |
 | `charliermarsh.ruff` | projects using ruff | `editor.defaultFormatter` names it, so format-on-save silently stops working |
 | `hverlin.mise-vscode` | projects using mise | the `mise.enable` setting has no reader; tasks and tool versions stop surfacing |
-| `tombi-toml.tombi` | projects with TOML — in practice all of them, via `pyproject.toml` and `mise.toml` | no TOML validation or formatting |
+| `tombi-toml.tombi` | projects with TOML — in practice all of them, via `pyproject.toml` and `mise.toml` | no TOML validation against the schemas of `pyproject.toml` and the other files it knows |
+| `dprint.dprint` | projects with a `dprint.json` ([formatting.md](formatting.md)) | the per-language `editor.defaultFormatter` below names it, so format-on-save stops for JSON, TOML and YAML |
+| `rvben.rumdl` | projects with a `.rumdl.toml` | no Markdown lint findings in the editor, and format-on-save stops for Markdown |
 
-The rule behind the list: **every extension a committed setting depends on belongs in
-`extensions.json`.** A setting whose extension is absent is not an error — it is a silent no-op, and
-the developer who cloned the repo has no way to tell the difference from a working setup.
+The rule behind the list:
+**every extension a committed setting depends on belongs in `extensions.json`.**
+A setting whose extension is absent is not an error — it is a silent no-op, and
+the developer who cloned the repo has no way to tell the difference from a
+working setup.
+
+### Format on save with the tools the tasks run
+
+Several of those extensions can format the same file: tombi and dprint both
+format TOML, and VSCode's built-in formatters handle JSON and Markdown. Name the
+one the `format` task runs for each language in `.vscode/settings.json`, so a
+file saved in the editor passes `format-check`, and turn on `formatOnSave`,
+without which they run only on **Format Document**:
+
+```json
+{
+    "editor.formatOnSave": true,
+    "[json]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[jsonc]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[toml]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[yaml]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[dockerfile]": { "editor.defaultFormatter": "dprint.dprint" },
+    "[markdown]": { "editor.defaultFormatter": "rvben.rumdl" },
+    "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
+}
+```
+
+tombi stays for what dprint does not do: it validates `pyproject.toml` and the
+other TOML files it has schemas for.
 
 ### Check the in-project venv into `.vscode/settings.json`
 
@@ -101,24 +137,27 @@ Rather than relying on each developer running **Python: Select Interpreter**:
 }
 ```
 
-Because `pythonProjects` entries are committed, an `envManager` of `ms-python.python:system` —
-pointing the workspace at the system interpreter rather than `.venv` — persists for everyone who
-clones, long after whoever wrote it moved on, so it is worth stating explicitly. Type-checking is
-already covered by `[tool.pyright]` above; these settings are what the *rest* of the Python
-extension reads — test discovery, the debugger, and the environment new terminals activate.
+Because `pythonProjects` entries are committed, an `envManager` of
+`ms-python.python:system` — pointing the workspace at the system interpreter
+rather than `.venv` — persists for everyone who clones, long after whoever wrote
+it moved on, so it is worth stating explicitly. Type-checking is already covered
+by `[tool.pyright]` above; these settings are what the *rest* of the Python
+extension reads — test discovery, the debugger, and the environment new
+terminals activate.
 
-**`packageManager` is deliberately omitted.** `ms-python.vscode-python-envs` (checked at 1.36.0)
-registers only `conda`, `pip`, `pipenv`, `poetry`, `pyenv`, `system` and `venv` — there is no
-`ms-python.python:uv`. Naming `:poetry` would point at a tool the project no longer uses, so the
-key is left to default to `python-envs.defaultPackageManager` (`:pip`), which is inaccurate but
-inert: it drives only the extension's own install/uninstall UI, not interpreter resolution or type
-checking. Re-add it once the extension registers a uv package manager.
+**`packageManager` is deliberately omitted.** `ms-python.vscode-python-envs`
+(checked at 1.36.0) registers only `conda`, `pip`, `pipenv`, `poetry`, `pyenv`,
+`system` and `venv` — there is no `ms-python.python:uv`. Naming `:poetry` would
+point at a tool the project no longer uses, so the key is left to default to
+`python-envs.defaultPackageManager` (`:pip`), which is inaccurate but inert: it
+drives only the extension's own install/uninstall UI, not interpreter resolution
+or type checking. Re-add it once the extension registers a uv package manager.
 
 ### Let `hverlin.mise-vscode` write the other tools' paths, but fence it in
 
-Every extension that needs a toolchain binary has its own key (`metals.javaHome`, `deno.path`,
-`go.goroot`, …), and hand-maintaining them against `mise.toml` is exactly the kind of duplication
-that drifts:
+Every extension that needs a toolchain binary has its own key
+(`metals.javaHome`, `deno.path`, `go.goroot`, …), and hand-maintaining them
+against `mise.toml` is exactly the kind of duplication that drifts:
 
 ```json
 {
@@ -141,91 +180,107 @@ that drifts:
 | `configureExtensionsIncludeGlobalTools` | yes (`true`) | restricts configuration to tools the project's own `mise.toml` declares. The extension's own documentation calls `false` the recommended value, and the failure it prevents is visible in practice: a Nuxt repo declaring only `node` and `pnpm` acquired `metals.javaHome` and a `python.defaultInterpreterPath` pointing at a global mise interpreter, purely because those tools were in `~/.config/mise/config.toml` |
 | `configureExtensionsAutomaticallyIgnoreList` | yes (`["biomejs.biome", "oxc.oxc-vscode"]`) | excludes `ms-python.python`, whose generated value is *wrong* — see below. **The two defaults must be repeated**, because supplying the setting replaces the default array rather than extending it |
 
-The list ends up holding three entries for two unrelated reasons, which is worth spelling out so
-that a future reader does not "tidy" it back down to one.
+The list ends up holding three entries for two unrelated reasons, which is worth
+spelling out so that a future reader does not "tidy" it back down to one.
 
-`biomejs.biome` and `oxc.oxc-vscode` are upstream's defaults. Both were added to the extension as
-deliberately opt-in integrations — its changelog says so outright, "biome extension support
-(disabled by default)" in 0.57.0 and "optional oxc-vscode support" in 1.8.0 — and the ignore list
-is the mechanism that makes them opt-in, since there is no separate enable flag. Keeping them is
-also right on the merits for any project that commits `settings.json`: both pass `useSymLinks:
-false` internally, so they write absolute `~/.local/share/mise/installs/…` paths *regardless* of
-`configureExtensionsUseSymLinks` above — exactly the un-shareable form that setting exists to
-avoid. `oxc.oxc-vscode` is the more aggressive of the two: it has a second registry entry keyed on
-`node`, so it fires for any project with `node` in `mise.toml` whether or not oxc is used at all.
+`biomejs.biome` and `oxc.oxc-vscode` are upstream's defaults. Both were added to
+the extension as deliberately opt-in integrations — its changelog says so
+outright, "biome extension support (disabled by default)" in 0.57.0 and
+"optional oxc-vscode support" in 1.8.0 — and the ignore list is the mechanism
+that makes them opt-in, since there is no separate enable flag. Keeping them is
+also right on the merits for any project that commits `settings.json`: both pass
+`useSymLinks: false` internally, so they write absolute
+`~/.local/share/mise/installs/…` paths *regardless* of
+`configureExtensionsUseSymLinks` above — exactly the un-shareable form that
+setting exists to avoid. `oxc.oxc-vscode` is the more aggressive of the two: it
+has a second registry entry keyed on `node`, so it fires for any project with
+`node` in `mise.toml` whether or not oxc is used at all.
 
-`ms-python.python` is excluded for a different reason: not opt-in, and not path shape, but a value
-that is incorrect. That is the one spelled out below.
+`ms-python.python` is excluded for a different reason: not opt-in, and not path
+shape, but a value that is incorrect. That is the one spelled out below.
 
-Because the symlinks are per-machine, **`.vscode/mise-tools/` must be in the committed
-`.gitignore`** — the extension's documentation makes this a condition of sharing the settings
-file at all. The [All Projects](repository.md) rule applies unchanged: ignoring it
-only in `.git/info/exclude` looks like coverage to whoever set it up and gives none to anyone else.
+Because the symlinks are per-machine,
+**`.vscode/mise-tools/` must be in the committed `.gitignore`** — the
+extension's documentation makes this a condition of sharing the settings file at
+all. The [All Projects](repository.md) rule applies unchanged: ignoring it only
+in `.git/info/exclude` looks like coverage to whoever set it up and gives none
+to anyone else.
 
-**Exclude `ms-python.python` from it, and keep the explicit `.venv` pin above.** Generation is
-the wrong mechanism for that one extension, in two distinct ways.
+**Exclude `ms-python.python` from it, and keep the explicit `.venv` pin above.**
+Generation is the wrong mechanism for that one extension, in two distinct ways.
 
-The first is that its generated value does not agree with the hand-written one. The extension
-prefers mise's `VIRTUAL_ENV` and writes it verbatim, with the workspace folder substituted —
-mise sets `VIRTUAL_ENV` to the environment *directory*, so what lands in `settings.json` is:
+The first is that its generated value does not agree with the hand-written one.
+The extension prefers mise's `VIRTUAL_ENV` and writes it verbatim, with the
+workspace folder substituted — mise sets `VIRTUAL_ENV` to the environment
+*directory*, so what lands in `settings.json` is:
 
 ```json
 "python.defaultInterpreterPath": "${workspaceFolder}/.venv"
 ```
 
-not the `${workspaceFolder}/.venv/bin/python` pinned above. `ms-python.python` documents that key
-as "Path to default Python", so the interpreter path is the correct form and the generated one
-silently replaces it. Observed as an unexplained working-tree modification to a committed
-`settings.json` — the sort of edit nobody made, which is exactly how it goes unnoticed.
+not the `${workspaceFolder}/.venv/bin/python` pinned above. `ms-python.python`
+documents that key as "Path to default Python", so the interpreter path is the
+correct form and the generated one silently replaces it. Observed as an
+unexplained working-tree modification to a committed `settings.json` — the sort
+of edit nobody made, which is exactly how it goes unnoticed.
 
-The second is the fallback. When `VIRTUAL_ENV` is absent the extension writes the mise toolchain
-interpreter instead, which is precisely the state of a fresh clone: the first `mise install`
-deliberately does not create `.venv` (see [Mise and uv](python-tooling.md#mise-and-uv)). In that
-window, generation commits a python with none of the project's dependencies.
+The second is the fallback. When `VIRTUAL_ENV` is absent the extension writes
+the mise toolchain interpreter instead, which is precisely the state of a fresh
+clone: the first `mise install` deliberately does not create `.venv` (see
+[Mise and uv](python-tooling.md#mise-and-uv)). In that window, generation
+commits a python with none of the project's dependencies.
 
-Nothing is lost by excluding it. Generation exists for toolchains with no equivalent of `.venv`;
-Python already has one, pinned in two places that every consumer reads —
-`python.defaultInterpreterPath` here and `[tool.pyright]` in `pyproject.toml`.
+Nothing is lost by excluding it. Generation exists for toolchains with no
+equivalent of `.venv`; Python already has one, pinned in two places that every
+consumer reads — `python.defaultInterpreterPath` here and `[tool.pyright]` in
+`pyproject.toml`.
 
-These settings do **not** isolate projects in a multi-root workspace — for that, see
-[Multi-root workspaces](#multi-root-workspaces) below.
+These settings do **not** isolate projects in a multi-root workspace — for that,
+see [Multi-root workspaces](#multi-root-workspaces) below.
 
 ### Reload after changing interpreter or pyright settings
 
-Use **Developer: Reload Window**. Current Pylance releases have no "Python: Restart Language
-Server" command, and an already-running server keeps serving diagnostics from the configuration it
-started with.
+Use **Developer: Reload Window**. Current Pylance releases have no "Python:
+Restart Language Server" command, and an already-running server keeps serving
+diagnostics from the configuration it started with.
 
 ### Multi-root workspaces
 
-Opening several projects in one `.code-workspace` is where per-project tool configuration is most
-likely to leak across projects, so it is worth being explicit about which mechanisms hold there and
-which do not.
+Opening several projects in one `.code-workspace` is where per-project tool
+configuration is most likely to leak across projects, so it is worth being
+explicit about which mechanisms hold there and which do not.
 
-**`mise.*` settings are window-scoped, so a committed `.vscode/settings.json` does not carry into a
-multi-root window.** Checked against `hverlin.mise-vscode` 1.23.0: every `mise.*` key — `mise.enable`
-and all four `configureExtensions*` keys included — declares the default `window` scope. VSCode reads
-window-scoped settings from user, remote and *workspace* settings only; per-folder values are
-ignored. A project that commits `"mise.enable": true` therefore configures itself when opened as a
-single root and configures nothing when it is one folder among several. The setting has to be
-repeated in the `.code-workspace` file's `settings` block, where it applies to every folder at once.
+**`mise.*` settings are window-scoped, so a committed `.vscode/settings.json`
+does not carry into a multi-root window.** Checked against `hverlin.mise-vscode`
+1.23.0: every `mise.*` key — `mise.enable` and all four `configureExtensions*`
+keys included — declares the default `window` scope. VSCode reads window-scoped
+settings from user, remote and *workspace* settings only; per-folder values are
+ignored. A project that commits `"mise.enable": true` therefore configures
+itself when opened as a single root and configures nothing when it is one folder
+among several. The setting has to be repeated in the `.code-workspace` file's
+`settings` block, where it applies to every folder at once.
 
-**mise-vscode configures one folder at a time, and writes the result where it applies to all of
-them.** The extension resolves a single "current" workspace folder — whichever was chosen with
-**mise: Select workspace folder**, defaulting to `workspaceFolders[0]` — and writes the generated
-keys at `ConfigurationTarget.Workspace`, which in a multi-root window is the `.code-workspace` file.
-The paths it emits are relative to `${workspaceFolder}`, unqualified. Composed, those three facts
-mean: one folder's tools, expressed with a variable that does not name it, applied to every folder.
-Observed on a seven-folder workspace — a `settings` block sending all seven to
-`${workspaceFolder}/.vscode/mise-tools/python` when only the first folder had that directory, and
-its `python` symlink pointed at a global interpreter rather than any project's `.venv`.
+**mise-vscode configures one folder at a time, and writes the result where it
+applies to all of them.** The extension resolves a single "current" workspace
+folder — whichever was chosen with **mise: Select workspace folder**, defaulting
+to `workspaceFolders[0]` — and writes the generated keys at
+`ConfigurationTarget.Workspace`, which in a multi-root window is the
+`.code-workspace` file. The paths it emits are relative to `${workspaceFolder}`,
+unqualified. Composed, those three facts mean: one folder's tools, expressed
+with a variable that does not name it, applied to every folder. Observed on a
+seven-folder workspace — a `settings` block sending all seven to
+`${workspaceFolder}/.vscode/mise-tools/python` when only the first folder had
+that directory, and its `python` symlink pointed at a global interpreter rather
+than any project's `.venv`.
 
-So the practical rule: **turn `configureExtensionsAutomatically` on per project, and let it write
-only in single-folder windows.** When working in a multi-root workspace, do not accept generated
-`settings` in the `.code-workspace` file, and do not commit them — the workspace file is a view onto
-projects, not a place where any one project's toolchain belongs.
+So the practical rule: **turn `configureExtensionsAutomatically` on per project,
+and let it write only in single-folder windows.** When working in a multi-root
+workspace, do not accept generated `settings` in the `.code-workspace` file, and
+do not commit them — the workspace file is a view onto projects, not a place
+where any one project's toolchain belongs.
 
-**What actually keeps the projects apart** is per-project and does not depend on the mise extension:
+**What actually keeps the projects apart** is per-project and does not depend on
+the mise extension:
 
 | Consumer | Mechanism | Scope |
 |---|---|---|
@@ -233,7 +288,8 @@ projects, not a place where any one project's toolchain belongs.
 | Pylance, test discovery, debugger | `python.defaultInterpreterPath` in the folder's own `.vscode/settings.json` | `machine-overridable`, so a folder-level value overrides the workspace one |
 | terminals and tasks | `uv run --no-sync <tool>`, which resolves from the project root and ignores `PATH` | per invocation |
 
-Each of those is a folder-level or file-level fact, which is why they survive being opened alongside
-other projects; the mise extension's settings are window-level, which is why they do not. Adding the
-`configureExtensions*` keys is worth doing for the toolchains that have no equivalent of `.venv` —
-it is not a substitute for any row of that table.
+Each of those is a folder-level or file-level fact, which is why they survive
+being opened alongside other projects; the mise extension's settings are
+window-level, which is why they do not. Adding the `configureExtensions*` keys
+is worth doing for the toolchains that have no equivalent of `.venv` — it is not
+a substitute for any row of that table.
