@@ -15,8 +15,8 @@ formatters dprint and rumdl — and the first `mise run` creates `.venv` with th
 dev dependencies. VSCode prompts for the extensions in `.vscode/extensions.json`
 on opening the repository; `.vscode/settings.json` formats each file on save
 with the tool `mise run fmt` uses. `mise run preflight` runs every lint and
-test, which is what the `test` workflow runs on each pull request; `mise tasks`
-lists the rest.
+test, which is what the `preflight` workflow runs on each pull request;
+`mise tasks` lists the rest.
 
 ## Loading the plugin from the working tree
 
