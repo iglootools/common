@@ -33,11 +33,11 @@ Configured as
 describes. Two rulesets:
 
 - **`main`** (default branch): no deletion or force-push, changes through a pull
-  request merged with a merge commit, and the `test` check from `test.yml` must
-  pass. `test` has to keep running on every pull request (no `paths` filter on
-  its workflow), or a pull request it skips can never be merged.
-  `integration_id` 15368 is GitHub Actions, which keeps a check with the same
-  name from another app from satisfying the rule.
+  request merged with a merge commit, and the `preflight` check (the job in
+  `test.yml` that runs `ci-preflight`) must pass. It has to keep running on
+  every pull request (no `paths` filter on its workflow), or a pull request it
+  skips can never be merged. `integration_id` 15368 is GitHub Actions, which
+  keeps a check with the same name from another app from satisfying the rule.
 - **`release tags`** (`refs/tags/v*`, `refs/tags/iglootools--v*`): no deletion
   or update. Both prefixes are release tags — see
   [releasing-and-publishing.md](releasing-and-publishing.md#releasing).
@@ -64,7 +64,7 @@ gh api --method POST repos/iglootools/common/rulesets --input - <<'JSON'
     { "type": "required_status_checks", "parameters": {
         "strict_required_status_checks_policy": false,
         "do_not_enforce_on_create": false,
-        "required_status_checks": [{ "context": "test", "integration_id": 15368 }] } }
+        "required_status_checks": [{ "context": "preflight", "integration_id": 15368 }] } }
   ]
 }
 JSON
