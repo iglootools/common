@@ -8,10 +8,11 @@ license-files = ["LICENSE"]
 dynamic = ["version"]
 # Documented exception to guidelines/coding/python.md "Python Version Policy": a range, not
 # one version, because the package installs into each consumer's environment, and photree is
-# held on 3.14 by onnxruntime (no cp315 wheels). The floor is what mise.toml develops and CI
-# tests on, and what ruff and pyright target, so nothing newer than 3.14 slips in; nbkp runs
-# it on 3.15. Narrow to ">=3.15,<3.16", and move the three other pins, when photree moves to
-# 3.15.
+# held on 3.14 by onnxruntime (no cp315 wheels); nbkp runs it on 3.15. mise.toml develops and
+# CI tests on 3.15, like every other project, while ruff and pyright target the 3.14 floor, so
+# 3.15-only syntax and standard-library APIs fail the checks. What they cannot see, a behaviour
+# that differs on 3.14, shows up in photree's CI instead. Narrow to ">=3.15,<3.16", and move
+# ruff's and pyright's targets to 3.15, when photree moves to 3.15.
 requires-python = ">=3.14,<3.16"
 dependencies = [
   "typer>=0.27.0,<1.0.0",
