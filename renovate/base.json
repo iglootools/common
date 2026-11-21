@@ -47,6 +47,11 @@
   ],
   "packageRules": [
     {
+      "description": "The dependency locks mise writes under .mise/locks/ for npm tools (npm:renovate) are mise's to regenerate when the tool's version in mise.toml moves; Renovate's npm manager would otherwise read their package.json and propose edits to a generated file. A packageRule, not ignorePaths, which would replace config:recommended's own list.",
+      "matchFileNames": [".mise/locks/**"],
+      "enabled": false
+    },
+    {
       "description": "No minimumReleaseAge for iglootools' own repositories: the hold guards against other people's releases, not ours.",
       "matchPackageNames": [
         "/^(https://github\\.com/)?iglootools//",
