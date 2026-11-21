@@ -42,6 +42,7 @@ here for why; this document argues at length, and grows as the reasoning does.
   - [A rule carries its reason](#a-rule-carries-its-reason)
 - [People and AI agents](#people-and-ai-agents)
   - [Documentation for people first, agent configuration for the gaps](#documentation-for-people-first-agent-configuration-for-the-gaps)
+  - [Invest in the harness, not in the instructions](#invest-in-the-harness-not-in-the-instructions)
   - [Practices that are good on their own and help agents](#practices-that-are-good-on-their-own-and-help-agents)
 <!-- tocstop -->
 
@@ -523,10 +524,25 @@ touches that area, without having to rediscover them. A convention written once
 by a specialist and loaded when it applies scales better than review comments
 that repeat it on every pull request.
 
+### Invest in the harness, not in the instructions
+
+The leverage is in the environment a change is made in, not in telling each
+contributor how to make it. Frameworks that make the right structure the easy
+one, conventions written by the people who own an area, policies enforced by
+automated checks, and tasks that answer in seconds: each is built once and then
+corrects every contributor, person or agent, on every change. An instruction,
+whether a review comment, a paragraph in a guide or a line in a prompt, has to
+be read, remembered and applied each time, and fails silently when it is not.
+So every mistake caught by hand, in review or after an agent's wrong turn, is a
+prompt to ask what would have caught it automatically: a check, a type, a
+framework, a convention loaded where it applies. Instructions are for what is
+left.
+
 ### Practices that are good on their own and help agents
 
 The workflow and architecture in this document already serve agents, because
-they serve anyone who has to make a change without knowing everything:
+they serve anyone who has to make a change without knowing everything. They are
+what the harness is made of:
 
 - **Tight feedback loops**
   ([Shorten every feedback loop](#shorten-every-feedback-loop)). An agent
