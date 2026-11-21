@@ -76,9 +76,21 @@ them the same way, and Renovate's mise manager keeps them current.
   shared `base` Renovate preset reads their `npm:` specifiers
   ([dependency-automation.md](dependency-automation.md#extend-the-shared-renovate-presets)),
   so extend it rather than adding a manager.
-- **No `excludes` are needed.** dprint skips what `.gitignore` ignores, and the
-  lock files are not `.toml` files, so `uv.lock` and `mise.lock` are never
-  formatted.
+- **Exclude what a tool writes in its own style.** dprint skips what
+  `.gitignore` ignores, and `uv.lock` and `mise.lock` are not `.toml` files, so
+  a Python project needs no `excludes`. A Node project does: `pnpm-lock.yaml`
+  and `package-lock.json` have extensions dprint formats, and the package
+  manager rewrites them in its own style on every install. Generated data, such
+  as minified JSON a script writes, is excluded for the same reason. dprint
+  reads comments in `dprint.json`, so give each entry its reason:
+
+  ```json
+  "excludes": [
+    // Written by pnpm, which rewrites it in its own style on every install.
+    "pnpm-lock.yaml"
+  ]
+  ```
+
 - **Give each array item its own line when a comment trails it.** dprint puts
   one item per line, so a comment after two items on one line ends up attached
   to the second only, and reads as being about it.
@@ -104,6 +116,12 @@ headings = false
   YAML front matter, which Claude Code shows instead. A repository that has
   them adds `[per-file-ignores]` entries for MD041 (first line is a heading),
   `"skills/**/SKILL.md" = ["MD041"]` and `"agents/*.md" = ["MD041"]`.
+- **Leave out Markdown with a syntax of its own**, such as Nuxt Content's MDC
+  pages (`::component` blocks, `#slot` lines, YAML props), with
+  `exclude = ["content/"]` under `[global]`. rumdl reads them as plain
+  Markdown, and its fixes can break them: a `#slot` line looks like a heading
+  missing its space. Name the condition that retires the exclusion, such as
+  rumdl gaining a flavor for it.
 - **Fix a skipped heading level by hand.** rumdl's MD001 fix promotes only the
   first heading under the skipped level, leaving its siblings one level below
   it. Promote them all, then run `mise run toc`.

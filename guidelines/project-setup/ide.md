@@ -121,6 +121,18 @@ without which they run only on **Format Document**:
 tombi stays for what dprint does not do: it validates `pyproject.toml` and the
 other TOML files it has schemas for.
 
+**Where another tool formats the code, turn `formatOnSave` on per language
+instead.** In a Nuxt project ESLint's stylistic rules own `.vue` and `.ts`, and
+a global `formatOnSave` would let Volar format them on save, against those
+rules. Set it inside each language block dprint or rumdl owns:
+
+```json
+{
+    "[yaml]": { "editor.defaultFormatter": "dprint.dprint", "editor.formatOnSave": true },
+    "[markdown]": { "editor.defaultFormatter": "rvben.rumdl", "editor.formatOnSave": true }
+}
+```
+
 ### Check the in-project venv into `.vscode/settings.json`
 
 Rather than relying on each developer running **Python: Select Interpreter**:
