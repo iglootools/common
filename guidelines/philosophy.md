@@ -571,8 +571,10 @@ what the harness is made of:
     that fails on dead code.
   - *Derived files*: a lint that fails when a generated reference, a table of
     contents or a lock file no longer matches its source.
-  - *The repository*: rulesets that refuse a merge until CI passes, a validator
-    for the Renovate config, a link checker.
+  - *The repository*: branch and tag protection, as rulesets that refuse a
+    force-push or deletion of the default branch, any change that skips a pull
+    request, a merge before CI passes, and a release tag rewritten after the
+    fact; a validator for the Renovate config; a link checker.
 - **Structured errors and inspectable state**
   ([Errors as first-class values](#errors-as-first-class-values),
   [Make everything inspectable](#make-everything-inspectable)). An agent
