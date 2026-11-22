@@ -123,10 +123,20 @@ reason they can see.
 
 When a tool, a test or a `lint-*` task enforces a rule, the guideline states the
 rule, names the check and the task that fixes it, and stops. The check's
-configuration is the specification.
+configuration is the specification. When nothing enforces it yet, look for a way
+to add a check before settling for prose: a linter rule or its configuration, an
+import contract, a test, a `lint-*` task, or a small `iglootools` command such
+as `common check-pins`.
 
 **Why:** prose that spells out what a check enforces is a second copy of the
-check. When the check changes, the prose quietly goes wrong.
+check. When the check changes, the prose quietly goes wrong. A rule held only in
+prose is applied unevenly and drifts without anything failing, while a check
+corrects every contributor on every change, as
+[Invest in the harness](../philosophy.md#invest-in-the-harness-not-in-the-instructions)
+argues.
+
+- When a check is out of reach (it would need judgement, or cost more than the
+  mistakes it catches), keep the rule in prose.
 
 ### Leave out what is not a rule
 
