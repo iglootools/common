@@ -35,6 +35,8 @@ the bar a documented exception has to meet.
 - [docs/internals.md](docs/internals.md): understand how the plugin delivers
   the guidelines and how the `iglootools` command is organized, before changing
   `skills/`, `hooks/` or `agents/`
+- [docs/architecture-decision-record.md](docs/architecture-decision-record.md):
+  find out which decisions were taken on this repository, and why
 
 ## Reference
 

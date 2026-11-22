@@ -13,6 +13,7 @@ it is in
 - [Auditing](#auditing)
 - [The ones that load in every session](#the-ones-that-load-in-every-session)
 - [The `iglootools` command](#the-iglootools-command)
+- [Checking the pins on common](#checking-the-pins-on-common)
 <!-- tocstop -->
 
 ## Two delivery mechanisms
@@ -105,3 +106,30 @@ The shared command lives in `src/iglootools/`, one package per domain (`docs`,
 place it prints. Its tests are under `tests/`. How projects install, configure
 and pin it, and how to try a change against one of them before releasing, is in
 [guidelines/project-setup/iglootools-cli.md](../guidelines/project-setup/iglootools-cli.md).
+
+## Checking the pins on common
+
+A project pins a release of common in several files, and how depends on whether
+it is a Python project. `iglootools common adopt` moves every pin to a release,
+looking in every tracked file that mentions common rather than in a list of
+files, and `iglootools common check-pins`, run offline as each project's
+`lint-common-pins` task, keeps them in agreement between adopts.
+
+| | Python projects (nbkp, photree) | Projects without Python (alberta-hiking-resources, network-infra) |
+|---|---|---|
+| The `iglootools` command | a dev dependency in `pyproject.toml`, `iglootools @ git+https://github.com/iglootools/common@v<version>`, run as `uv run --no-sync iglootools …` | run through uvx, as `$IGLOOTOOLS …`: `mise.toml` names the release once in `IGLOOTOOLS_VERSION`, and builds `IGLOOTOOLS = "uvx --from git+https://github.com/iglootools/common@{{ env.IGLOOTOOLS_VERSION }} iglootools"` from it |
+| Where the tag's commit is recorded | `uv.lock`: `common?rev=v<version>#<commit>`, written when `uv lock` resolved the tag | nowhere: uvx resolves the tag when it first builds the command, and caches the build, but no committed file keeps the commit |
+| Other pins | the reusable workflows (by SHA, with `# v<version>`), the `base` and `python` Renovate presets | the reusable workflows they call, the `base` Renovate preset |
+| What keeps the release current | Renovate, through its own manager for the dependency and the presets; adopt | Renovate, through the shared `base` preset's manager, which reads the `# renovate:` comment above `IGLOOTOOLS_VERSION`; adopt |
+| What `adopt` does | moves the pins, then regenerates `uv.lock`, which records the new commit | moves the pins, `IGLOOTOOLS_VERSION` among them; there is no lock to regenerate |
+| What `check-pins` verifies | every pin names one release, adopt would move each, every SHA pin has its tag comment, and the release and every workflow SHA match `uv.lock`'s record | the same, except the workflow SHAs: with no record of the tag's commit, it cannot check them offline |
+
+Two limitations follow from the second column, both accepted in
+[ADR-001](architecture-decision-record.md#adr-001--check-the-pins-on-common-offline-trusting-uvlock-and-iglootools_versions-name),
+which records the alternatives too:
+
+- In a project without Python, a workflow SHA edited by hand to the wrong
+  commit passes, as long as its `# vX.Y.Z` comment is right. adopt and Renovate
+  always write the right one.
+- `IGLOOTOOLS_VERSION` counts as a pin on common by its name; the check does not
+  read the `IGLOOTOOLS` alias or the Renovate comment beside it.
