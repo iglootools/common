@@ -369,7 +369,7 @@ records why pyright rather than ty.
   comment saying where the other cases go, so the fall-through is visible.
 - **Suppress one line, never a rule project-wide:**
   `# pyright: ignore[<rule>]` with its reason, as
-  [general.md › Write each departure where a reader will hit it](../coding/general.md#write-each-departure-and-its-reason-where-a-reader-will-hit-it)
+  [applying-the-guidelines.md › Write each departure where a reader will hit it](../applying-the-guidelines.md#write-each-departure-and-its-reason-where-a-reader-will-hit-it)
   asks. The usual reason is a dependency that leaves something unannotated.
   `reportUnnecessaryTypeIgnoreComment` fails on a suppression that is no longer
   needed, so none outlives its reason.

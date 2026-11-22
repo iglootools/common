@@ -142,5 +142,5 @@ the file itself. A documented project rule wins; if the project records none,
 the shared guideline stands. Undocumented divergence is drift: do not carry it
 into the change, follow the shared guideline and say what you found.
 
-Otherwise, record the exception as `coding/general.md` › Documented Exceptions
-(already in context) describes.
+Otherwise, record the exception as `applying-the-guidelines.md` › Documented
+Exceptions (already in context) describes.

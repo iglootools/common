@@ -313,10 +313,10 @@ interpreter tested that nobody develops on.
 
 A dependency that publishes no wheels for the latest release holds the project
 back. Stay on the newest version that dependency supports, and record it as a
-[documented exception](general.md#documented-exceptions): a comment next to
-`requires-python` naming the dependency and the condition that retires it,
-usually "move when it publishes wheels for 3.x". Do not build the dependency
-from source to get ahead of it.
+[documented exception](../applying-the-guidelines.md#documented-exceptions): a
+comment next to `requires-python` naming the dependency and the condition that
+retires it, usually "move when it publishes wheels for 3.x". Do not build the
+dependency from source to get ahead of it.
 
 **Why:** building from source trades a version number for a toolchain every
 user then needs.

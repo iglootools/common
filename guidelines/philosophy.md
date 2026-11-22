@@ -51,7 +51,7 @@ here for why; this document argues at length, and grows as the reasoning does.
 
 These are defaults, not dogma. Where an exception goes and the bar its rationale
 has to meet are in
-[general.md › Documented Exceptions](coding/general.md#documented-exceptions).
+[applying-the-guidelines.md › Documented Exceptions](applying-the-guidelines.md#documented-exceptions).
 
 That standard covers the reasoning below as much as the concrete rules it
 underpins, and it is easier to neglect here: nothing fails when a principle is
