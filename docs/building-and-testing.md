@@ -1,5 +1,12 @@
 # Building and Testing
 
+<!-- toc -->
+**On this page**
+
+- [Lints and tests](#lints-and-tests)
+- [GitHub Config](#github-config)
+<!-- tocstop -->
+
 ## Lints and tests
 
 `mise run preflight` runs every lint and test, which is what the `test`

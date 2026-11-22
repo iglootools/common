@@ -101,9 +101,10 @@ run = "dprint fmt"
 description = "Format the Markdown with rumdl"
 run = "rumdl fmt ."
 
+# The plugin's agent and skill files are prompts an agent reads whole, so they go without one.
 [tasks.toc]
-description = "Regenerate the tables of contents in the Markdown files"
-run = "uv run --no-sync iglootools docs toc"
+description = "Add and regenerate the tables of contents in the Markdown files"
+run = "uv run --no-sync iglootools docs toc --exclude 'agents/*.md' --exclude 'skills/**'"
 
 # Lints: each fails without writing anything.
 [tasks.lint]
@@ -174,8 +175,8 @@ description = "Check that uv.lock is up to date with pyproject.toml"
 run = "uv lock --check"
 
 [tasks.lint-toc]
-description = "Check that the Markdown tables of contents are up to date (fix with `mise run toc`)"
-run = "uv run --no-sync iglootools docs toc --check"
+description = "Check that every Markdown document has an up-to-date table of contents (fix with `mise run toc`)"
+run = "uv run --no-sync iglootools docs toc --check --exclude 'agents/*.md' --exclude 'skills/**'"
 
 # --strict fails on a config Renovate would migrate, which a plain run reports only as a
 # warning. Run with no argument it validates renovate.json as repository config; the presets

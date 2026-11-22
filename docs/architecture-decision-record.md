@@ -16,9 +16,6 @@ format is in
   - [Consequences](#consequences)
 <!-- tocstop -->
 
-<!-- toc -->
-<!-- tocstop -->
-
 ## ADR-001 — Check the pins on common offline, trusting uv.lock and IGLOOTOOLS_VERSION's name
 
 **Date:** 2026-11-21

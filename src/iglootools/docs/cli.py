@@ -29,7 +29,8 @@ def toc(
         bool,
         typer.Option(
             "--check",
-            help="List out-of-date tables of contents and exit 1; change nothing.",
+            help="List missing, duplicated and out-of-date tables of contents and exit 1; "
+            "change nothing.",
         ),
     ] = False,
     add: Annotated[
@@ -37,14 +38,36 @@ def toc(
         typer.Option(
             "--add",
             metavar="FILE",
-            help="Give FILE an empty table of contents first. Repeat for several files.",
+            help="Give FILE an empty table of contents first, even if it is exempt. "
+            "Repeat for several files.",
         ),
     ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--exclude",
+            metavar="GLOB",
+            help="Let files matching GLOB, relative to the project root, go without a "
+            "table of contents (`content/**`). Repeat for several globs.",
+        ),
+    ] = None,
+    min_lines: Annotated[
+        int,
+        typer.Option(
+            "--min-lines",
+            metavar="N",
+            help="Require a table of contents only in documents of at least N lines.",
+        ),
+    ] = tocs.MIN_LINES,
 ) -> None:
-    """Regenerate the tables of contents between <!-- toc --> and <!-- tocstop -->.
+    """Give every Markdown document a table of contents, and keep each one up to date.
 
-    Every Markdown file git tracks under the project root that carries the markers is
-    updated from its ## and ### headings.
+    Every Markdown file git tracks under the project root that has a ## or ### heading and
+    runs to --min-lines lines needs one block between <!-- toc --> and <!-- tocstop -->,
+    filled from those headings. A shorter file's block, if it has one, is kept up to date.
+    Exempt: AGENTS.md, CLAUDE.md and SKILL.md, which agents read whole; whole generated
+    files, which start with <!-- AUTO-GENERATED; and files matching --exclude. Without
+    --check, a missing block is added.
     """
     root = invocation(ctx).root
     if check and add:
@@ -58,21 +81,38 @@ def toc(
         warn(_describe_toc_error(error, root))
         raise typer.Exit(1) from None
 
-    files = tocs.files_with_toc(root)
+    found = tocs.survey(root, exclude or [], min_lines)
+    for path in found.duplicated:
+        warn(
+            f"More than one table of contents: {display_path(path, root)}; "
+            "remove all but the first."
+        )
     if check:
-        out_of_date = tocs.stale(files)
+        out_of_date = tocs.stale(found.with_toc)
+        for path in found.missing:
+            warn(f"No table of contents: {display_path(path, root)}")
         for path in out_of_date:
             warn(f"Out of date: {display_path(path, root)}")
-        if out_of_date:
-            warn("Run `iglootools docs toc` to regenerate.")
+        if found.missing or out_of_date:
+            warn(
+                "Run `iglootools docs toc` to add and regenerate them, or exempt a file "
+                "with --exclude."
+            )
+        if found.missing or out_of_date or found.duplicated:
             raise typer.Exit(1)
-        say(f"{len(files)} table(s) of contents up to date.")
+        say(f"{len(found.with_toc)} table(s) of contents up to date.")
     else:
-        changed = tocs.regenerate(files)
+        for path in found.missing:
+            tocs.add_block(path)
+            say(f"Added a table of contents to {display_path(path, root)}")
+        changed = tocs.regenerate([*found.with_toc, *found.missing])
         for path in changed:
-            say(f"Updated {display_path(path, root)}")
+            if path not in found.missing:
+                say(f"Updated {display_path(path, root)}")
         if not changed:
-            say(f"{len(files)} table(s) of contents already up to date.")
+            say(f"{len(found.with_toc)} table(s) of contents already up to date.")
+        if found.duplicated:
+            raise typer.Exit(1)
 
 
 class GraphFormat(StrEnum):
