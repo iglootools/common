@@ -146,7 +146,8 @@ should send a reader there. Then register it where agents are routed to it: the
 `documentation/`, the `SessionStart` hook for a file under `coding/`, the
 auditor agent for one under `review/`. A new directory, or a file at the top of
 `guidelines/`, also gets a line in `guidelines/README.md`. Update every one when
-the file is renamed or its trigger changes.
+the file is renamed or its trigger changes. `mise run test` fails on a guideline
+missing from any of them (`tests/test_guideline_indexes.py`).
 
 **Why:** the skill reads only the files its table lists, and readers find the
 rest through the indexes, so an unregistered guideline exists without ever being
