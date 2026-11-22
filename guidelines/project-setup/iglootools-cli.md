@@ -66,6 +66,10 @@ from an isolated tool environment.
 - `uv.lock` records the commit the tag resolved to. Move the pin, then
   `uv lock`, as for any dependency. The version is the plugin's: the tag that
   releases the plugin releases the tools.
+- Renovate moves the pin along with the workflows and presets, through a custom
+  manager in the shared `python` preset, since no built-in one moves a git
+  reference; the shared lock regenerator then updates `uv.lock` on its branch.
+  `iglootools common adopt-all` does the same at once.
 - A project without Python runs the commands that do not need its environment
   (`shell lint`, `mise lock-check`) through uvx, with uv in `[tools]` and the
   release named once, in `[env]`, under a `# renovate:` comment, which the

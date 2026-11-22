@@ -7,13 +7,26 @@
     {
       "description": "[tool.uv] build-constraint-dependencies pins the PEP 517 build backend closure, which uv.lock does not resolve and no built-in manager reads. The two matchStrings run under the recursive strategy: the first isolates the array, the second captures every pin in it; a single anchored regex extracts only the first. Renovate does not re-lock for a regex manager's bump, so the shared renovate-mise-lock workflow runs uv lock on the branch.",
       "customType": "regex",
-      "managerFilePatterns": ["/pyproject.toml/"],
+      "managerFilePatterns": [
+        "/pyproject.toml/"
+      ],
       "matchStrings": [
         "build-constraint-dependencies = \\[[^\\]]*\\]",
         "\"(?<depName>[a-zA-Z0-9._-]+)==(?<currentValue>[^\"]+)\""
       ],
       "matchStringsStrategy": "recursive",
       "datasourceTemplate": "pypi"
+    },
+    {
+      "description": "The iglootools command, a dev dependency pinned by tag as a PEP 508 direct reference (iglootools @ git+https://github.com/iglootools/common@vX.Y.Z). No built-in manager moves a git reference there, so without this a bump of common moved the workflows and presets but not the command, leaving the pins disagreeing, which lint-common-pins fails. The shared renovate-mise-lock workflow then runs uv lock on the branch, re-resolving the tag in uv.lock.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/pyproject.toml/"
+      ],
+      "matchStrings": [
+        "git\\+https://github\\.com/(?<depName>iglootools/common)(?:\\.git)?@(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-tags"
     }
   ]
 }
