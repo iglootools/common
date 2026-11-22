@@ -12,7 +12,7 @@ names. Read it before adding or reworking a rule. Rules are one of the
 **On this page**
 
 - [Shape](#shape)
-  - [Open with what the file governs and when to read it](#open-with-what-the-file-governs-and-when-to-read-it)
+  - [Name the files or changes the guideline governs in its opening](#name-the-files-or-changes-the-guideline-governs-in-its-opening)
   - [Head each rule with the rule itself](#head-each-rule-with-the-rule-itself)
   - [State the rule, then why, then the details](#state-the-rule-then-why-then-the-details)
   - [Move a long why out of the rule](#move-a-long-why-out-of-the-rule)
@@ -28,13 +28,16 @@ names. Read it before adding or reworking a rule. Rules are one of the
 
 ## Shape
 
-### Open with what the file governs and when to read it
+### Name the files or changes the guideline governs in its opening
 
-Its first paragraph names the files or changes it governs and the moment to read
-it. The table of contents follows.
+For a guideline,
+[Open with who it is for and what it answers](types.md#open-with-who-it-is-for-and-what-it-answers)
+means that the first paragraph names the files or changes it governs and the
+moment to read it. The table of contents follows.
 
-**Why:** the reader, and the `guidelines` skill, decide from that paragraph
-whether to read on.
+**Why:** a person deciding whether the guideline applies to their change, and
+the `guidelines` skill deciding when to load it, both read that paragraph first.
+A vague one sends them past a guideline they needed, or into one they did not.
 
 ### Head each rule with the rule itself
 
