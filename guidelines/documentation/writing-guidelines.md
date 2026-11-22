@@ -64,7 +64,8 @@ sentences. [Rationale](#pin-every-action-to-a-commit-sha-1) when it needs more.
 
 **Why:** a reader who wants only what to do reads the statement and the details.
 One who is weighing an exception reads the labelled line. Neither has to dig the
-other out of a paragraph.
+other out of a paragraph. Why every rule carries a reason at all is in
+[A rule carries its reason](../philosophy.md#a-rule-carries-its-reason).
 
 ### Move a long why out of the rule
 
@@ -120,7 +121,8 @@ it with the rule.
 
 **Why:** a reason that names a silent failure reads as firm, and one that names
 consistency reads as negotiable. A reader can only weigh an exception against a
-reason they can see.
+reason they can see, as
+[A rule carries its reason](../philosophy.md#a-rule-carries-its-reason) argues.
 
 ### Let a check hold what a check can enforce
 
