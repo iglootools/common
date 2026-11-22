@@ -1,0 +1,180 @@
+import os
+import time
+from typing import Annotated
+
+import typer
+
+from iglootools.cliwiring import ensure, invocation, say, warn
+from iglootools.github import local, merge, prune
+from iglootools.github.client import (
+    GitHub,
+    GitHubError,
+    Repository,
+    origin_repository,
+    parse_slug,
+    resolve_token,
+)
+from iglootools.preflight import requirements
+
+app = typer.Typer(
+    help="Work with the project's GitHub repository.", no_args_is_help=True
+)
+
+REPO_OPTION = typer.Option(
+    "--repo", help="owner/name of the repository; default: the origin remote."
+)
+
+
+def _repository(ctx: typer.Context, slug: str | None) -> Repository:
+    if slug is not None:
+        match parse_slug(slug):
+            case None:
+                warn(f"--repo takes owner/name, not {slug!r}.")
+                raise typer.Exit(2)
+            case repository:
+                return repository
+    try:
+        return origin_repository(invocation(ctx).root)
+    except GitHubError as error:
+        warn(f"{error.detail}.")
+        raise typer.Exit(2) from None
+
+
+def _preview_merge(
+    github: GitHub, repository: Repository, pr: int, *, delete_branch: bool
+) -> None:
+    try:
+        found = merge.preview(github, repository, pr)
+    except GitHubError as error:
+        warn(f"{repository.slug}#{pr}: {error.detail}")
+        raise typer.Exit(1) from None
+    for line in merge.describe(found, delete_branch=delete_branch):
+        say(f"[dry-run] {repository.slug}#{pr}: {line}")
+    if found.verdict.action == merge.Action.REFUSE:
+        raise typer.Exit(1)
+
+
+def _is_origin(ctx: typer.Context, repository: Repository) -> bool:
+    """Whether the checkout under --root is a clone of *repository*."""
+    try:
+        return origin_repository(invocation(ctx).root) == repository
+    except GitHubError:
+        return False
+
+
+def github_session(ctx: typer.Context, slug: str | None) -> tuple[Repository, GitHub]:
+    """The repository to work on and an authenticated client, or exit 2 saying why."""
+    return _repository(ctx, slug), _github(ctx)
+
+
+def _github(ctx: typer.Context) -> GitHub:
+    try:
+        return GitHub(resolve_token(invocation(ctx).root, environ=os.environ))
+    except GitHubError as error:
+        warn(f"No GitHub token: {error.detail}.")
+        raise typer.Exit(2) from None
+
+
+@app.command("merge-when-green")
+def merge_when_green(
+    ctx: typer.Context,
+    pr: Annotated[int, typer.Argument(help="Number of the pull request.", min=1)],
+    repo: Annotated[str | None, REPO_OPTION] = None,
+    timeout: Annotated[
+        int, typer.Option(help="Give up after this many seconds.", min=1)
+    ] = 1800,
+    keep_branch: Annotated[
+        bool, typer.Option("--keep-branch", help="Do not delete the branch.")
+    ] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", "-n", help="Say what it would do, and stop.")
+    ] = False,
+) -> None:
+    """Merge a pull request once every check has passed, then delete its branch.
+
+    Waits until every check on the head commit has reported, including the ones a
+    ruleset requires that have not started yet. Refuses when a check fails or GitHub
+    blocks the merge for another reason. Merges with a merge commit, deletes the branch
+    on GitHub, and, when the checkout has it, locally too.
+    """
+    ensure(ctx, requirements.GITHUB)
+    repository = _repository(ctx, repo)
+    github = _github(ctx)
+    if dry_run:
+        _preview_merge(github, repository, pr, delete_branch=not keep_branch)
+        return
+    try:
+        outcome = merge.merge_when_green(
+            github,
+            repository,
+            pr,
+            sleep=time.sleep,
+            now=time.monotonic,
+            report=lambda reason: say(f"{repository.slug}#{pr}: {reason}"),
+            timeout=timeout,
+            delete_branch=not keep_branch,
+        )
+    except GitHubError as error:
+        warn(f"{repository.slug}#{pr}: {error.detail}")
+        raise typer.Exit(1) from None
+    if not outcome.merged:
+        warn(f"{repository.slug}#{pr}: not merged, {outcome.reason}.")
+        raise typer.Exit(1)
+    say(f"{repository.slug}#{pr}: {outcome.reason}.")
+    if outcome.branch_deleted:
+        say(f"Deleted {outcome.pull.head_ref} on GitHub.")
+    if outcome.branch_deleted and _is_origin(ctx, repository):
+        cleanup = local.clean_local(
+            invocation(ctx).root, outcome.pull.head_ref, outcome.pull.base_ref
+        )
+        if cleanup.switched_to_base:
+            say(f"Switched to an up-to-date {outcome.pull.base_ref}.")
+        if cleanup.deleted:
+            say(f"Deleted the local {outcome.pull.head_ref}.")
+        if cleanup.problem:
+            warn(f"Local cleanup stopped: {cleanup.problem}")
+
+
+@app.command("prune-branches")
+def prune_branches(
+    ctx: typer.Context,
+    repo: Annotated[str | None, REPO_OPTION] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", "-n", help="Show what would be deleted.")
+    ] = False,
+) -> None:
+    """Delete every branch whose latest pull request has merged, on GitHub and locally.
+
+    Keeps the default branch, protected branches, branches with an open pull request,
+    branches whose latest pull request was closed without merging, and branches that
+    never had one, such as gh-pages. Local branches are deleted with `git branch -d`, so
+    one carrying commits the default branch lacks is kept and reported.
+    """
+    ensure(ctx, requirements.GITHUB)
+    repository = _repository(ctx, repo)
+    github = _github(ctx)
+    root = invocation(ctx).root
+    on_origin = _is_origin(ctx, repository)
+    locals_ = local.local_branches(root) if on_origin else []
+    try:
+        default_branch, branches = prune.gather(github, repository, locals_)
+        decisions = prune.plan(branches, default_branch)
+        for decision in decisions:
+            name = decision.branch.name
+            if not decision.delete:
+                say(f"Keep {name}: {decision.reason}.")
+                continue
+            if dry_run:
+                say(f"[dry-run] Would delete {name}: {decision.reason}.")
+                continue
+            if decision.branch.on_remote:
+                prune.delete_remote(github, repository, name)
+            if decision.branch.local:
+                cleanup = local.clean_local(root, name, default_branch)
+                if cleanup.problem:
+                    warn(f"Kept the local {name}: {cleanup.problem}")
+                    continue
+            say(f"Deleted {name}: {decision.reason}.")
+    except GitHubError as error:
+        warn(f"{repository.slug}: {error.detail}")
+        raise typer.Exit(1) from None

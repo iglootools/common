@@ -7,8 +7,9 @@ license-files = ["LICENSE"]
 # a release bumps it in one place and the two can never disagree.
 dynamic = ["version"]
 # Documented exception to guidelines/project-setup/python-tooling.md "Target only the latest
-# stable Python": a range, not one version, because the package installs into each consumer's environment, and photree is
-# held on 3.14 by onnxruntime (no cp315 wheels); nbkp runs it on 3.15. mise.toml develops and
+# stable Python": a range, not one version, because the package installs into each
+# consumer's environment, and photree is held on 3.14 by onnxruntime (no cp315 wheels); nbkp
+# runs it on 3.15. mise.toml develops and
 # CI tests on 3.15, like every other project, while ruff and pyright target the 3.14 floor, so
 # 3.15-only syntax and standard-library APIs fail the checks. What they cannot see, a behaviour
 # that differs on 3.14, shows up in photree's CI instead. Narrow to ">=3.15,<3.16", and move
@@ -83,14 +84,14 @@ target-version = "py314"
 
 [tool.ruff.lint]
 # TID251: tests inject fakes through parameters instead of patching
-# (guidelines/coding/general.md, Mocks). unittest.mock is banned, and so is
+# (guidelines/coding/general.md, Testability). unittest.mock is banned, and so is
 # pytest.MonkeyPatch: tests/conftest.py replaces the monkeypatch fixture with one that
 # fails. RUF100 reports a noqa that is no longer needed.
 extend-select = ["RUF100", "TID251"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-"unittest.mock".msg = "Inject a fake through a parameter instead of patching (guidelines/coding/general.md, Mocks)."
-"pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (guidelines/coding/general.md, Mocks)."
+"unittest.mock".msg = "Inject a fake through a parameter instead of patching (general.md, Testability)."
+"pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (general.md, Testability)."
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
