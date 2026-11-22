@@ -126,7 +126,7 @@ class FakeTagging:
 
 def test_the_plugin_tag_is_made_by_claude(tmp_path: Path) -> None:
     tools = FakeTagging()
-    release._plugin_tag(tmp_path, run=tools)
+    release.plugin_tag(tmp_path, run=tools)
     assert tools.commands == [
         ["claude", "plugin", "validate", "."],
         ["claude", "plugin", "tag", "--push", "-m", "Release %s"],
@@ -134,8 +134,9 @@ def test_the_plugin_tag_is_made_by_claude(tmp_path: Path) -> None:
 
 
 def test_the_plain_tag_goes_on_the_plugin_tag_s_commit(tmp_path: Path) -> None:
-    tools, reports = FakeTagging(), []
-    release._plain_tag(tmp_path, "1.33.0", report=reports.append, run=tools)
+    tools = FakeTagging()
+    reports: list[Event] = []
+    release.plain_tag(tmp_path, "1.33.0", report=reports.append, run=tools)
     assert tools.commands[:3] == [
         ["git", "fetch", "-q", "--tags"],
         [
@@ -154,6 +155,6 @@ def test_the_plain_tag_goes_on_the_plugin_tag_s_commit(tmp_path: Path) -> None:
 
 def test_tags_naming_different_commits_are_an_error(tmp_path: Path) -> None:
     with pytest.raises(GitStepError, match="name different commits"):
-        release._plain_tag(
+        release.plain_tag(
             tmp_path, "1.33.0", report=print, run=FakeTagging(plain_commit="c2")
         )

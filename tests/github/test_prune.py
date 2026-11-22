@@ -60,7 +60,9 @@ class FakeGitHub:
 
 
 def test_gather_reads_every_page_and_each_branch_s_latest_pull_request() -> None:
-    full_page = [{"name": f"b{i}", "protected": False} for i in range(100)]
+    full_page: list[dict[str, object]] = [
+        {"name": f"b{i}", "protected": False} for i in range(100)
+    ]
     fake = FakeGitHub(
         [full_page, [{"name": "main", "protected": True}, {"name": "gh-pages"}]],
         {

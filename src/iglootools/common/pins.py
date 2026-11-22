@@ -107,7 +107,7 @@ class Reference:
 
 def references(path: Path, text: str) -> list[Reference]:
     """Every pin on common in *text*, found by the broad patterns."""
-    found = []
+    found: list[Reference] = []
     for number, line in enumerate(text.splitlines(), start=1):
         refs = [m["ref"] for m in _REFERENCE.finditer(line)] + [
             m["ref"] for m in _ENV_REFERENCE.finditer(line)

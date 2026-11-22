@@ -17,7 +17,7 @@ SETTINGS = DemoSettings(
     cast="demo.cast",
     readme=Path("README.md"),
 )
-RUN = {
+RUN: dict[str, object] = {
     "databaseId": 42,
     "createdAt": "2026-11-17T10:00:00Z",
     "headBranch": "main",

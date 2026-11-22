@@ -28,7 +28,7 @@ import tomllib
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeIs, cast
 
 
 class ProjectErrorKind(StrEnum):
@@ -163,9 +163,15 @@ def _string[D: str | None](
             raise ProjectError(ProjectErrorKind.INVALID_SETTING, path, key)
 
 
+def _is_strings(value: object) -> TypeIs[list[str]]:
+    return isinstance(value, list) and all(
+        isinstance(item, str) for item in cast(list[object], value)
+    )
+
+
 def _strings(table: dict[str, Any], key: str, path: Path) -> tuple[str, ...]:
     match table.get(key, []):
-        case list(values) if all(isinstance(v, str) for v in values):
+        case values if _is_strings(values):
             return tuple(values)
         case _:
             raise ProjectError(ProjectErrorKind.INVALID_SETTING, path, key)

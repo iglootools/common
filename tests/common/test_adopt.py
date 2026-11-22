@@ -124,7 +124,8 @@ def _adopt(
 
 def test_a_first_run_branches_moves_locks_pushes_and_opens(tmp_path: Path) -> None:
     root = _project(tmp_path)
-    github, tools, events = FakeGitHub(), FakeTools(), []
+    github, tools = FakeGitHub(), FakeTools()
+    events: list[Event] = []
     outcome = _adopt(root, github, tools, events)
     assert outcome == adopt.Outcome(
         Result.OPENED, "opened, not merged (--no-merge)", 42
