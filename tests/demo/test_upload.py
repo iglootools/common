@@ -16,6 +16,7 @@ SETTINGS = DemoSettings(
     artifact="demo-recording",
     cast="demo.cast",
     readme=Path("README.md"),
+    poster=Path("demo/demo.svg"),
 )
 RUN: dict[str, object] = {
     "databaseId": 42,
@@ -113,23 +114,105 @@ def test_recording_url_is_read_from_any_server() -> None:
     assert upload.recording_url("Error: unauthorized") is None
 
 
-def test_apply_embed_repoints_the_first_embed_only() -> None:
+def test_apply_embed_repoints_the_first_embed_at_the_repository_image() -> None:
     readme = (
         "# nbkp\n\n[![asciicast](https://asciinema.org/a/old.svg)](https://asciinema.org/a/old)\n"
         "Later: [![asciicast](x.svg)](x)\n"
     )
-    update = upload.apply_embed(readme, "https://asciinema.org/a/new")
+    update = upload.apply_embed(readme, "https://asciinema.org/a/new", "demo/demo.svg")
     assert (update.found, update.changed) == (True, True)
     assert update.content.startswith(
-        "# nbkp\n\n[![asciicast](https://asciinema.org/a/new.svg)](https://asciinema.org/a/new)\n",
+        "# nbkp\n\n[![asciicast](demo/demo.svg)](https://asciinema.org/a/new)\n",
     )
     assert update.content.endswith("Later: [![asciicast](x.svg)](x)\n")
 
 
 def test_apply_embed_reports_a_missing_or_unchanged_embed() -> None:
-    assert upload.apply_embed("# no embed\n", "u").found is False
-    current = upload.render_embed("https://asciinema.org/a/same")
-    assert upload.apply_embed(current, "https://asciinema.org/a/same").changed is False
+    assert upload.apply_embed("# no embed\n", "u", "demo/demo.svg").found is False
+    current = upload.render_embed("https://asciinema.org/a/same", "demo/demo.svg")
+    unchanged = upload.apply_embed(
+        current,
+        "https://asciinema.org/a/same",
+        "demo/demo.svg",
+    )
+    assert unchanged.changed is False
+
+
+SVG = b'<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg"></svg>\n'
+
+
+def test_download_poster_saves_asciinemas_svg_of_the_recording(tmp_path: Path) -> None:
+    fetched: list[str] = []
+
+    def fetch(url: str) -> bytes:
+        fetched.append(url)
+        return SVG
+
+    poster = tmp_path / "demo" / "demo.svg"
+    upload.download_poster("https://asciinema.org/a/AbC", poster, fetch=fetch)
+    assert fetched == ["https://asciinema.org/a/AbC.svg"]
+    assert poster.read_bytes() == SVG
+
+
+@pytest.mark.parametrize(
+    ("answer", "detail"),
+    [
+        (b"<html>Not found</html>", "not an SVG image"),
+        (OSError("timed out"), "timed out"),
+    ],
+)
+def test_download_poster_refuses_what_is_not_an_svg(
+    tmp_path: Path,
+    answer: bytes | OSError,
+    detail: str,
+) -> None:
+    def fetch(_url: str) -> bytes:
+        if isinstance(answer, OSError):
+            raise answer
+        return answer
+
+    poster = tmp_path / "demo.svg"
+    with pytest.raises(upload.DemoError) as raised:
+        upload.download_poster("https://asciinema.org/a/AbC", poster, fetch=fetch)
+    assert (raised.value.kind, raised.value.detail) == (
+        upload.DemoErrorKind.POSTER_FAILED,
+        detail,
+    )
+    assert not poster.exists()
+
+
+def test_commit_demo_commits_the_readme_and_a_new_poster_only(git_repo: Path) -> None:
+    git = ["git", "-C", str(git_repo), "-c", "user.name=t", "-c", "user.email=t@t"]
+    readme, poster, other = (git_repo / name for name in ("README.md", "demo.svg", "x"))
+    readme.write_text("v1\n", encoding="utf-8")
+    subprocess.run([*git, "add", "README.md"], check=True)
+    subprocess.run([*git, "commit", "-qm", "init"], check=True)
+    readme.write_text("v2\n", encoding="utf-8")
+    poster.write_bytes(SVG)
+    other.write_text("unrelated\n", encoding="utf-8")
+
+    def run(command: Sequence[str]) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [*git, *command[3:]],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    workflow_run = upload.WorkflowRun.from_json(RUN)
+    summary = upload.commit_demo(
+        (readme, poster),
+        "https://asciinema.org/a/AbC",
+        workflow_run,
+        git_repo,
+        run=run,
+    )
+    assert "point the demo at AbC" in summary
+    committed = subprocess.run(
+        [*git, "show", "--name-only", "--format=", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.split()  # fmt: skip
+    assert committed == ["README.md", "demo.svg"]
 
 
 def test_upload_failure_keeps_asciinemas_message(tmp_path: Path) -> None:

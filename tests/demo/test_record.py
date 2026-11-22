@@ -11,6 +11,7 @@ SETTINGS = DemoSettings(
     artifact="demo-recording",
     cast="demo.cast",
     readme=Path("/p/README.md"),
+    poster=Path("/p/demo/demo.svg"),
 )
 
 

@@ -24,6 +24,7 @@ def test_defaults_come_from_the_project_name(tmp_path: Path) -> None:
     assert project.demo.recording == tmp_path / "demo/demo.cast"
     assert project.demo.workflow == "demo.yml"
     assert project.demo.readme == tmp_path / "README.md"
+    assert project.demo.poster == tmp_path / "demo/demo.svg"
     assert project.fallback_version is None
 
 

@@ -22,6 +22,7 @@ Every setting has a default that fits nbkp and photree, so a project only writes
     artifact = "demo-recording"
     cast = "demo.cast"
     readme = "README.md"
+    poster = "demo/demo.svg"                    # the preview the README shows
 """
 
 import re
@@ -79,6 +80,8 @@ class DemoSettings:
     artifact: str
     cast: str
     readme: Path
+    poster: Path
+    """Where `demo upload` saves the recording's preview, which the README shows."""
 
 
 @dataclass(frozen=True)
@@ -165,6 +168,7 @@ def _demo_settings(table: dict[str, Any], root: Path, path: Path) -> DemoSetting
         artifact=_string(table, "artifact", path, "demo-recording"),
         cast=_string(table, "cast", path, "demo.cast"),
         readme=root / _string(table, "readme", path, "README.md"),
+        poster=root / _string(table, "poster", path, "demo/demo.svg"),
     )
 
 
