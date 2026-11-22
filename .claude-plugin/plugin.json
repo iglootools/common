@@ -1,7 +1,7 @@
 {
   "name": "iglootools",
   "description": "Routes Claude Code to the iglootools shared guidelines at the moment they apply, records documented deviations, and audits a branch or a whole codebase against them with parallel auditor agents.",
-  "version": "1.36.0",
+  "version": "1.37.0",
   "author": {
     "name": "iglootools"
   },
