@@ -202,7 +202,8 @@ deserves a human reading it before it lands.
 
 For mechanical changes, such as carrying a change across the iglootools
 projects, realigning a project with the guidelines, or bumping dependencies:
-open each pull request, merge it once its checks pass, and carry on. Stop and
+open each pull request, merge it once its checks pass with
+`iglootools github merge-when-green <pr>`, and carry on. Stop and
 ask when a check fails for a reason that is not mechanical, or when a judgment
 call appears. At the end, list what was merged in each project, with links, so
 the person can review after the merge.
