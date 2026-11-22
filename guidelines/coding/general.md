@@ -26,6 +26,7 @@ before any code change; the plugin puts it in every session.
   - [Patch only in the three documented cases, and list each one](#patch-only-in-the-three-documented-cases-and-list-each-one)
 - [Code Comments](#code-comments)
   - [Comment why, never what](#comment-why-never-what)
+  - [Document every public module, class and function](#document-every-public-module-class-and-function)
 - [Naming](#naming)
   - [Name from the domain's vocabulary, then the surface's conventions](#name-from-the-domains-vocabulary-then-the-surfaces-conventions)
 - [Command Line](#command-line)
@@ -200,12 +201,30 @@ them drifts without failing anything. See
   (`gh workflow run check-links.yml --ref <branch>` atop a workflow).
 - When code seems to need a "what" comment, rename, extract a helper, name a
   constant or tighten a type instead, and delete the comment. That includes a
-  banner repeating function names and a docstring restating the name.
-- Keep a docstring that tells the caller what the signature does not (units,
-  ownership, errors, side effects), and any a tool shows users (CLI help,
-  API docs).
+  banner repeating function names.
+- Docstrings, Scaladoc and JSDoc are documentation, not comments: see
+  [Document every public module, class and function](#document-every-public-module-class-and-function).
 - Delete commented-out code. Update or remove a comment in the edit that changes
   its reasoning: a wrong comment is worse than none.
+
+### Document every public module, class and function
+
+Give each a doc comment in the language's own form (a Python docstring,
+Scaladoc, JSDoc) saying what it does or holds, for a reader who sees only that:
+the purpose, what a function returns, and what the signature does not say
+(units, ownership, errors raised, side effects). Tests are exempt: a test's name
+says what it checks.
+
+**Why:** doc comments are what the editor shows on hover, what generated API
+documentation and CLI help are made of, and what a caller reads instead of the
+body. Unlike a comment inside the code, saying what is their job.
+
+- Lead with a one-line summary in the imperative ("Return the status table…"),
+  then a blank line and any detail.
+- Give the why in the doc comment when it helps whoever calls the code: why it
+  refuses a case, retries or takes a lock, or the outside constraint that shapes
+  its behaviour. A why that concerns only one line of the implementation goes in
+  a comment beside that line.
 
 ## Naming
 
