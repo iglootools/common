@@ -1,8 +1,9 @@
 """Tables of contents in Markdown files, generated from their headings.
 
-A file opts in with a `<!-- toc -->` ... `<!-- tocstop -->` block; everything between the
+A file carries a `<!-- toc -->` ... `<!-- tocstop -->` block; everything between the
 markers is regenerated from the file's `##` and `###` headings, with anchors that follow
-GitHub's rules.
+GitHub's rules. Every tracked document long enough to scroll, with such a heading, needs
+exactly one block, except the ones exempt() names; a shorter one may carry one.
 """
 
 import re
@@ -11,11 +12,18 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from itertools import accumulate, count, islice
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 TOC_START = "<!-- toc -->"
 TOC_END = "<!-- tocstop -->"
 TOC_LEVELS = (2, 3)
+
+AGENT_LOADED = frozenset({"AGENTS.md", "CLAUDE.md", "SKILL.md"})
+"""Files an agent reads whole, often every session: a table of contents only costs tokens."""
+MIN_LINES = 80
+"""About two screens: a shorter document is read at a glance, and needs no list."""
+GENERATED = "<!-- AUTO-GENERATED"
+"""How a whole generated file starts; its generator, not this one, decides its contents."""
 
 HEADING = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t#]*$")
 FENCE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
@@ -167,8 +175,58 @@ def add_block(path: Path) -> None:
         raise TocError(error.kind, path) from None
 
 
-def files_with_toc(root: Path) -> list[Path]:
-    """The Markdown files git tracks under *root* that carry a block."""
+def blocks(markdown: str) -> int:
+    """How many blocks *markdown* opens, outside code blocks."""
+    return sum(
+        line.strip() == TOC_START for line in outside_fences(markdown.splitlines())
+    )
+
+
+def has_sections(markdown: str) -> bool:
+    return any(h.level in TOC_LEVELS for h in headings(markdown))
+
+
+def needs_toc(
+    relative: str,
+    markdown: str,
+    exclude: Sequence[str] = (),
+    min_lines: int = MIN_LINES,
+) -> bool:
+    """Whether the file at *relative* must carry a block: it has sections, runs to at
+    least *min_lines* lines, and is not exempt."""
+    return (
+        len(markdown.splitlines()) >= min_lines
+        and has_sections(markdown)
+        and not exempt(relative, markdown, exclude)
+    )
+
+
+def exempt(relative: str, markdown: str, exclude: Sequence[str] = ()) -> bool:
+    """Whether the file at *relative* (to the project root) may go without a block: one an
+    agent loads whole, a whole generated file, or one matching an *exclude* glob."""
+    path = PurePosixPath(relative)
+    return (
+        path.name in AGENT_LOADED
+        or markdown.startswith(GENERATED)
+        or any(path.full_match(pattern) for pattern in exclude)
+    )
+
+
+@dataclass(frozen=True)
+class Survey:
+    with_toc: list[Path]
+    """Files with a block, which regenerate() keeps up to date."""
+    missing: list[Path]
+    """Files that need_toc() and have no block."""
+    duplicated: list[Path]
+    """Files with more than one block; only the first is ever filled in."""
+
+
+def survey(
+    root: Path, exclude: Sequence[str] = (), min_lines: int = MIN_LINES
+) -> Survey:
+    """Every Markdown file git tracks under *root*, sorted by what its table of contents
+    needs."""
     tracked = subprocess.run(
         ["git", "ls-files", "-z", "--", "*.md"],
         cwd=root,
@@ -176,7 +234,16 @@ def files_with_toc(root: Path) -> list[Path]:
         capture_output=True,
         text=True,
     ).stdout.split("\0")
-    return [root / name for name in tracked if name and TOC_START in _read(root / name)]
+    texts = {name: _read(root / name) for name in tracked if name}
+    return Survey(
+        with_toc=[root / n for n, text in texts.items() if TOC_START in text],
+        missing=[
+            root / n
+            for n, text in texts.items()
+            if not blocks(text) and needs_toc(n, text, exclude, min_lines)
+        ],
+        duplicated=[root / n for n, text in texts.items() if blocks(text) > 1],
+    )
 
 
 def stale(paths: Iterable[Path]) -> list[Path]:
