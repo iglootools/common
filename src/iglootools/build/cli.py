@@ -4,7 +4,8 @@ from typing import Annotated
 import typer
 
 from iglootools.build import tasks
-from iglootools.cliwiring import invocation, say, warn
+from iglootools.cliwiring import ensure, invocation, say, warn
+from iglootools.preflight import requirements
 
 
 def build(
@@ -26,6 +27,7 @@ def build(
     iglootools build itself, such as -n, go before the task; everything after it goes to
     the task.
     """
+    ensure(ctx, requirements.BUILD)
     root = invocation(ctx).root
     try:
         available = tasks.list_tasks(root)

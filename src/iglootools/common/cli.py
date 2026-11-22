@@ -3,13 +3,14 @@ from typing import Annotated
 
 import typer
 
-from iglootools.cliwiring import display_path, invocation, say, warn
+from iglootools.cliwiring import display_path, ensure, invocation, say, warn
 from iglootools.common import adopt as adoption
 from iglootools.common import pins
 from iglootools.common import release as releasing
 from iglootools.github.cli import REPO_OPTION, github_session
 from iglootools.github.client import GitHubError
 from iglootools.github.local import GitStepError
+from iglootools.preflight import requirements
 
 app = typer.Typer(
     help="Maintain a project's link to iglootools/common.", no_args_is_help=True
@@ -44,6 +45,7 @@ def adopt(
     Then opens a pull request and merges it once every check has passed, as
     merge-when-green does.
     """
+    ensure(ctx, requirements.COMMON)
     version = _version(version)
     root = invocation(ctx).root
     repository, github = github_session(ctx, repo)
@@ -98,6 +100,7 @@ def release(
     (tags only), one that is complete changes nothing, and tags that disagree with
     plugin.json are refused.
     """
+    ensure(ctx, requirements.COMMON)
     root = invocation(ctx).root
     repository, github = github_session(ctx, None)
     if repository != pins.COMMON:

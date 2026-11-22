@@ -1,9 +1,12 @@
+import os
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
+from iglootools.preflight import requirements
 from iglootools.project import Project, ProjectError, ProjectErrorKind, load_project
 
 console = Console(highlight=False)
@@ -66,3 +69,26 @@ def _describe_project_error(error: ProjectError, root: Path) -> str:
             )
         case ProjectErrorKind.INVALID_SETTING:
             return f"{where}: {error.setting} in [tool.iglootools] has the wrong type."
+
+
+def ensure(ctx: typer.Context, needed: Sequence[requirements.Requirement]) -> None:
+    """Exit 1, saying how to fix each, unless every one of *needed* is met.
+
+    Called by a subsystem's commands before their first change, so a missing tool stops
+    them before any branch, pull request or tag exists.
+    """
+    missing = [
+        result
+        for result in requirements.check(
+            needed, invocation(ctx).root, environ=os.environ
+        )
+        if not result.ok
+    ]
+    for result in missing:
+        warn(
+            f"Missing {result.requirement.name} ({result.detail}): it "
+            f"{result.requirement.purpose}. Fix: {result.requirement.fix}."
+        )
+    if missing:
+        warn("Run `iglootools preflight` to check everything.")
+        raise typer.Exit(1)

@@ -11,6 +11,7 @@ from iglootools.demo import cli as demo_cli
 from iglootools.docs import cli as docs_cli
 from iglootools.github import cli as github_cli
 from iglootools.mise import cli as mise_cli
+from iglootools.preflight import cli as preflight_cli
 from iglootools.python import cli as python_cli
 from iglootools.shell import cli as shell_cli
 
@@ -27,6 +28,7 @@ app.add_typer(mise_cli.app, name="mise")
 app.add_typer(shell_cli.app, name="shell")
 app.add_typer(github_cli.app, name="github")
 app.add_typer(common_cli.app, name="common")
+app.command("preflight")(preflight_cli.preflight)
 app.command(
     "build",
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},

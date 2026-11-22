@@ -4,7 +4,7 @@ from typing import Annotated
 
 import typer
 
-from iglootools.cliwiring import invocation, say, warn
+from iglootools.cliwiring import ensure, invocation, say, warn
 from iglootools.github import local, merge, prune
 from iglootools.github.client import (
     GitHub,
@@ -14,6 +14,7 @@ from iglootools.github.client import (
     parse_slug,
     resolve_token,
 )
+from iglootools.preflight import requirements
 
 app = typer.Typer(
     help="Work with the project's GitHub repository.", no_args_is_help=True
@@ -96,6 +97,7 @@ def merge_when_green(
     blocks the merge for another reason. Merges with a merge commit, deletes the branch
     on GitHub, and, when the checkout has it, locally too.
     """
+    ensure(ctx, requirements.GITHUB)
     repository = _repository(ctx, repo)
     github = _github(ctx)
     if dry_run:
@@ -148,6 +150,7 @@ def prune_branches(
     never had one, such as gh-pages. Local branches are deleted with `git branch -d`, so
     one carrying commits the default branch lacks is kept and reported.
     """
+    ensure(ctx, requirements.GITHUB)
     repository = _repository(ctx, repo)
     github = _github(ctx)
     root = invocation(ctx).root
