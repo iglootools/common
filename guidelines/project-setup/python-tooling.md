@@ -10,7 +10,7 @@ naming in [mise.md](mise.md#name-tasks-by-family).
 <!-- toc -->
 **On this page**
 
-- [Target only the latest stable Python](#target-only-the-latest-stable-python)
+- [Target the latest stable Python, unless others install the package](#target-the-latest-stable-python-unless-others-install-the-package)
   - [Name the version in the four places that pin it](#name-the-version-in-the-four-places-that-pin-it)
   - [Move to a new Python release](#move-to-a-new-python-release)
   - [When a dependency lags](#when-a-dependency-lags)
@@ -38,7 +38,7 @@ naming in [mise.md](mise.md#name-tasks-by-family).
   - [Run test suites in parallel with pytest-xdist](#run-test-suites-in-parallel-with-pytest-xdist)
   - [Enforce the patching rule](#enforce-the-patching-rule)
 - [Rationale](#rationale)
-  - [Target only the latest stable Python](#target-only-the-latest-stable-python-1)
+  - [Target the latest stable Python, unless others install the package](#target-the-latest-stable-python-unless-others-install-the-package-1)
   - [Pin the build backend explicitly](#pin-the-build-backend-explicitly-1)
   - [Guard against a `0.0.0` release](#guard-against-a-000-release-1)
   - [Let `[deps.uv]` install the environment, and mise only source it](#let-depsuv-install-the-environment-and-mise-only-source-it-1)
@@ -46,33 +46,50 @@ naming in [mise.md](mise.md#name-tasks-by-family).
   - [Prefer contracts whose coverage follows the code](#prefer-contracts-whose-coverage-follows-the-code-1)
 <!-- tocstop -->
 
-## Target only the latest stable Python
+## Target the latest stable Python, unless others install the package
 
-A project targets one Python version: the latest stable CPython release, the one
-`[tools] python` in `mise.toml` pins. The minimum supported version, the version
-developed on and the version CI tests are the same.
+How far back a project supports Python depends on who installs it:
 
-**Why:** an older floor puts every newer feature off-limits, needs a separate
-check to enforce it, and has CI test a version nobody develops on, while users
-can get a current interpreter in one step.
-[Rationale](#target-only-the-latest-stable-python-1)
+- **An application**, a CLI installed with `uv tool`, `pipx` or `uvx`, or a
+  site or service, targets one version: the latest stable CPython release, the
+  one `[tools] python` in `mise.toml` pins. The minimum supported version, the
+  version developed on and the version CI tests are the same.
+- **A library**, a package installed into other projects' environments,
+  supports a range: from the oldest Python its consumers run to the latest. For
+  one used only by iglootools projects, such as common's `iglootools`, the
+  floor is the oldest Python those projects pin. It is developed and tested on
+  the latest, like an application, while ruff and pyright check it against the
+  floor.
+
+**Why:** an older floor puts every newer feature off-limits, and has CI test a
+version nobody develops on. An application's users can get a current
+interpreter in one step, so it pays none of that cost. A library runs on its
+consumers' interpreter, so it has to meet the oldest one.
+[Rationale](#target-the-latest-stable-python-unless-others-install-the-package-1)
 
 - CI takes its interpreter from `mise.toml`, as a developer machine does, with
   no version matrix.
-- There is no compatibility check (`vermin`): nothing can be too new.
+- There is no compatibility check (`vermin`). An application has nothing that
+  can be too new. A library's ruff and pyright targets catch most uses of newer
+  syntax and standard-library APIs. A behaviour that differs on the floor shows
+  up in the CI of the consumer that runs it.
+- Raise a library's floor when its last consumer on that version moves, and
+  say so in a comment next to `requires-python`.
 - A dependency without wheels for the latest release holds the project back as
   [When a dependency lags](#when-a-dependency-lags) describes.
 
 ### Name the version in the four places that pin it
 
-Four settings name the version, and they move together, in one change:
+Four settings name the floor `F` and the latest `L`. In an application they are
+the same version, and all four move together, in one change; in a library, the
+settings that name the same version move together:
 
 | Setting | Where | Value |
 |---|---|---|
-| `[tools] python` | `mise.toml` | the exact patch release, `3.X.Y`; CI installs it from here |
-| `requires-python` | `pyproject.toml` | `>=3.X,<3.(X+1)` |
-| ruff `target-version` | `pyproject.toml` | `py3X` |
-| pyright `pythonVersion` | `pyproject.toml` | `3.X` |
+| `[tools] python` | `mise.toml` | the latest, as the exact patch release `3.L.Y`; CI installs it from here |
+| `requires-python` | `pyproject.toml` | `>=3.F,<3.(L+1)` |
+| ruff `target-version` | `pyproject.toml` | the floor, `py3F` |
+| pyright `pythonVersion` | `pyproject.toml` | the floor, `3.F` |
 
 **Why:** settings that disagree check the code against one version and run it on
 another. The upper bound keeps the package off a Python nobody has tested, so it
@@ -99,7 +116,9 @@ later as a failed install on a user's machine.
   toolchain is not.
 - Then:
   1. Move all four settings, relock (`uv lock`, `mise lock`), and run
-     `mise run preflight`.
+     `mise run preflight`. A library moves only the latest, `[tools] python`
+     and the upper bound of `requires-python`; its floor moves with its last
+     consumer.
   2. Run `ruff check --fix`: with the new `target-version`, its `UP` rules
      rewrite the idioms the new version makes redundant.
   3. Adopt the release's new features where they remove a workaround or make
@@ -569,13 +588,13 @@ and nothing reports it.
 
 ## Rationale
 
-### Target only the latest stable Python
+### Target the latest stable Python, unless others install the package
 
 Supporting an older Python costs more than it buys for these projects. Every
 feature newer than the floor is off-limits, a separate check (`vermin`) is
-needed to enforce that because ruff's and pyright's targets miss cases, and CI
-has to test a version nobody develops on. Meanwhile the tools are installed by
-people who can get a current interpreter in one step:
+needed to enforce that fully because ruff's and pyright's targets miss cases,
+and CI has to test a version nobody develops on. Meanwhile the applications are
+installed by people who can get a current interpreter in one step:
 
 - `uv tool install <tool>` downloads a managed Python when the system has no
   matching one, so the distribution's `python3` does not matter.
@@ -584,6 +603,12 @@ people who can get a current interpreter in one step:
 
 The system `python3` of an LTS distribution is therefore not a constraint, and
 the projects do not track it.
+
+A library has no such way out: it is imported by its consumers' interpreter,
+whichever version that is. Its floor follows the oldest consumer, and it pays
+the cost above only for the versions between that floor and the latest. For a
+library used only by iglootools projects that range is small, and the floor
+rises as the projects move.
 
 ### Pin the build backend explicitly
 
