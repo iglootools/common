@@ -57,9 +57,15 @@ A commit either changes behaviour or restructures code, never both.
 unchanged tests confirm; a behaviour change is read line by line, and mixed in,
 it hides among a hundred renamed lines.
 
-- Mechanical changes (renames, moves, formatting, regenerated files, lock
-  updates) get their own commits, with the command in the message
-  (`uv lock --upgrade-package httpx`), so the reviewer re-runs it.
+- Mechanical changes (renames, moves, reformatting code the branch does not
+  otherwise touch, regenerated files, lock updates) get their own commits, with
+  the command in the message (`uv lock --upgrade-package httpx`), so the
+  reviewer re-runs it.
+- Format the code a commit adds or changes in that same commit: run `mise run
+  fmt` before committing. A separate formatting commit is only for code the
+  branch did not otherwise change, such as adopting a formatter or upgrading
+  one; formatting a commit's own lines afterwards is rework to fold, not a
+  mechanical change.
 - Put the preparatory refactoring first, then the change it makes easy.
 - Aim for every commit to build and pass the checks, so `git bisect` stops
   somewhere meaningful. Readability wins a conflict (an interface change, then

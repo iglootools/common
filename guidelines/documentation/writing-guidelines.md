@@ -12,29 +12,33 @@ names. Read it before adding or reworking a rule. Rules are one of the
 **On this page**
 
 - [Shape](#shape)
-  - [Open with what the file governs and when to read it](#open-with-what-the-file-governs-and-when-to-read-it)
+  - [Name the files or changes the guideline governs in its opening](#name-the-files-or-changes-the-guideline-governs-in-its-opening)
   - [Head each rule with the rule itself](#head-each-rule-with-the-rule-itself)
-  - [State the rule, then why, then the details](#state-the-rule-then-why-then-the-details)
-  - [Move a long why out of the rule](#move-a-long-why-out-of-the-rule)
   - [Write one idea per sentence](#write-one-idea-per-sentence)
-- [Content](#content)
-  - [Own each rule in one file, and cite it everywhere else](#own-each-rule-in-one-file-and-cite-it-everywhere-else)
-  - [Make an index say when to read a file, not what it says](#make-an-index-say-when-to-read-a-file-not-what-it-says)
+- [Reasons](#reasons)
+  - [State the rule, then why, then the details](#state-the-rule-then-why-then-the-details)
   - [Say how firmly a rule holds](#say-how-firmly-a-rule-holds)
+  - [Move a long why out of the rule](#move-a-long-why-out-of-the-rule)
+- [Ownership](#ownership)
+  - [Own each rule in one file, and cite it everywhere else](#own-each-rule-in-one-file-and-cite-it-everywhere-else)
   - [Let a check hold what a check can enforce](#let-a-check-hold-what-a-check-can-enforce)
+  - [Register a new or renamed guideline in every index that routes to it](#register-a-new-or-renamed-guideline-in-every-index-that-routes-to-it)
+  - [Keep the always-on guidelines to what every change needs](#keep-the-always-on-guidelines-to-what-every-change-needs)
   - [Leave out what is not a rule](#leave-out-what-is-not-a-rule)
-  - [Keep the always-on files to what every change needs](#keep-the-always-on-files-to-what-every-change-needs)
 <!-- tocstop -->
 
 ## Shape
 
-### Open with what the file governs and when to read it
+### Name the files or changes the guideline governs in its opening
 
-Its first paragraph names the files or changes it governs and the moment to read
-it. The table of contents follows.
+For a guideline,
+[Open with who it is for and what it answers](types.md#open-with-who-it-is-for-and-what-it-answers)
+means that the first paragraph names the files or changes it governs and the
+moment to read it. The table of contents follows.
 
-**Why:** the reader, and the `guidelines` skill, decide from that paragraph
-whether to read on.
+**Why:** a person deciding whether the guideline applies to their change, and
+the `guidelines` skill deciding when to load it, both read that paragraph first.
+A vague one sends them past a guideline they needed, or into one they did not.
 
 ### Head each rule with the rule itself
 
@@ -43,6 +47,15 @@ family", not "Task naming".
 
 **Why:** the table of contents becomes the full list of rules, readable without
 opening a section, and a link to the rule tells the reader what the rule says.
+
+### Write one idea per sentence
+
+Use bullets for parallel cases and tables for mappings.
+
+**Why:** a sentence carrying two ideas hides the second, and a list of cases in
+prose cannot be scanned.
+
+## Reasons
 
 ### State the rule, then why, then the details
 
@@ -61,7 +74,22 @@ sentences. [Rationale](#pin-every-action-to-a-commit-sha-1) when it needs more.
 
 **Why:** a reader who wants only what to do reads the statement and the details.
 One who is weighing an exception reads the labelled line. Neither has to dig the
-other out of a paragraph.
+other out of a paragraph. Why every rule carries a reason at all is in
+[A rule carries its reason](../philosophy.md#a-rule-carries-its-reason).
+
+### Say how firmly a rule holds
+
+Every shared rule is a default, departed from as
+[Documented Exceptions](../coding/general.md#documented-exceptions) describes.
+Do not repeat that in each file. The **Why:** line already calibrates the rule.
+Where breaking it is never acceptable, for instance because the failure is
+silent or a security risk, say so. Where an exception is already known, list
+it with the rule.
+
+**Why:** a reason that names a silent failure reads as firm, and one that names
+consistency reads as negotiable. A reader can only weigh an exception against a
+reason they can see, as
+[A rule carries its reason](../philosophy.md#a-rule-carries-its-reason) argues.
 
 ### Move a long why out of the rule
 
@@ -73,14 +101,7 @@ rule's **Why:** line. Reasoning that more than one guideline rests on goes in
 **Why:** the rules stay compact enough to scan, and the argument is still one
 click away for the reader who needs it.
 
-### Write one idea per sentence
-
-Use bullets for parallel cases and tables for mappings.
-
-**Why:** a sentence carrying two ideas hides the second, and a list of cases in
-prose cannot be scanned.
-
-## Content
+## Ownership
 
 ### Own each rule in one file, and cite it everywhere else
 
@@ -97,42 +118,61 @@ copying the rule.
 **Why:** a summary is a copy, and copies drift without anything failing. The
 reader cannot tell which version wins.
 
-### Make an index say when to read a file, not what it says
-
-The guidelines' indexes, each directory's `README.md` and the skill's routing
-table, are [maps](types.md#say-when-to-go-there-not-what-is-inside): one line
-per file, naming the change that should send a reader there.
-
-**Why:** an index that summarizes each file is a second copy of every file, and
-the guidelines have several indexes.
-
-### Say how firmly a rule holds
-
-Every shared rule is a default, departed from as
-[Documented Exceptions](../coding/general.md#documented-exceptions) describes.
-Do not repeat that in each file. The **Why:** line already calibrates the rule.
-Where breaking it is never acceptable, for instance because the failure is
-silent or a security risk, say so. Where an exception is already known, list
-it with the rule.
-
-**Why:** a reason that names a silent failure reads as firm, and one that names
-consistency reads as negotiable. A reader can only weigh an exception against a
-reason they can see.
-
 ### Let a check hold what a check can enforce
 
 When a tool, a test or a `lint-*` task enforces a rule, the guideline states the
 rule, names the check and the task that fixes it, and stops. The check's
-configuration is the specification.
+configuration is the specification. When nothing enforces it yet, look for a way
+to add a check before settling for prose: a linter rule or its configuration, an
+import contract, a test, a `lint-*` task, or a small `iglootools` command such
+as `common check-pins`.
 
 **Why:** prose that spells out what a check enforces is a second copy of the
-check. When the check changes, the prose quietly goes wrong.
+check. When the check changes, the prose quietly goes wrong. A rule held only in
+prose is applied unevenly and drifts without anything failing, while a check
+corrects every contributor on every change, as
+[Invest in the harness](../philosophy.md#invest-in-the-harness-not-in-the-instructions)
+argues.
+
+- When a check is out of reach (it would need judgement, or cost more than the
+  mistakes it catches), keep the rule in prose.
+
+### Register a new or renamed guideline in every index that routes to it
+
+Give it one line in its directory's `README.md`, written as
+[maps](types.md#say-when-to-go-there-not-what-is-inside) are: the change that
+should send a reader there. Then register it where agents are routed to it: the
+`guidelines` skill's routing table for a file under `project-setup/` or
+`documentation/`, the `SessionStart` hook for a file under `coding/`, the
+auditor agent for one under `review/`. A new directory, or a file at the top of
+`guidelines/`, also gets a line in `guidelines/README.md`. Update every one when
+the file is renamed or its trigger changes. `mise run test` fails on a guideline
+missing from any of them (`tests/test_guideline_indexes.py`).
+
+**Why:** the skill reads only the files its table lists, and readers find the
+rest through the indexes, so an unregistered guideline exists without ever being
+read.
+
+### Keep the always-on guidelines to what every change needs
+
+The shared `coding/general.md`, `coding/git.md` and `coding/python.md`, and each
+project's entry file (`docs/guidelines.md`, or `docs/guidelines/README.md`), go
+into every agent session. A rule there must apply to every change in its scope.
+A rule about particular files belongs in the guideline those files trigger, and
+anything long moves to a file of its own, linked from the entry file.
+
+**Why:** a line in an always-on file is read in every session, by readers who do
+not need it.
 
 ### Leave out what is not a rule
 
-- **No history.** What changed, and when, belongs in the commit or the
-  decision record. Keep a line about the old way only when it prevents a
-  return to it, and then write it as the reason.
+- **No history.** What changed, and when, belongs in the commit. When a reader
+  needs the history to understand a rule (what was tried, what broke, what was
+  decided against), record it as an entry in the
+  [architecture decision record](layout.md#record-architectural-decisions-in-an-append-only-log)
+  and link it from the rule's **Why:** line. Keep a line about the old way in
+  the guideline itself only when it prevents a return to it, and then write it
+  as the reason.
 - **No hedging, and no addressing an agent.** Write the rule for a person
   ([Documentation for people first](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps)).
   Which file an agent reads, and when, is for the skill and the hooks to
@@ -143,12 +183,3 @@ check. When the check changes, the prose quietly goes wrong.
 
 **Why:** length hides the rule. The always-on guidelines are paid for in every
 session, and the others each time they are read.
-
-### Keep the always-on files to what every change needs
-
-`coding/general.md`, `coding/git.md` and `coding/python.md` go into every
-session. A rule there must apply to every change in their scope. A rule about
-particular files belongs in the guideline those files trigger.
-
-**Why:** a line in an always-on file is read thousands of times, by readers who
-do not need it.

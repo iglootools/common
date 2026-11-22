@@ -92,7 +92,10 @@ move one.
 
 **Why:** the reusable workflows, the command, the Renovate presets and
 `IGLOOTOOLS_VERSION` pin the same release in several files, and a pin written a
-new way would be left behind by `adopt` without anything failing.
+new way would be left behind by `adopt` without anything failing. Why the check
+runs offline, what that leaves unverified in projects without Python, and the
+alternatives not pursued are in
+[ADR-001](../../docs/architecture-decision-record.md#adr-001--check-the-pins-on-common-offline-trusting-uvlock-and-iglootools_versions-name).
 
 ## Call it from one-line mise tasks
 

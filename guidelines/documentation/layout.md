@@ -48,8 +48,10 @@ argues.
 - **The entry file holds rules and links**: deviations from the shared
   guidelines, which shared sections are out of scope, the project's own rules,
   and a link to everything else. It is loaded into every agent session, after
-  the shared guidelines so that it overrides them, and every line is paid for
-  each time. The other guidelines files are read when a change reaches what they
+  the shared guidelines so that it overrides them, so it holds only what every
+  change needs, as
+  [writing-guidelines.md](writing-guidelines.md#keep-the-always-on-guidelines-to-what-every-change-needs)
+  asks. The other guidelines files are read when a change reaches what they
   govern.
 - **Anything long moves into its own file under `docs/guidelines/`**, linked
   from the entry under a heading that names the task: an implementation
