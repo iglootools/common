@@ -23,6 +23,7 @@ are in [shared-workflows.md](shared-workflows.md), releasing to PyPI is in
 - [Running](#running)
   - [Supersede runs that can be redone, but never a push to `main`](#supersede-runs-that-can-be-redone-but-never-a-push-to-main)
   - [Queue runs whose partial state cannot be redone](#queue-runs-whose-partial-state-cannot-be-redone)
+  - [Build what a release triggers from its tag](#build-what-a-release-triggers-from-its-tag)
   - [Set `timeout-minutes` on every job](#set-timeout-minutes-on-every-job)
   - [Allow manual dispatch, except where it reaches production](#allow-manual-dispatch-except-where-it-reaches-production)
 - [Rationale](#rationale)
@@ -264,6 +265,34 @@ version number. [Rationale](#queue-runs-whose-partial-state-cannot-be-redone-1)
   pending run, never the running one.
 - A GitHub Pages deployment keeps the fixed `group: pages`, the documented
   convention for that action.
+
+### Build what a release triggers from its tag
+
+A job that a release starts (publish, demo, a site deploy) resolves the
+release's `v*` tag and checks it out, right after `actions/checkout`: the tag a
+dispatch names, otherwise the `v*` tag on the commit the run started on. nbkp's
+[publish.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/publish.yml)
+shows the step.
+
+**Why:** a run dispatched on a branch otherwise builds that branch's head, which
+moves on with every merge, so a re-run publishes whatever `main` has become
+under the release's name. Passing the tag as `--ref` avoids it only where the
+job may run from a tag: an environment that accepts only `main`, as a GitHub
+Pages deployment usually does, refuses that run.
+
+- **Where the tag comes from.** A `tag` input on `workflow_dispatch`
+  (`gh workflow run publish.yml -f tag=v1.2.0`), or `client_payload.tag` for
+  `repository_dispatch`. Without one, the commit the checkout landed on: a
+  `workflow_run` checks out the release run's `head_sha`
+  ([pypi-publishing.md](pypi-publishing.md#check-out-the-released-commit-with-its-history-and-tags)),
+  and a pushed tag or `--ref v1.2.0` checks out the tagged commit.
+- **When there is no tag.** A `workflow_run` skips the rest of the job: the
+  release run released nothing, as a dry run does. A manual publish or deploy
+  fails, saying how to pass the tag. A manual demo records the branch head,
+  which is how a change to the demo is tried out.
+- **Refuse a tag the repository does not have**, or one not shaped `v<digit>…`,
+  before checking it out. Pass the input to the script through `env:`; never
+  interpolate `${{ }}` into `run:`, where a crafted value becomes shell.
 
 ### Set `timeout-minutes` on every job
 
