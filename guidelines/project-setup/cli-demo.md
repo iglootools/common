@@ -189,25 +189,17 @@ failed an otherwise successful release after minutes of retries;
 
 ## Embed the cast at the top of the README
 
-The README carries the recording's preview image, linked to the player,
-directly under the one-paragraph description, before the first section, on one
-line in exactly this shape:
+The README carries the player directly under the one-paragraph description,
+before the first section, on one line in exactly this shape:
 
 ```markdown
-[![asciicast](demo/demo.svg)](https://asciinema.org/a/<id>)
+[![asciicast](https://asciinema.org/a/<id>.svg)](https://asciinema.org/a/<id>)
 ```
 
 **Why:** the first screen shows what the tool does. `iglootools demo upload`
 finds the embed with a regular expression and rewrites it in place, failing
 loudly rather than appending a second when it cannot find one.
 
-- **The image is a copy in the repository**, not asciinema's
-  `https://asciinema.org/a/<id>.svg`. GitHub shows a README's images through its
-  camo proxy, which cannot reach asciinema.org (GitHub-hosted runners cannot
-  either), so a hot-linked image renders as a bare "asciicast" link.
-  `demo upload` saves asciinema's SVG of the new recording at
-  `[tool.iglootools.demo] poster` (default `demo/demo.svg`) and commits it with
-  the README.
 - Refresh it on every major release, after adding the release's scenarios to
   `demo.sh`: run `mise run demo-upload-latest` once the release's demo workflow
   has succeeded.
