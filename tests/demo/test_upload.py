@@ -29,7 +29,8 @@ class FakeGh:
     """Answers commands by their first words, and records every command it was given."""
 
     def __init__(
-        self, answers: dict[str, Callable[[Sequence[str]], tuple[int, str]]]
+        self,
+        answers: dict[str, Callable[[Sequence[str]], tuple[int, str]]],
     ) -> None:
         self.answers = answers
         self.commands: list[list[str]] = []
@@ -45,7 +46,7 @@ def test_latest_run_prefers_main_and_falls_back_to_any_branch() -> None:
     gh = FakeGh(
         {
             "gh run list": lambda c: (0, json.dumps([] if "--branch" in c else [RUN])),
-        }
+        },
     )
     found = upload.latest_run(SETTINGS, run=gh)
     assert (found.run_id, found.branch) == ("42", "main")
@@ -76,7 +77,10 @@ def test_download_finds_the_cast_anywhere_in_the_artifact(tmp_path: Path) -> Non
 
     run = upload.WorkflowRun.from_json(RUN)
     cast = upload.download_cast(
-        SETTINGS, run, tmp_path, run=FakeGh({"gh run download": download})
+        SETTINGS,
+        run,
+        tmp_path,
+        run=FakeGh({"gh run download": download}),
     )
     assert upload.cast_title(cast) == "nbkp 1.2.0"
 
@@ -85,7 +89,10 @@ def test_an_artifact_without_the_cast_is_an_error(tmp_path: Path) -> None:
     run = upload.WorkflowRun.from_json(RUN)
     with pytest.raises(upload.DemoError) as raised:
         upload.download_cast(
-            SETTINGS, run, tmp_path, run=FakeGh({"gh run download": lambda _: (0, "")})
+            SETTINGS,
+            run,
+            tmp_path,
+            run=FakeGh({"gh run download": lambda _: (0, "")}),
         )
     assert raised.value.kind == upload.DemoErrorKind.NO_CAST_IN_ARTIFACT
 
@@ -114,7 +121,7 @@ def test_apply_embed_repoints_the_first_embed_only() -> None:
     update = upload.apply_embed(readme, "https://asciinema.org/a/new")
     assert (update.found, update.changed) == (True, True)
     assert update.content.startswith(
-        "# nbkp\n\n[![asciicast](https://asciinema.org/a/new.svg)](https://asciinema.org/a/new)\n"
+        "# nbkp\n\n[![asciicast](https://asciinema.org/a/new.svg)](https://asciinema.org/a/new)\n",
     )
     assert update.content.endswith("Later: [![asciicast](x.svg)](x)\n")
 

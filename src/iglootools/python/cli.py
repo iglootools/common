@@ -1,3 +1,5 @@
+"""The `iglootools python` commands: build, clean, reinstall, verify the version."""
+
 from pathlib import Path
 from textwrap import indent
 from typing import Annotated
@@ -8,7 +10,8 @@ from iglootools.cliwiring import display_path, project, say, warn
 from iglootools.python import environment, verifyversion
 
 app = typer.Typer(
-    help="Build and check a Python project managed with uv.", no_args_is_help=True
+    help="Build and check a Python project managed with uv.",
+    no_args_is_help=True,
 )
 
 
@@ -29,7 +32,8 @@ def verify_version(
         typer.Option("--dist-dir", help="Directory holding the built wheels."),
     ] = Path("dist"),
 ) -> None:
-    """Fail if a built wheel carries the dynamic-versioning fallback version.
+    """
+    Fail if a built wheel carries the dynamic-versioning fallback version.
 
     The fallback is [tool.uv-dynamic-versioning] fallback-version in pyproject.toml. A
     wheel that carries it was built without git history or tags.
@@ -38,7 +42,7 @@ def verify_version(
     if proj.fallback_version is None:
         warn(
             "pyproject.toml sets no [tool.uv-dynamic-versioning] fallback-version, "
-            "so there is no fallback version to guard against."
+            "so there is no fallback version to guard against.",
         )
         raise typer.Exit(1)
     directory = dist_dir if dist_dir.is_absolute() else proj.root / dist_dir
@@ -50,7 +54,7 @@ def verify_version(
         raise typer.Exit(1) from None
 
     # An empty directory fails rather than passing silently, or the guard is defeated by
-    # the very situation it exists to catch: a build that did not produce what it should.
+    # the very situation it exists to catch: a build that did not produce its wheels.
     if not versions:
         warn(f"No wheel found in {shown}/, so there is nothing to verify.")
         raise typer.Exit(1)
@@ -59,15 +63,18 @@ def verify_version(
     fallbacks = [f for f in versions if f.version == proj.fallback_version]
     if fallbacks:
         warn(
-            f"\n{len(fallbacks)} wheel(s) carry fallback-version {proj.fallback_version}, "
-            "so the build could not see git tags or history:"
+            f"\n{len(fallbacks)} wheel(s) carry fallback-version "
+            f"{proj.fallback_version}, so the build could not see git tags or history:",
         )
         warn(
-            indent("\n".join(display_path(f.wheel, proj.root) for f in fallbacks), "  ")
+            indent(
+                "\n".join(display_path(f.wheel, proj.root) for f in fallbacks),
+                "  ",
+            ),
         )
         warn(
             "\nCheck that the checkout has full history and tags "
-            "(fetch-depth: 0, fetch-tags: true)."
+            "(fetch-depth: 0, fetch-tags: true).",
         )
         raise typer.Exit(1)
 
@@ -79,7 +86,8 @@ def _failed(error: environment.EnvironmentCommandError) -> typer.Exit:
 
 @app.command()
 def build(ctx: typer.Context) -> None:
-    """Build the sdist and wheel into an emptied dist/.
+    """
+    Build the sdist and wheel into an emptied dist/.
 
     Check the result with `iglootools python verify-version`.
     """
@@ -103,7 +111,8 @@ def clean(ctx: typer.Context) -> None:
 
 @app.command()
 def reinstall(ctx: typer.Context) -> None:
-    """Delete .venv and reinstall the locked dependencies from scratch.
+    """
+    Delete .venv and reinstall the locked dependencies from scratch.
 
     Only needed for an environment changed by hand, such as with `uv pip install`; mise
     already re-syncs whenever uv.lock or pyproject.toml changes.

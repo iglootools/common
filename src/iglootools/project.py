@@ -1,10 +1,11 @@
-"""The project a command works on, read from its pyproject.toml.
+"""
+The project a command works on, read from its pyproject.toml.
 
 Every setting has a default that fits nbkp and photree, so a project only writes the
 `[tool.iglootools]` keys it needs to change:
 
     [tool.iglootools]
-    package = "nbkp"                            # default: [project] name, as an import name
+    package = "nbkp"                            # default: [project] name, importable
 
     [tool.iglootools.docs]
     cli-module = "nbkp.cli"                     # default: <package>.cli
@@ -32,6 +33,8 @@ from typing import Any, TypeIs, cast
 
 
 class ProjectErrorKind(StrEnum):
+    """Why the tools cannot work from a pyproject.toml."""
+
     NO_PYPROJECT = "no-pyproject"
     NO_PROJECT_NAME = "no-project-name"
     INVALID_SETTING = "invalid-setting"
@@ -41,8 +44,12 @@ class ProjectError(ValueError):
     """A pyproject.toml the tools cannot work from."""
 
     def __init__(
-        self, kind: ProjectErrorKind, path: Path, setting: str | None = None
+        self,
+        kind: ProjectErrorKind,
+        path: Path,
+        setting: str | None = None,
     ) -> None:
+        """Build the error from its kind, the file, and the setting at fault, if any."""
         super().__init__(f"{kind}: {path} {setting or ''}".rstrip())
         self.kind = kind
         self.path = path
@@ -51,6 +58,8 @@ class ProjectError(ValueError):
 
 @dataclass(frozen=True)
 class DocsSettings:
+    """`[tool.iglootools.docs]`: what the docs commands generate, and where."""
+
     cli_module: str
     cli_name: str
     """The program name the CLI reference documents."""
@@ -61,6 +70,8 @@ class DocsSettings:
 
 @dataclass(frozen=True)
 class DemoSettings:
+    """`[tool.iglootools.demo]`: how the demo is recorded and published."""
+
     script: Path
     recording: Path
     window_size: str
@@ -72,6 +83,8 @@ class DemoSettings:
 
 @dataclass(frozen=True)
 class Project:
+    """The project a command works on, with every setting resolved."""
+
     root: Path
     name: str
     """The [project] name, which is also the distribution name."""
@@ -126,7 +139,11 @@ def _project_name(project_table: dict[str, Any], path: Path) -> str:
 
 
 def _docs_settings(
-    table: dict[str, Any], root: Path, package: str, name: str, path: Path
+    table: dict[str, Any],
+    root: Path,
+    package: str,
+    name: str,
+    path: Path,
 ) -> DocsSettings:
     return DocsSettings(
         cli_module=_string(table, "cli-module", path, f"{package}.cli"),
@@ -152,7 +169,10 @@ def _demo_settings(table: dict[str, Any], root: Path, path: Path) -> DemoSetting
 
 
 def _string[D: str | None](
-    table: dict[str, Any], key: str, path: Path, default: D
+    table: dict[str, Any],
+    key: str,
+    path: Path,
+    default: D,
 ) -> str | D:
     match table.get(key, default):
         case str(value) if value:
@@ -165,7 +185,7 @@ def _string[D: str | None](
 
 def _is_strings(value: object) -> TypeIs[list[str]]:
     return isinstance(value, list) and all(
-        isinstance(item, str) for item in cast(list[object], value)
+        isinstance(item, str) for item in cast("list[object]", value)
     )
 
 

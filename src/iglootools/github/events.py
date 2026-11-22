@@ -1,4 +1,5 @@
-"""What a long-running command is doing, reported as it happens.
+"""
+What a long-running command is doing, reported as it happens.
 
 Commands report events rather than lines of text, so the same progress can be printed as
 lines by a single command and drawn as a live table when several run in parallel.
@@ -10,6 +11,8 @@ from enum import StrEnum
 
 
 class Stage(StrEnum):
+    """The step of a long-running command an event reports."""
+
     BRANCHED = "branched"
     MOVING = "moving"
     LOCKING = "locking"
@@ -21,6 +24,8 @@ class Stage(StrEnum):
 
 @dataclass(frozen=True)
 class Event:
+    """One step of a long-running command: its stage, what happened, and the pull."""
+
     stage: Stage
     detail: str
     pull: int | None = None

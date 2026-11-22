@@ -1,5 +1,9 @@
-"""The guard against 0.0.0 wheels: the only check between a fallback-versioned wheel and
-PyPI, where a version number can never be reused. Ported from nbkp's tests."""
+"""
+The guard against 0.0.0 wheels.
+
+It is the only check between a fallback-versioned wheel and PyPI, where a version number
+can never be reused. Ported from nbkp's tests.
+"""
 
 import zipfile
 from pathlib import Path
@@ -70,7 +74,8 @@ def test_version_read_from_metadata_not_filename(tmp_path: Path) -> None:
 
 def test_wheel_without_metadata_is_an_error(tmp_path: Path) -> None:
     with zipfile.ZipFile(
-        project(tmp_path) / "dist" / "nbkp-1.0.0-py3-none-any.whl", "w"
+        project(tmp_path) / "dist" / "nbkp-1.0.0-py3-none-any.whl",
+        "w",
     ) as zf:
         zf.writestr("nbkp/__init__.py", "")
     code, output = verify(tmp_path)

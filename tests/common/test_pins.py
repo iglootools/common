@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from iglootools.common import pins
-from iglootools.github.client import GitHub, GitHubError
+from iglootools.github.client import GitHub, GitHubError, Transport
 from tests.conftest import track
 
 OLD = "a" * 40
@@ -16,8 +16,14 @@ NEW = "b" * 40
     ("before", "after"),
     [
         (
-            f"    uses: iglootools/common/.github/workflows/reusable-release.yml@{OLD} # v1.31.0\n",
-            f"    uses: iglootools/common/.github/workflows/reusable-release.yml@{NEW} # v1.32.2\n",
+            (
+                "    uses: iglootools/common/.github/workflows/reusable-release.yml"
+                f"@{OLD} # v1.31.0\n"
+            ),
+            (
+                "    uses: iglootools/common/.github/workflows/reusable-release.yml"
+                f"@{NEW} # v1.32.2\n"
+            ),
         ),
         (
             '  "iglootools @ git+https://github.com/iglootools/common@v1.31.0",\n',
@@ -61,9 +67,12 @@ def test_candidate_files_are_every_tracked_file_that_mentions_common(
     assert names == [".github/workflows/release.yml", "Dockerfile"]
 
 
-def _transport(responses: Mapping[str, tuple[int, object]]):
+def _transport(responses: Mapping[str, tuple[int, object]]) -> Transport:
     def transport(
-        method: str, url: str, headers: Mapping[str, str], body: bytes | None
+        _method: str,
+        url: str,
+        _headers: Mapping[str, str],
+        _body: bytes | None,
     ) -> tuple[int, bytes]:
         status, payload = responses[url.removeprefix("https://api.github.com")]
         return status, json.dumps(payload).encode()
@@ -84,7 +93,7 @@ def test_an_annotated_tag_resolves_to_its_commit() -> None:
                     200,
                     {"object": {"type": "commit", "sha": NEW}},
                 ),
-            }
+            },
         ),
     )
     assert pins.tag_commit(github, "1.32.2") == NEW
@@ -99,10 +108,10 @@ def test_a_missing_release_says_so() -> None:
                     404,
                     {"message": "Not Found"},
                 ),
-            }
+            },
         ),
     )
-    with pytest.raises(GitHubError, match="has no release v9.9.9"):
+    with pytest.raises(GitHubError, match=r"has no release v9\.9\.9"):
         pins.tag_commit(github, "9.9.9")
 
 
@@ -117,7 +126,7 @@ def test_each_pin_is_found_with_its_release_and_commit() -> None:
     found = _refs(
         f"    uses: iglootools/common/.github/workflows/r.yml@{OLD} # v1.33.0\n"
         'IGLOOTOOLS_VERSION = "v1.33.0"\n'
-        "see iglootools/common for why, and blob/main/x.md#anchor\n"
+        "see iglootools/common for why, and blob/main/x.md#anchor\n",
     )
     assert [(r.line, r.version, r.sha, r.movable) for r in found] == [
         (1, "1.33.0", OLD, True),
@@ -128,14 +137,15 @@ def test_each_pin_is_found_with_its_release_and_commit() -> None:
 def test_a_spelling_adopt_would_not_move_is_flagged() -> None:
     # A pin the broad pattern sees but the rewrite does not, such as a raw SHA URL.
     found = _refs(f"curl https://raw.githubusercontent.com/iglootools/common@{OLD}/x\n")
-    assert found and not found[0].movable
+    assert found
+    assert not found[0].movable
     assert "adopt would not move this pin" in pins.problems(found, None, ROOT)[0]
 
 
 def test_pins_on_different_releases_disagree() -> None:
     found = _refs(
         'IGLOOTOOLS_VERSION = "v1.32.2"\n'
-        '"github>iglootools/common//renovate/base#v1.33.0"\n'
+        '"github>iglootools/common//renovate/base#v1.33.0"\n',
     )
     assert (
         pins.problems(found, None, ROOT)[0]
@@ -153,7 +163,8 @@ def test_a_sha_pin_without_its_tag_comment_is_flagged() -> None:
 def test_workflow_shas_must_be_the_commit_uv_lock_resolved() -> None:
     found = _refs(f"uses: iglootools/common/.github/workflows/r.yml@{OLD} # v1.33.0\n")
     lock = pins.locked(
-        f'source = {{ git = "https://github.com/iglootools/common?rev=v1.33.0#{NEW}" }}'
+        'source = { git = "https://github.com/iglootools/common'
+        f'?rev=v1.33.0#{NEW}" }}',
     )
     assert lock == pins.Locked("1.33.0", NEW)
     assert "is not v1.33.0's commit" in pins.problems(found, lock, ROOT)[0]
@@ -162,6 +173,6 @@ def test_workflow_shas_must_be_the_commit_uv_lock_resolved() -> None:
 def test_consistent_pins_have_no_problems() -> None:
     found = _refs(
         f"uses: iglootools/common/.github/workflows/r.yml@{NEW} # v1.33.0\n"
-        '"iglootools @ git+https://github.com/iglootools/common@v1.33.0",\n'
+        '"iglootools @ git+https://github.com/iglootools/common@v1.33.0",\n',
     )
     assert pins.problems(found, pins.Locked("1.33.0", NEW), ROOT) == []

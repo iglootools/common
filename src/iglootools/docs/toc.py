@@ -1,4 +1,5 @@
-"""Tables of contents in Markdown files, generated from their headings.
+"""
+Tables of contents in Markdown files, generated from their headings.
 
 A file carries a `<!-- toc -->` ... `<!-- tocstop -->` block; everything between the
 markers is regenerated from the file's `##` and `###` headings, with anchors that follow
@@ -19,11 +20,11 @@ TOC_END = "<!-- tocstop -->"
 TOC_LEVELS = (2, 3)
 
 AGENT_LOADED = frozenset({"AGENTS.md", "CLAUDE.md", "SKILL.md"})
-"""Files an agent reads whole, often every session: a table of contents only costs tokens."""
+"""Files an agent reads whole, often every session: a table of contents costs tokens."""
 MIN_LINES = 80
 """About two screens: a shorter document is read at a glance, and needs no list."""
 GENERATED = "<!-- AUTO-GENERATED"
-"""How a whole generated file starts; its generator, not this one, decides its contents."""
+"""How a whole generated file starts; its generator, not this tool, owns its content."""
 
 HEADING = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t#]*$")
 FENCE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
@@ -31,19 +32,22 @@ LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 # An underscore that opens or closes emphasis; inside a word (snake_case) it is text.
 EMPHASIS_UNDERSCORE = re.compile(r"(?<!\w)_+|_+(?!\w)")
 TOC_BLOCK = re.compile(
-    rf"{re.escape(TOC_START)}\n.*?{re.escape(TOC_END)}", flags=re.DOTALL
+    rf"{re.escape(TOC_START)}\n.*?{re.escape(TOC_END)}",
+    flags=re.DOTALL,
 )
 
 
 @dataclass(frozen=True)
 class Heading:
+    """A Markdown heading: its level (2 for `##`), its text, and its anchor."""
+
     level: int
     text: str
     anchor: str
 
 
 def outside_fences(lines: Sequence[str]) -> list[str]:
-    """The lines that are not inside a fenced code block, with fenced ones blanked."""
+    """Blank the lines inside fenced code blocks, keeping the others."""
 
     def step(fence: str | None, line: str) -> tuple[str | None, str]:
         opening = FENCE.match(line)
@@ -58,12 +62,15 @@ def outside_fences(lines: Sequence[str]) -> list[str]:
                 return fence, ""
 
     states = accumulate(
-        lines, lambda state, line: step(state[0], line), initial=(None, "")
+        lines,
+        lambda state, line: step(state[0], line),
+        initial=(None, ""),
     )
     return [visible for _, visible in islice(states, 1, None)]
 
 
 def plain_text(markdown: str) -> str:
+    """Return *markdown* with each link replaced by its text."""
     return LINK.sub(r"\1", markdown)
 
 
@@ -74,7 +81,8 @@ def slug(text: str) -> str:
 
 
 def unique_anchors(slugs: Iterable[str]) -> list[str]:
-    """Suffix repeats with -1, -2, skipping any suffixed form a heading already took.
+    """
+    Suffix repeats with -1, -2, skipping any suffixed form a heading already took.
 
     `Repeated`, `Repeated`, `Repeated-1` become `repeated`, `repeated-1` and
     `repeated-1-1`, as github-slugger does.
@@ -88,7 +96,9 @@ def unique_anchors(slugs: Iterable[str]) -> list[str]:
             return {**taken, base: n, f"{base}-{n}": 0}, f"{base}-{n}"
 
     states = accumulate(
-        slugs, lambda state, base: assign(state[0], base), initial=({}, "")
+        slugs,
+        lambda state, base: assign(state[0], base),
+        initial=({}, ""),
     )
     return [anchor for _, anchor in islice(states, 1, None)]
 
@@ -108,6 +118,7 @@ def headings(markdown: str) -> list[Heading]:
 
 
 def render_toc(entries: Iterable[Heading]) -> str:
+    """Return the whole block, markers included, listing *entries*' `##` and `###`."""
     listed = [h for h in entries if h.level in TOC_LEVELS]
     # Sections that start at ### are listed flush left, not as an orphan sublist.
     top = min((h.level for h in listed), default=min(TOC_LEVELS))
@@ -118,10 +129,13 @@ def render_toc(entries: Iterable[Heading]) -> str:
 
 
 def with_toc(markdown: str) -> str:
+    """Return *markdown* with its first block regenerated from its headings."""
     return TOC_BLOCK.sub(lambda _: render_toc(headings(markdown)), markdown, count=1)
 
 
 class TocErrorKind(StrEnum):
+    """Why a table of contents cannot be generated for a file."""
+
     NO_SECTIONS = "no-sections"
 
 
@@ -129,17 +143,19 @@ class TocError(ValueError):
     """A file the table of contents cannot be generated for."""
 
     def __init__(self, kind: TocErrorKind, path: Path | None = None) -> None:
+        """Build the error from its kind and the file's path, when there is one."""
         super().__init__(f"{kind}: {path}")
         self.kind = kind
         self.path = path
 
 
 def with_empty_block(markdown: str) -> str:
-    """Insert an empty block before the first `##` or `###` heading, and above any HTML
-    comments directly on top of it.
+    """
+    Insert an empty block before the first `##` or `###` heading.
 
-    A comment there is usually the BEGIN marker of a generated section, such as depgraph's
-    Module Overview; a block placed under it would sit inside the section, and the next
+    The block goes above any HTML comments directly on top of the heading. A comment
+    there is usually the BEGIN marker of a generated section, such as depgraph's Module
+    Overview; a block placed under it would sit inside the section, and the next
     regeneration would delete it.
 
     Raises TocError(NO_SECTIONS) when there is no such heading outside code blocks.
@@ -183,6 +199,7 @@ def blocks(markdown: str) -> int:
 
 
 def has_sections(markdown: str) -> bool:
+    """Tell whether *markdown* has a `##` or `###` heading outside code blocks."""
     return any(h.level in TOC_LEVELS for h in headings(markdown))
 
 
@@ -192,8 +209,11 @@ def needs_toc(
     exclude: Sequence[str] = (),
     min_lines: int = MIN_LINES,
 ) -> bool:
-    """Whether the file at *relative* must carry a block: it has sections, runs to at
-    least *min_lines* lines, and is not exempt."""
+    """
+    Tell whether the file at *relative* must carry a block.
+
+    It must when it has sections, runs to at least *min_lines* lines, and is not exempt.
+    """
     return (
         len(markdown.splitlines()) >= min_lines
         and has_sections(markdown)
@@ -202,8 +222,12 @@ def needs_toc(
 
 
 def exempt(relative: str, markdown: str, exclude: Sequence[str] = ()) -> bool:
-    """Whether the file at *relative* (to the project root) may go without a block: one an
-    agent loads whole, a whole generated file, or one matching an *exclude* glob."""
+    """
+    Tell whether the file at *relative* (to the project root) may go without a block.
+
+    It may when an agent loads it whole, when the whole file is generated, or when it
+    matches an *exclude* glob.
+    """
     path = PurePosixPath(relative)
     return (
         path.name in AGENT_LOADED
@@ -214,6 +238,8 @@ def exempt(relative: str, markdown: str, exclude: Sequence[str] = ()) -> bool:
 
 @dataclass(frozen=True)
 class Survey:
+    """The tracked Markdown files, sorted by what their tables of contents need."""
+
     with_toc: list[Path]
     """Files with a block, which regenerate() keeps up to date."""
     missing: list[Path]
@@ -223,10 +249,11 @@ class Survey:
 
 
 def survey(
-    root: Path, exclude: Sequence[str] = (), min_lines: int = MIN_LINES
+    root: Path,
+    exclude: Sequence[str] = (),
+    min_lines: int = MIN_LINES,
 ) -> Survey:
-    """Every Markdown file git tracks under *root*, sorted by what its table of contents
-    needs."""
+    """Sort the Markdown files git tracks under *root* by what their blocks need."""
     tracked = subprocess.run(
         ["git", "ls-files", "-z", "--", "*.md"],
         cwd=root,
@@ -247,6 +274,7 @@ def survey(
 
 
 def stale(paths: Iterable[Path]) -> list[Path]:
+    """Return the files among *paths* whose block is out of date."""
     return [p for p in paths if with_toc(_read(p)) != _read(p)]
 
 

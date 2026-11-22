@@ -1,3 +1,5 @@
+"""The `iglootools` command's root: its global options and every sub-command."""
+
 from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated
@@ -35,10 +37,10 @@ app.command(
 )(build_cli.build)
 
 
-def _print_version(requested: bool) -> None:
+def _print_version(*, requested: bool) -> None:
     if requested:
         say(f"iglootools {version('iglootools')}")
-        raise typer.Exit()
+        raise typer.Exit
 
 
 @app.callback()
@@ -53,7 +55,8 @@ def _root(
             file_okay=False,
             resolve_path=True,
         ),
-    ] = Path("."),
+    ] = Path(),
+    *,
     _version: Annotated[
         bool,
         typer.Option(
@@ -68,4 +71,5 @@ def _root(
 
 
 def main() -> None:
+    """Run the `iglootools` command on the process's arguments; the entry point."""
     app()

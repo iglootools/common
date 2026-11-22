@@ -8,6 +8,7 @@ from iglootools.github import merge
 from iglootools.github.client import GitHub, Repository
 from iglootools.github.events import Event
 from iglootools.github.merge import Action, Check, PullRequest
+from tests.conftest import UnexpectedCallError
 
 REPO = Repository("iglootools", "common")
 OPEN = PullRequest(
@@ -31,11 +32,16 @@ def _assess(
     pull: PullRequest = OPEN,
     checks: tuple[Check, ...] = (GREEN,),
     required: frozenset[str] = frozenset({"preflight"}),
+    *,
     settled: bool = False,
     block_settled: bool = True,
 ) -> merge.Verdict:
     return merge.assess(
-        pull, checks, required, settled=settled, block_settled=block_settled
+        pull,
+        checks,
+        required,
+        settled=settled,
+        block_settled=block_settled,
     )
 
 
@@ -78,7 +84,9 @@ def test_a_second_run_of_a_passed_check_is_still_waited_for() -> None:
     ],
 )
 def test_refusals_say_why(
-    pull: PullRequest, checks: tuple[Check, ...], reason: str
+    pull: PullRequest,
+    checks: tuple[Check, ...],
+    reason: str,
 ) -> None:
     assert _assess(pull, checks) == merge.Verdict(Action.REFUSE, reason)
 
@@ -100,8 +108,8 @@ def test_check_runs_and_commit_statuses_both_count() -> None:
     checks = merge.parse_checks(
         {
             "check_runs": [
-                {"name": "preflight", "status": "completed", "conclusion": "success"}
-            ]
+                {"name": "preflight", "status": "completed", "conclusion": "success"},
+            ],
         },
         {"statuses": [{"context": "ci/legacy", "state": "pending"}]},
     )
@@ -154,7 +162,11 @@ class FakeGitHub:
         self.calls: list[tuple[str, str, object]] = []
 
     def __call__(
-        self, method: str, url: str, headers: Mapping[str, str], body: bytes | None
+        self,
+        method: str,
+        url: str,
+        _headers: Mapping[str, str],
+        body: bytes | None,
     ) -> tuple[int, bytes]:
         path = url.removeprefix("https://api.github.com")
         self.calls.append((method, path, json.loads(body) if body else None))
@@ -177,12 +189,12 @@ class FakeGitHub:
                     {
                         "type": "required_status_checks",
                         "parameters": {
-                            "required_status_checks": [{"context": "preflight"}]
+                            "required_status_checks": [{"context": "preflight"}],
                         },
-                    }
+                    },
                 ]
                 return self.rules_status, json.dumps(
-                    rules if self.rules_status == 200 else {"message": "Upgrade"}
+                    rules if self.rules_status == 200 else {"message": "Upgrade"},
                 ).encode()
             case (
                 "GET",
@@ -202,7 +214,7 @@ class FakeGitHub:
             case "DELETE", "/repos/iglootools/common/git/refs/heads/docs/x":
                 return 204, b""
             case _:
-                raise AssertionError(f"unexpected {method} {path}")
+                raise UnexpectedCallError((method, path))
 
 
 class Clock:
@@ -225,7 +237,7 @@ RUN_FAILED = {"name": "preflight", "status": "completed", "conclusion": "failure
 
 def _run(fake: FakeGitHub, clock: Clock, **kwargs: object) -> merge.Outcome:
     reports: list[Event] = []
-    outcome = merge.merge_when_green(
+    return merge.merge_when_green(
         GitHub("token", transport=fake),
         REPO,
         7,
@@ -234,7 +246,6 @@ def _run(fake: FakeGitHub, clock: Clock, **kwargs: object) -> merge.Outcome:
         report=reports.append,
         **kwargs,  # type: ignore[arg-type]
     )
-    return outcome
 
 
 def test_waits_for_checks_then_merges_with_a_merge_commit_and_deletes_the_branch() -> (
@@ -242,7 +253,8 @@ def test_waits_for_checks_then_merges_with_a_merge_commit_and_deletes_the_branch
 ):
     fake, clock = FakeGitHub([[], [RUN_PENDING], [RUN_PASSED]]), Clock()
     outcome = _run(fake, clock)
-    assert outcome.merged and outcome.branch_deleted
+    assert outcome.merged
+    assert outcome.branch_deleted
     assert (
         "PUT",
         "/repos/iglootools/common/pulls/7/merge",
@@ -254,14 +266,16 @@ def test_waits_for_checks_then_merges_with_a_merge_commit_and_deletes_the_branch
 def test_a_failed_check_is_never_merged() -> None:
     fake = FakeGitHub([[RUN_FAILED]])
     outcome = _run(fake, Clock())
-    assert not outcome.merged and outcome.reason == "failed: preflight"
+    assert not outcome.merged
+    assert outcome.reason == "failed: preflight"
     assert not [call for call in fake.calls if call[0] in ("PUT", "DELETE")]
 
 
 def test_gives_up_after_the_timeout_without_merging() -> None:
     fake = FakeGitHub([[RUN_PENDING]])
     outcome = _run(fake, Clock(), timeout=30)
-    assert not outcome.merged and outcome.reason.startswith("timed out")
+    assert not outcome.merged
+    assert outcome.reason.startswith("timed out")
 
 
 def test_a_repository_without_rulesets_waits_out_the_settling_period() -> None:
@@ -274,7 +288,8 @@ def test_a_repository_without_rulesets_waits_out_the_settling_period() -> None:
 def test_keep_branch_leaves_the_branch_alone() -> None:
     fake = FakeGitHub([[RUN_PASSED]])
     outcome = _run(fake, Clock(), delete_branch=False)
-    assert outcome.merged and not outcome.branch_deleted
+    assert outcome.merged
+    assert not outcome.branch_deleted
     assert not [call for call in fake.calls if call[0] == "DELETE"]
 
 
@@ -292,7 +307,10 @@ def test_keep_branch_leaves_the_branch_alone() -> None:
             merge.Verdict(Action.WAIT, "waiting for preflight"),
             [
                 "Would wait: waiting for preflight.",
-                "Then, if every check passes: would merge #7 (head abc123) into main with a merge commit.",
+                (
+                    "Then, if every check passes: would merge #7 (head abc123) "
+                    "into main with a merge commit."
+                ),
                 "Would delete docs/x on GitHub, and locally if checked out.",
             ],
         ),
@@ -310,26 +328,30 @@ def test_keep_branch_leaves_the_branch_alone() -> None:
     ],
 )
 def test_the_dry_run_says_each_action_it_would_take(
-    verdict: merge.Verdict, lines: list[str]
+    verdict: merge.Verdict,
+    lines: list[str],
 ) -> None:
     assert merge.describe(merge.Preview(OPEN, verdict), delete_branch=True) == lines
 
 
 def test_the_dry_run_of_a_fork_or_keep_branch_deletes_nothing() -> None:
     found = merge.Preview(
-        replace(OPEN, head_repository="someone/fork"), merge.Verdict(Action.MERGE, "ok")
+        replace(OPEN, head_repository="someone/fork"),
+        merge.Verdict(Action.MERGE, "ok"),
     )
     assert merge.describe(found, delete_branch=True) == [
-        "Would merge #7 (head abc123) into main with a merge commit."
+        "Would merge #7 (head abc123) into main with a merge commit.",
     ]
 
 
 def test_a_block_with_every_check_green_is_waited_on_before_it_counts() -> None:
     assert _assess(
-        replace(OPEN, mergeable_state="blocked"), block_settled=False
+        replace(OPEN, mergeable_state="blocked"),
+        block_settled=False,
     ) == merge.Verdict(Action.WAIT, merge.CLEARING_BLOCK)
     assert _assess(
-        replace(OPEN, mergeable_state="blocked"), block_settled=True
+        replace(OPEN, mergeable_state="blocked"),
+        block_settled=True,
     ) == merge.Verdict(Action.REFUSE, "blocked by a rule other than the checks")
 
 

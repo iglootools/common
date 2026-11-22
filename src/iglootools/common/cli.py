@@ -1,8 +1,11 @@
+"""The `iglootools common` commands: adopt a release, adopt it everywhere, cut one."""
+
 import threading
 import time
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -23,7 +26,8 @@ from iglootools.github.local import GitStepError
 from iglootools.preflight import requirements
 
 app = typer.Typer(
-    help="Maintain a project's link to iglootools/common.", no_args_is_help=True
+    help="Maintain a project's link to iglootools/common.",
+    no_args_is_help=True,
 )
 
 VERSION_ARGUMENT = typer.Argument(help="The release, as X.Y.Z.")
@@ -41,21 +45,25 @@ def adopt(
     ctx: typer.Context,
     version: Annotated[str, VERSION_ARGUMENT],
     repo: Annotated[str | None, REPO_OPTION] = None,
+    *,
     no_merge: Annotated[
-        bool, typer.Option("--no-merge", help="Open the pull request, do not merge it.")
+        bool,
+        typer.Option("--no-merge", help="Open the pull request, do not merge it."),
     ] = False,
     dry_run: Annotated[
-        bool, typer.Option("--dry-run", "-n", help="Show the pins that would move.")
+        bool,
+        typer.Option("--dry-run", "-n", help="Show the pins that would move."),
     ] = False,
 ) -> None:
-    """Move every pin on iglootools/common to a release, through a pull request.
+    """
+    Move every pin on iglootools/common to a release, through a pull request.
 
     Moves the reusable workflows (to the release's commit), the iglootools command, the
     Renovate presets and IGLOOTOOLS_VERSION, and regenerates uv.lock where there is one.
     Then opens a pull request and merges it once every check has passed, as
-    merge-when-green does. Safe to run again: it picks up from the pull request or branch
-    an earlier run left, and does nothing once the release is in place. Needs a checkout
-    with no changes and no untracked files.
+    merge-when-green does. Safe to run again: it picks up from the pull request or
+    branch an earlier run left, and does nothing once the release is in place. Needs a
+    checkout with no changes and no untracked files.
     """
     ensure(ctx, requirements.COMMON)
     version = _version(version)
@@ -66,7 +74,11 @@ def adopt(
         if dry_run:
             found = adoption.plan(root, version, sha)
             for line in adoption.preview(
-                root, github, repository, found, merge_it=not no_merge
+                root,
+                github,
+                repository,
+                found,
+                merge_it=not no_merge,
             ):
                 say(f"[dry-run] {line}")
             return
@@ -96,11 +108,14 @@ def adopt(
 def release(
     ctx: typer.Context,
     version: Annotated[str, VERSION_ARGUMENT],
+    *,
     dry_run: Annotated[
-        bool, typer.Option("--dry-run", "-n", help="Say what it would do, and stop.")
+        bool,
+        typer.Option("--dry-run", "-n", help="Say what it would do, and stop."),
     ] = False,
 ) -> None:
-    """Cut a release of iglootools/common: bump, merge once green, tag both ways.
+    """
+    Cut a release of iglootools/common: bump, merge once green, tag both ways.
 
     Run from common's checkout. Opens a pull request bumping .claude-plugin/plugin.json,
     merges it once every check has passed, then tags the merge commit with
@@ -143,7 +158,7 @@ def release(
             sleep=time.sleep,
             now=time.monotonic,
         )
-    except (GitHubError, GitStepError, ValueError) as error:
+    except (GitHubError, GitStepError, releasing.TagMismatchError, ValueError) as error:
         warn(f"{repository.slug}: {getattr(error, 'detail', error)}")
         raise typer.Exit(1) from None
     where = f"#{outcome.pull_number}" if outcome.pull_number else ""
@@ -155,7 +170,8 @@ def release(
 
 @app.command("check-pins")
 def check_pins(ctx: typer.Context) -> None:
-    """Fail when the project's pins on iglootools/common disagree or adopt would miss one.
+    """
+    Fail when the project's pins on iglootools/common disagree or adopt would miss one.
 
     Finds every pin on common in the files git tracks, spelled any way, and fails when
     `common adopt` would not move one, when two name different releases, when a SHA pin
@@ -189,7 +205,7 @@ class _Row:
 class _Board:
     """Each project's latest event, shared by the worker threads and the renderer."""
 
-    def __init__(self, names: list[str], live: bool) -> None:
+    def __init__(self, names: list[str], *, live: bool) -> None:
         self.rows = {name: _Row() for name in names}
         self.live = live
         self.lock = threading.Lock()
@@ -237,23 +253,26 @@ def adopt_all(
         list[str] | None,
         typer.Option("--exclude", help="Leave this project out; repeat."),
     ] = None,
+    *,
     no_merge: Annotated[
         bool,
         typer.Option("--no-merge", help="Open the pull requests, do not merge them."),
     ] = False,
     dry_run: Annotated[
-        bool, typer.Option("--dry-run", "-n", help="Check and plan, change nothing.")
+        bool,
+        typer.Option("--dry-run", "-n", help="Check and plan, change nothing."),
     ] = False,
 ) -> None:
-    """Move every iglootools project in the workspace to a release of common, in parallel.
+    """
+    Move every iglootools project in the workspace to a release of common, in parallel.
 
     Run from common's checkout: the workspace is the directory it sits in. Takes every
     checked-out iglootools project that pins common (narrowed by --only and --exclude),
     fails when a repository of the organization pins common but has no checkout here,
     and checks every project (no changes or untracked files, origin reachable without a
-    prompt, a default branch GitHub has every commit of) before changing any. Then adopts
-    them all at once, as `common adopt` does, and summarises what merged. Safe to run
-    again: each project picks up where it stopped.
+    prompt, a default branch GitHub has every commit of) before changing any. Then
+    adopts them all at once, as `common adopt` does, and summarises what merged. Safe to
+    run again: each project picks up where it stopped.
     """
     ensure(ctx, requirements.COMMON)
     version = _version(version)
@@ -261,7 +280,8 @@ def adopt_all(
     repository, github = github_session(ctx, None)
     if repository != pins.COMMON:
         warn(
-            f"Run adopt-all from {pins.COMMON.slug}'s checkout, not {repository.slug}'s."
+            f"Run adopt-all from {pins.COMMON.slug}'s checkout, "
+            f"not {repository.slug}'s.",
         )
         raise typer.Exit(2)
     try:
@@ -269,7 +289,9 @@ def adopt_all(
         projects, skipped = everywhere.discover(root.parent)
         selected, left_out = everywhere.select(projects, only or [], exclude or [])
         missing = everywhere.missing_checkouts(
-            github, {p.name for p in projects}, set(exclude or [])
+            github,
+            {p.name for p in projects},
+            set(exclude or []),
         )
     except everywhere.SelectionError as error:
         warn(f"{error}.")
@@ -279,42 +301,84 @@ def adopt_all(
         raise typer.Exit(1) from None
     for item in [*skipped, *left_out]:
         say(f"Skipping {item.name}: {item.reason}.")
-    blocked = [
-        f"{name}: pins common on GitHub, but has no checkout in {root.parent}; clone it, "
-        "or pass --exclude"
-        for name in missing
-    ]
-    bases = {p.name: pulls.default_branch(github, p.repository) for p in selected}
-    blocked += [
-        f"{p.name}: {issue}"
-        for p in selected
-        for issue in everywhere.problems(p, bases[p.name])
-    ]
+    _stop_if_blocked(_blockers(github, root.parent, missing, selected))
+    if not selected:
+        say("No project to adopt.")
+        return
+    if dry_run:
+        _preview_all(github, selected, version, sha, merge_it=not no_merge)
+        return
+    outcomes = _run_everywhere(github, selected, version, sha, merge_it=not no_merge)
+    _summarise(selected, outcomes)
+    if not all(outcome.succeeded for outcome in outcomes.values()):
+        raise typer.Exit(1)
+
+
+def _stop_if_blocked(blocked: list[str]) -> None:
     if blocked:
         for issue in blocked:
             warn(issue)
         warn("Nothing was changed.")
         raise typer.Exit(1)
-    if not selected:
-        say("No project to adopt.")
-        return
-    if dry_run:
-        for p in selected:
-            found = adoption.plan(p.root, version, sha)
-            for line in adoption.preview(
-                p.root, github, p.repository, found, merge_it=not no_merge
-            ):
-                say(f"[dry-run] [{p.name}] {line}")
-        return
-    outcomes = _run_everywhere(github, selected, version, sha, merge_it=not no_merge)
+
+
+def _blockers(
+    github: GitHub,
+    workspace: Path,
+    missing: list[str],
+    selected: list[everywhere.Project],
+) -> list[str]:
+    """
+    List what stops adopt-all from changing anything.
+
+    That is each repository that pins common but has no checkout, and each problem in
+    a selected project.
+    """
+    bases = {p.name: pulls.default_branch(github, p.repository) for p in selected}
+    return [
+        *(
+            f"{name}: pins common on GitHub, but has no checkout in {workspace}; "
+            "clone it, or pass --exclude"
+            for name in missing
+        ),
+        *(
+            f"{p.name}: {issue}"
+            for p in selected
+            for issue in everywhere.problems(p, bases[p.name])
+        ),
+    ]
+
+
+def _preview_all(
+    github: GitHub,
+    selected: list[everywhere.Project],
+    version: str,
+    sha: str,
+    *,
+    merge_it: bool,
+) -> None:
+    for p in selected:
+        found = adoption.plan(p.root, version, sha)
+        for line in adoption.preview(
+            p.root,
+            github,
+            p.repository,
+            found,
+            merge_it=merge_it,
+        ):
+            say(f"[dry-run] [{p.name}] {line}")
+
+
+def _summarise(
+    selected: list[everywhere.Project],
+    outcomes: dict[str, adoption.Outcome],
+) -> None:
     say("")
     for p in selected:
         outcome = outcomes[p.name]
         where = f" #{outcome.pull_number}" if outcome.pull_number else ""
         line = f"{p.name}{where}: {outcome.result}, {outcome.reason}"
         (say if outcome.succeeded else warn)(line)
-    if not all(outcome.succeeded for outcome in outcomes.values()):
-        raise typer.Exit(1)
 
 
 def _run_everywhere(

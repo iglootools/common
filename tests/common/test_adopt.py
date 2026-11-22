@@ -9,7 +9,8 @@ from iglootools.common import adopt
 from iglootools.common.adopt import Result, Start
 from iglootools.github.client import GitHub, Repository
 from iglootools.github.events import Event
-from iglootools.github.local import GitStepError
+from iglootools.github.local import GitStepError, GitStepFailureKind
+from tests.conftest import UnexpectedCallError
 
 REPO = Repository("iglootools", "nbkp")
 SHA = "b" * 40
@@ -27,7 +28,10 @@ BRANCH = "chore/iglootools-1.33.1"
     ],
 )
 def test_a_run_picks_up_from_the_branch_an_earlier_run_left(
-    local_branch: bool, remote_branch: bool, start: Start
+    *,
+    local_branch: bool,
+    remote_branch: bool,
+    start: Start,
 ) -> None:
     assert (
         adopt.where_to_start(local_branch=local_branch, remote_branch=remote_branch)
@@ -41,7 +45,11 @@ class FakeGitHub:
         self.opened: dict[str, str] = {}
 
     def __call__(
-        self, method: str, url: str, headers: Mapping[str, str], body: bytes | None
+        self,
+        method: str,
+        url: str,
+        _headers: Mapping[str, str],
+        body: bytes | None,
     ) -> tuple[int, bytes]:
         path = url.removeprefix("https://api.github.com")
         if (method, path) == ("GET", "/repos/iglootools/nbkp"):
@@ -52,11 +60,11 @@ class FakeGitHub:
         if (method, path) == ("POST", "/repos/iglootools/nbkp/pulls"):
             self.opened = json.loads(body or b"{}")
             return 201, b'{"number": 42}'
-        raise AssertionError(f"unexpected {method} {path}")
+        raise UnexpectedCallError((method, path))
 
 
 class FakeTools:
-    """git and uv against a project whose files the test writes; records each command."""
+    """Fake git and uv on a project whose files the test writes; record each command."""
 
     def __init__(
         self,
@@ -71,7 +79,9 @@ class FakeTools:
         self.commands: list[list[str]] = []
 
     def __call__(
-        self, command: Sequence[str], directory: Path
+        self,
+        command: Sequence[str],
+        directory: Path,
     ) -> subprocess.CompletedProcess[str]:
         self.commands.append(list(command))
         match list(command):
@@ -79,7 +89,10 @@ class FakeTools:
                 return subprocess.CompletedProcess(command, 0, self.status, "")
             case ["git", "show-ref", *_]:
                 return subprocess.CompletedProcess(
-                    command, 0 if self.local_branch else 1, "", ""
+                    command,
+                    0 if self.local_branch else 1,
+                    "",
+                    "",
                 )
             case ["git", "ls-remote", "--heads", "origin", _]:
                 out = f"{OLD}\trefs/heads/{BRANCH}\n" if self.remote_branch else ""
@@ -99,14 +112,17 @@ class FakeTools:
 
 def _project(tmp_path: Path, version: str = "1.33.0") -> Path:
     (tmp_path / "renovate.json").write_text(
-        f'"github>iglootools/common//renovate/base#v{version}"\n'
+        f'"github>iglootools/common//renovate/base#v{version}"\n',
     )
     (tmp_path / "uv.lock").write_text("lock")
     return tmp_path
 
 
 def _adopt(
-    root: Path, github: FakeGitHub, tools: FakeTools, events: list[Event]
+    root: Path,
+    github: FakeGitHub,
+    tools: FakeTools,
+    events: list[Event],
 ) -> adopt.Outcome:
     return adopt.adopt(
         root,
@@ -116,7 +132,7 @@ def _adopt(
         SHA,
         merge_it=False,
         report=events.append,
-        sleep=lambda seconds: None,
+        sleep=lambda _seconds: None,
         now=lambda: 0.0,
         run=tools,
     )
@@ -128,18 +144,21 @@ def test_a_first_run_branches_moves_locks_pushes_and_opens(tmp_path: Path) -> No
     events: list[Event] = []
     outcome = _adopt(root, github, tools, events)
     assert outcome == adopt.Outcome(
-        Result.OPENED, "opened, not merged (--no-merge)", 42
+        Result.OPENED,
+        "opened, not merged (--no-merge)",
+        42,
     )
     assert "v1.33.1" in (root / "renovate.json").read_text()
     assert ["git", "switch", "-q", "-c", BRANCH] in tools.commands
     assert ["git", "add", "--", "renovate.json", "uv.lock"] in tools.commands
     assert ["git", "push", "-q", "-u", "origin", BRANCH] in tools.commands
-    assert github.opened["head"] == BRANCH and github.opened["base"] == "main"
+    assert github.opened["head"] == BRANCH
+    assert github.opened["base"] == "main"
 
 
 def test_a_merged_pull_request_means_nothing_left_to_do(tmp_path: Path) -> None:
     github = FakeGitHub(
-        [{"number": 9, "state": "closed", "merged_at": "2026-11-22T00:00:00Z"}]
+        [{"number": 9, "state": "closed", "merged_at": "2026-11-22T00:00:00Z"}],
     )
     tools = FakeTools()
     outcome = _adopt(_project(tmp_path), github, tools, [])
@@ -152,9 +171,8 @@ def test_a_merged_pull_request_means_nothing_left_to_do(tmp_path: Path) -> None:
 def test_a_pull_request_closed_without_merging_is_refused(tmp_path: Path) -> None:
     github = FakeGitHub([{"number": 9, "state": "closed", "merged_at": None}])
     outcome = _adopt(_project(tmp_path), github, FakeTools(), [])
-    assert (
-        outcome.result == Result.REFUSED and "closed without merging" in outcome.reason
-    )
+    assert outcome.result == Result.REFUSED
+    assert "closed without merging" in outcome.reason
 
 
 def test_an_open_pull_request_is_resumed_without_touching_the_branch(
@@ -180,10 +198,12 @@ def test_a_branch_pushed_by_an_earlier_run_is_continued(tmp_path: Path) -> None:
 def test_a_project_already_on_a_newer_release_is_not_moved_back(tmp_path: Path) -> None:
     tools = FakeTools()
     outcome = _adopt(_project(tmp_path, version="1.34.0"), FakeGitHub(), tools, [])
-    assert outcome.result == Result.REFUSED and "newer 1.34.0" in outcome.reason
+    assert outcome.result == Result.REFUSED
+    assert "newer 1.34.0" in outcome.reason
     assert not [c for c in tools.commands if c[:2] == ["git", "push"]]
 
 
 def test_untracked_files_stop_it_before_anything_changes(tmp_path: Path) -> None:
-    with pytest.raises(GitStepError, match="untracked files"):
+    with pytest.raises(GitStepError) as raised:
         _adopt(_project(tmp_path), FakeGitHub(), FakeTools(status="?? notes.txt\n"), [])
+    assert raised.value.kind == GitStepFailureKind.UNCLEAN_CHECKOUT

@@ -1,4 +1,5 @@
-"""Merge a pull request once every check has passed, then delete its branch.
+"""
+Merge a pull request once every check has passed, then delete its branch.
 
 The decision is a pure function of what GitHub reports (`assess`); the loop around it
 (`merge_when_green`) fetches, sleeps and acts. Each guard was earned:
@@ -9,13 +10,13 @@ The decision is a pure function of what GitHub reports (`assess`); the loop arou
   none, the first check is waited for during a settling period.
 - Every check run on the head commit counts, not only the latest per name. Reopening a
   pull request starts a second run of the same workflow, and the ruleset waits for it.
-- "Blocked" with every check green is waited on for a grace period before it counts. GitHub
-  recomputes the merge state a few seconds after the last required check passes, so a
-  poll in between still reads the block the missing check caused. Only a block that
+- "Blocked" with every check green is waited on for a grace period before it counts.
+  GitHub recomputes the merge state a few seconds after the last required check passes,
+  so a poll in between still reads the block the missing check caused. Only a block that
   outlasts the grace, such as a required review, is refused. The grace starts once every
   check is green, so a long run of checks does not use it up.
-- The merge names the head commit it assessed, so a push that lands in between is refused
-  by GitHub rather than merged unchecked.
+- The merge names the head commit it assessed, so a push that lands in between is
+  refused by GitHub rather than merged unchecked.
 - The branch is deleted only after GitHub reports the pull request merged, and only when
   it belongs to the same repository. Deleting it earlier closes the pull request.
 """
@@ -28,7 +29,14 @@ from iglootools.github.client import GitHub, GitHubError, Json, Repository
 from iglootools.github.events import Event, Report, Stage
 
 FAILED_CONCLUSIONS = frozenset(
-    {"failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure"}
+    {
+        "failure",
+        "cancelled",
+        "timed_out",
+        "action_required",
+        "stale",
+        "startup_failure",
+    },
 )
 FAILED_STATES = frozenset({"failure", "error"})
 MERGEABLE_STATES = frozenset({"clean", "unstable", "has_hooks"})
@@ -46,6 +54,8 @@ class Check:
 
 @dataclass(frozen=True)
 class PullRequest:
+    """The parts of a pull request the merge decision reads."""
+
     number: int
     state: str
     merged: bool
@@ -59,10 +69,13 @@ class PullRequest:
 
     @property
     def from_same_repository(self) -> bool:
+        """Tell whether the head branch lives in the base repository, not a fork."""
         return self.head_repository == self.base_repository
 
 
 class Action(StrEnum):
+    """What merge_when_green does next: wait, merge, stop as done, or refuse."""
+
     WAIT = "wait"
     MERGE = "merge"
     DONE = "done"
@@ -71,6 +84,8 @@ class Action(StrEnum):
 
 @dataclass(frozen=True)
 class Verdict:
+    """The next action, and the reason reported for it."""
+
     action: Action
     reason: str
 
@@ -83,12 +98,13 @@ def assess(
     settled: bool,
     block_settled: bool = True,
 ) -> Verdict:
-    """What to do next, given the pull request and the checks on its head commit.
+    """
+    Decide what to do next, given the pull request and the checks on its head commit.
 
     *required* names the checks a ruleset requires. *settled* says whether the settling
-    period has passed, after which a repository that requires no checks and reports none is
-    taken to have none. *block_settled* says whether a block that remains with every check
-    green has outlasted its grace period; until then it is waited on.
+    period has passed, after which a repository that requires no checks and reports none
+    is taken to have none. *block_settled* says whether a block that remains with every
+    check green has outlasted its grace period; until then it is waited on.
     """
     names = {check.name for check in checks}
     failed = sorted({check.name for check in checks if check.failed})
@@ -119,8 +135,8 @@ def assess(
         case "blocked" if not block_settled:
             return Verdict(Action.WAIT, CLEARING_BLOCK)
         case "blocked":
-            # Still blocked after the grace: a review or another rule GitHub will not lift
-            # on its own.
+            # Still blocked after the grace: a review or another rule GitHub will not
+            # lift on its own.
             return Verdict(Action.REFUSE, "blocked by a rule other than the checks")
         case "behind":
             return Verdict(Action.REFUSE, f"behind {pull.base_ref}: update the branch")
@@ -131,11 +147,12 @@ def assess(
 
 
 def _full_name(repo: Json) -> str:
-    """The `owner/name` of a pull request's head repository; empty once it is deleted."""
+    """Return the `owner/name` of a pull's head repository; empty once it is deleted."""
     return repo["full_name"] if repo else ""
 
 
 def parse_pull(data: Json) -> PullRequest:
+    """Parse GitHub's JSON for a pull request."""
     head, base = data["head"], data["base"]
     return PullRequest(
         number=data["number"],
@@ -152,6 +169,7 @@ def parse_pull(data: Json) -> PullRequest:
 
 
 def parse_checks(check_runs: Json, combined_status: Json) -> list[Check]:
+    """Parse a commit's check runs and its combined status into one list of checks."""
     runs = [
         Check(
             name=run["name"],
@@ -172,6 +190,7 @@ def parse_checks(check_runs: Json, combined_status: Json) -> list[Check]:
 
 
 def parse_required(rules: Json) -> frozenset[str]:
+    """Return the names of the checks a branch's rules require."""
     return frozenset(
         check["context"]
         for rule in rules
@@ -181,26 +200,32 @@ def parse_required(rules: Json) -> frozenset[str]:
 
 
 def fetch_pull(github: GitHub, repository: Repository, number: int) -> PullRequest:
+    """Fetch pull request *number* from GitHub."""
     return parse_pull(github.get(f"/repos/{repository.slug}/pulls/{number}"))
 
 
 def fetch_checks(github: GitHub, repository: Repository, sha: str) -> list[Check]:
+    """Fetch every check run and commit status on commit *sha*."""
     base = f"/repos/{repository.slug}/commits/{sha}"
     return parse_checks(
-        github.get(f"{base}/check-runs?per_page=100"), github.get(f"{base}/status")
+        github.get(f"{base}/check-runs?per_page=100"),
+        github.get(f"{base}/status"),
     )
 
 
 def fetch_required(
-    github: GitHub, repository: Repository, branch: str
+    github: GitHub,
+    repository: Repository,
+    branch: str,
 ) -> frozenset[str]:
-    """The checks the rulesets on *branch* require; none where rulesets are unavailable.
+    """
+    Return the checks the rulesets on *branch* require; none without rulesets.
 
     A private repository on a free plan answers 403 or 404: it has no rulesets to read.
     """
     try:
         return parse_required(
-            github.get(f"/repos/{repository.slug}/rules/branches/{branch}")
+            github.get(f"/repos/{repository.slug}/rules/branches/{branch}"),
         )
     except GitHubError as error:
         if error.status in (403, 404):
@@ -210,6 +235,8 @@ def fetch_required(
 
 @dataclass(frozen=True)
 class Outcome:
+    """How merge_when_green ended: merged or not, why, and whether the branch went."""
+
     merged: bool
     reason: str
     pull: PullRequest
@@ -218,12 +245,15 @@ class Outcome:
 
 @dataclass(frozen=True)
 class Preview:
+    """The pull request, and what a run would do first."""
+
     pull: PullRequest
     verdict: Verdict
 
 
 def preview(github: GitHub, repository: Repository, number: int) -> Preview:
-    """One assessment of *number*, without waiting or acting: what a run would do first.
+    """
+    One assessment of *number*, without waiting or acting: what a run would do first.
 
     Checks that have not started count as not started, so a pull request whose checks
     GitHub has not registered yet reads as "would wait", never as "would merge".
@@ -232,12 +262,13 @@ def preview(github: GitHub, repository: Repository, number: int) -> Preview:
     required = fetch_required(github, repository, pull.base_ref)
     checks = fetch_checks(github, repository, pull.head_sha)
     return Preview(
-        pull, assess(pull, checks, required, settled=False, block_settled=False)
+        pull,
+        assess(pull, checks, required, settled=False, block_settled=False),
     )
 
 
 def describe(found: Preview, *, delete_branch: bool) -> list[str]:
-    """What merge_when_green would do, from *found*, one action per line."""
+    """List what merge_when_green would do, from *found*, one action per line."""
     pull, verdict = found.pull, found.verdict
     cleanup = (
         [f"Would delete {pull.head_ref} on GitHub, and locally if checked out."]
@@ -278,7 +309,8 @@ def merge_when_green(
     block_grace: float = 60,
     delete_branch: bool = True,
 ) -> Outcome:
-    """Wait for *number*'s checks, merge it with a merge commit, and delete its branch.
+    """
+    Wait for *number*'s checks, merge it with a merge commit, and delete its branch.
 
     Returns without merging when a check fails, GitHub refuses, or *timeout* passes.
     Polls *first_interval* after the first look, then every *interval*: most checks take
@@ -310,18 +342,38 @@ def merge_when_green(
             green_but_blocked_since = now()
         match verdict.action:
             case Action.DONE:
-                return _cleaned(github, repository, pull, verdict.reason, delete_branch)
+                return _cleaned(
+                    github,
+                    repository,
+                    pull,
+                    verdict.reason,
+                    delete_branch=delete_branch,
+                )
             case Action.REFUSE:
-                return Outcome(False, verdict.reason, pull)
+                return Outcome(merged=False, reason=verdict.reason, pull=pull)
             case Action.MERGE:
                 _merge(github, repository, pull)
                 merged = fetch_pull(github, repository, number)
                 if not merged.merged:
-                    return Outcome(False, "GitHub did not report it merged", merged)
-                return _cleaned(github, repository, merged, "merged", delete_branch)
+                    return Outcome(
+                        merged=False,
+                        reason="GitHub did not report it merged",
+                        pull=merged,
+                    )
+                return _cleaned(
+                    github,
+                    repository,
+                    merged,
+                    "merged",
+                    delete_branch=delete_branch,
+                )
             case Action.WAIT:
                 if now() - start >= timeout:
-                    return Outcome(False, f"timed out, {verdict.reason}", pull)
+                    return Outcome(
+                        merged=False,
+                        reason=f"timed out, {verdict.reason}",
+                        pull=pull,
+                    )
                 if verdict.reason != last_reason:
                     report(Event(Stage.WAITING, verdict.reason, number))
                     last_reason = verdict.reason
@@ -343,16 +395,18 @@ def _cleaned(
     repository: Repository,
     pull: PullRequest,
     reason: str,
+    *,
     delete_branch: bool,
 ) -> Outcome:
     if not (delete_branch and pull.from_same_repository):
-        return Outcome(True, reason, pull)
+        return Outcome(merged=True, reason=reason, pull=pull)
     try:
         github.request(
-            "DELETE", f"/repos/{repository.slug}/git/refs/heads/{pull.head_ref}"
+            "DELETE",
+            f"/repos/{repository.slug}/git/refs/heads/{pull.head_ref}",
         )
     except GitHubError as error:
-        # 422 or 404: already gone, for instance deleted by the repository's own setting.
+        # 422 or 404: already gone, for instance deleted by the repository's setting.
         if error.status not in (404, 422):
             raise
-    return Outcome(True, reason, pull, branch_deleted=True)
+    return Outcome(merged=True, reason=reason, pull=pull, branch_deleted=True)

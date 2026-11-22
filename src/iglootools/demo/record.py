@@ -11,12 +11,13 @@ from iglootools.project import DemoSettings
 
 
 def title(name: str, installed_version: str | None) -> str:
+    """Return the cast's title: the project's name, with its version when known."""
     return f"{name} v{installed_version} demo" if installed_version else f"{name} demo"
 
 
 def installed_version(distribution: str) -> str | None:
-    """The version recorded in the environment's .dist-info. With a VCS-derived version,
-    only the installed metadata has it, not the source tree."""
+    """Return the version in the environment's .dist-info, or None if not installed."""
+    # A VCS-derived version is only in the installed metadata, not in the source tree.
     try:
         return version(distribution)
     except PackageNotFoundError:
@@ -24,8 +25,9 @@ def installed_version(distribution: str) -> str | None:
 
 
 def recording_command(settings: DemoSettings, cast_title: str) -> list[str]:
-    """--return because asciinema exits 0 by default whatever the recorded command does,
-    which let a demo that died on its first command record and "succeed" on CI."""
+    """Return the asciinema command that records the demo script under *cast_title*."""
+    # --return because asciinema exits 0 by default whatever the recorded command does,
+    # which let a demo that died on its first command record and "succeed" on CI.
     return [
         "asciinema", "rec", "--return", "--overwrite",
         "--title", cast_title,
@@ -36,14 +38,16 @@ def recording_command(settings: DemoSettings, cast_title: str) -> list[str]:
 
 
 def recording_environment(
-    environ: Mapping[str, str], python: str = sys.executable
+    environ: Mapping[str, str],
+    python: str = sys.executable,
 ) -> dict[str, str]:
-    """The project environment's bin/ first on PATH, so the demo runs the project's own
-    command. mise adds .venv/bin when it resolves the environment, which on a fresh clone
-    (CI) happens before [deps.uv] has created .venv."""
+    """Return *environ* with *python*'s bin/ first on PATH, so the demo runs ours."""
+    # mise adds .venv/bin when it resolves the environment, which on a fresh clone (CI)
+    # happens before [deps.uv] has created .venv.
     path = environ.get("PATH", "")
     return {**environ, "PATH": os.pathsep.join([str(Path(python).parent), path])}
 
 
 def record(command: Sequence[str], env: Mapping[str, str], root: Path) -> int:
+    """Run the recording *command* in *root* with *env*, and return its exit status."""
     return subprocess.run(command, cwd=root, env=env, check=False).returncode

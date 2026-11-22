@@ -47,7 +47,7 @@ def test_settings_override_the_defaults(tmp_path: Path) -> None:
             depgraph-exclude = ["nbkp_core.templates"]
             architecture = "ARCHITECTURE.md"
             """,
-        )
+        ),
     )
     assert project.package == "nbkp_core"
     assert project.docs.cli_module == "nbkp_core.cli"
@@ -74,7 +74,10 @@ def test_settings_override_the_defaults(tmp_path: Path) -> None:
     ],
 )
 def test_invalid_pyproject_is_reported_by_kind(
-    tmp_path: Path, content: str, kind: ProjectErrorKind, setting: str | None
+    tmp_path: Path,
+    content: str,
+    kind: ProjectErrorKind,
+    setting: str | None,
 ) -> None:
     with pytest.raises(ProjectError) as raised:
         load_project(write_pyproject(tmp_path, content))

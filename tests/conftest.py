@@ -5,6 +5,14 @@ from typing import NoReturn
 import pytest
 
 
+class UnexpectedCallError(AssertionError):
+    """A fake was called in a way the test did not expect."""
+
+    def __init__(self, call: object) -> None:
+        super().__init__(f"unexpected {call!r}")
+        self.call = call
+
+
 @pytest.fixture
 def monkeypatch() -> NoReturn:
     """Replace pytest's fixture for every test: tests do not patch."""
@@ -17,7 +25,7 @@ def monkeypatch() -> NoReturn:
 
 @pytest.fixture
 def git_repo(tmp_path: Path) -> Path:
-    """An empty git repository, for commands that ask git which files it tracks."""
+    """Create an empty git repository, for commands that ask git what it tracks."""
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
     return tmp_path
 

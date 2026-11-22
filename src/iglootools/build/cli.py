@@ -1,3 +1,5 @@
+"""The `iglootools build` command, which runs a project's mise task by name."""
+
 import shlex
 from typing import Annotated
 
@@ -11,16 +13,21 @@ from iglootools.preflight import requirements
 def build(
     ctx: typer.Context,
     task: Annotated[
-        str | None, typer.Argument(help="The mise task to run; omit to list them.")
+        str | None,
+        typer.Argument(help="The mise task to run; omit to list them."),
     ] = None,
+    *,
     dry_run: Annotated[
         bool,
         typer.Option(
-            "--dry-run", "-n", help="Print the mise command instead of running it."
+            "--dry-run",
+            "-n",
+            help="Print the mise command instead of running it.",
         ),
     ] = False,
 ) -> None:
-    """Run one of the project's mise tasks: preflight, lint-*, test-*, fmt, ci-*, ….
+    """
+    Run one of the project's mise tasks: preflight, lint-*, test-*, fmt, ci-*, ….
 
     Delegates to `mise run <task>`, passing any further arguments on, and exits with the
     task's status. With no task, lists the project's tasks by family. Options for

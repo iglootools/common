@@ -149,7 +149,7 @@ def test_add_puts_the_block_above_a_generated_sections_marker() -> None:
     )
     assert markdown_toc.with_empty_block(markdown).startswith(
         "# Architecture\n\nIntro.\n\n<!-- toc -->\n<!-- tocstop -->\n\n"
-        "<!-- BEGIN MODULE OVERVIEW (auto-generated) -->\n## Module Overview\n"
+        "<!-- BEGIN MODULE OVERVIEW (auto-generated) -->\n## Module Overview\n",
     )
 
 
@@ -184,7 +184,7 @@ def test_a_marker_inside_a_code_block_is_not_a_block() -> None:
         ("docs/content/1.index.md", "## A\n", False),
     ],
 )
-def test_exempt_files(relative: str, markdown: str, exempt: bool) -> None:
+def test_exempt_files(relative: str, markdown: str, *, exempt: bool) -> None:
     assert markdown_toc.exempt(relative, markdown, ["content/**"]) == exempt
 
 
@@ -197,6 +197,8 @@ def test_exempt_files(relative: str, markdown: str, exempt: bool) -> None:
     ],
 )
 def test_only_a_long_document_with_sections_needs_one(
-    markdown: str, needed: bool
+    markdown: str,
+    *,
+    needed: bool,
 ) -> None:
     assert markdown_toc.needs_toc("docs/guide.md", markdown) == needed

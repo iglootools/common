@@ -1,3 +1,5 @@
+"""The `iglootools github` commands: merge a pull request once green, prune branches."""
+
 import os
 import time
 from typing import Annotated
@@ -17,11 +19,13 @@ from iglootools.github.client import (
 from iglootools.preflight import requirements
 
 app = typer.Typer(
-    help="Work with the project's GitHub repository.", no_args_is_help=True
+    help="Work with the project's GitHub repository.",
+    no_args_is_help=True,
 )
 
 REPO_OPTION = typer.Option(
-    "--repo", help="owner/name of the repository; default: the origin remote."
+    "--repo",
+    help="owner/name of the repository; default: the origin remote.",
 )
 
 
@@ -41,7 +45,11 @@ def _repository(ctx: typer.Context, slug: str | None) -> Repository:
 
 
 def _preview_merge(
-    github: GitHub, repository: Repository, pr: int, *, delete_branch: bool
+    github: GitHub,
+    repository: Repository,
+    pr: int,
+    *,
+    delete_branch: bool,
 ) -> None:
     try:
         found = merge.preview(github, repository, pr)
@@ -63,7 +71,11 @@ def _is_origin(ctx: typer.Context, repository: Repository) -> bool:
 
 
 def github_session(ctx: typer.Context, slug: str | None) -> tuple[Repository, GitHub]:
-    """The repository to work on and an authenticated client, or exit 2 saying why."""
+    """
+    Return the repository to work on and an authenticated client.
+
+    Exits 2, saying why, when either cannot be had.
+    """
     return _repository(ctx, slug), _github(ctx)
 
 
@@ -81,16 +93,21 @@ def merge_when_green(
     pr: Annotated[int, typer.Argument(help="Number of the pull request.", min=1)],
     repo: Annotated[str | None, REPO_OPTION] = None,
     timeout: Annotated[
-        int, typer.Option(help="Give up after this many seconds.", min=1)
+        int,
+        typer.Option(help="Give up after this many seconds.", min=1),
     ] = 1800,
+    *,
     keep_branch: Annotated[
-        bool, typer.Option("--keep-branch", help="Do not delete the branch.")
+        bool,
+        typer.Option("--keep-branch", help="Do not delete the branch."),
     ] = False,
     dry_run: Annotated[
-        bool, typer.Option("--dry-run", "-n", help="Say what it would do, and stop.")
+        bool,
+        typer.Option("--dry-run", "-n", help="Say what it would do, and stop."),
     ] = False,
 ) -> None:
-    """Merge a pull request once every check has passed, then delete its branch.
+    """
+    Merge a pull request once every check has passed, then delete its branch.
 
     Waits until every check on the head commit has reported, including the ones a
     ruleset requires that have not started yet. Refuses when a check fails or GitHub
@@ -125,7 +142,9 @@ def merge_when_green(
         say(f"Deleted {outcome.pull.head_ref} on GitHub.")
     if outcome.branch_deleted and _is_origin(ctx, repository):
         cleanup = local.clean_local(
-            invocation(ctx).root, outcome.pull.head_ref, outcome.pull.base_ref
+            invocation(ctx).root,
+            outcome.pull.head_ref,
+            outcome.pull.base_ref,
         )
         if cleanup.switched_to_base:
             say(f"Switched to an up-to-date {outcome.pull.base_ref}.")
@@ -139,11 +158,14 @@ def merge_when_green(
 def prune_branches(
     ctx: typer.Context,
     repo: Annotated[str | None, REPO_OPTION] = None,
+    *,
     dry_run: Annotated[
-        bool, typer.Option("--dry-run", "-n", help="Show what would be deleted.")
+        bool,
+        typer.Option("--dry-run", "-n", help="Show what would be deleted."),
     ] = False,
 ) -> None:
-    """Delete every branch whose latest pull request has merged, on GitHub and locally.
+    """
+    Delete every branch whose latest pull request has merged, on GitHub and locally.
 
     Keeps the default branch, protected branches, branches with an open pull request,
     branches whose latest pull request was closed without merging, and branches that

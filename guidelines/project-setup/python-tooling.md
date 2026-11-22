@@ -366,14 +366,27 @@ The other files are formatted as [formatting.md](formatting.md) describes.
 
 ### Lint and format with ruff
 
-Configure ruff in `pyproject.toml`: `target-version` as
+Configure ruff in `pyproject.toml` with `target-version` as
 [Name the version](#name-the-version-in-the-four-places-that-pin-it) gives it,
-and `extend-select` with `RUF100`, `TID251` and `TID255`.
+`select = ["ALL"]`, and `ignore` holding only the rules
+[ADR-003](../../docs/architecture-decision-record.md#adr-003--enable-every-ruff-rule-except-those-our-conventions-are-against)
+lists: the rules a convention is against, or that fight the formatter. Copy
+common's `[tool.ruff.lint]` block, which also bans relative imports, sets
+`max-statements = 30` and selects the preview rule `PLW1514`.
 
-**Why:** `RUF100` reports a `noqa` that no longer suppresses anything, `TID251`
-enforces the [patching rule](#enforce-the-patching-rule), and `TID255` flags a
-lazy import that module-level code resolves straight away, losing the deferral
-[python.md › Imports](../coding/python.md#imports) asks for.
+**Why:** a rule that is on rejects the mistake when it is made
+([general.md](../coding/general.md#enforce-with-a-tool-what-a-tool-can-check)),
+and an ignore list with reasons makes each exception a deliberate choice.
+
+- **Ignore a rule for a project's own exception as narrowly as the exception
+  reaches**, saying why: a `# noqa: <rule>` on the line, a `per-file-ignores`
+  entry, or, for an exception the whole project shares such as photree's naive
+  EXIF times, an `ignore` entry under `DTZ001`. An optional extra's in-function
+  import carries `# noqa: PLC0415`.
+- **A rule a convention is against goes into ADR-003**, with its reason, and
+  into every project's `ignore`.
+- **A ruff upgrade turns on new rules.** Fix their findings in the upgrade's
+  pull request, or add the rule to ADR-003.
 
 ### Type-check with pyright, in strict mode, tests included
 

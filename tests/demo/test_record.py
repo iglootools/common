@@ -32,6 +32,7 @@ def test_recording_fails_when_the_demo_fails() -> None:
 
 def test_the_environments_bin_comes_first_on_path() -> None:
     env = record.recording_environment(
-        {"PATH": "/usr/bin", "HOME": "/h"}, python="/p/.venv/bin/python"
+        {"PATH": "/usr/bin", "HOME": "/h"},
+        python="/p/.venv/bin/python",
     )
     assert env == {"PATH": "/p/.venv/bin:/usr/bin", "HOME": "/h"}

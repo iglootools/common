@@ -19,6 +19,11 @@ format is in
   - [Decision](#decision-1)
   - [Rationale](#rationale-1)
   - [Consequences](#consequences-1)
+- [ADR-003 — Enable every ruff rule, except those our conventions are against](#adr-003--enable-every-ruff-rule-except-those-our-conventions-are-against)
+  - [Context](#context-2)
+  - [Decision](#decision-2)
+  - [Rationale](#rationale-2)
+  - [Consequences](#consequences-2)
 <!-- tocstop -->
 
 ## ADR-001 — Check the pins on common offline, trusting uv.lock and IGLOOTOOLS_VERSION's name
@@ -204,3 +209,77 @@ Alternatives not pursued:
 **Retire this** when ty reaches a stable 1.0 with equivalents for at least
 `match` exhaustiveness and unknown-type reporting: then re-run the comparison
 (`uvx ty@<version> check` on each project) and decide again.
+
+## ADR-003 — Enable every ruff rule, except those our conventions are against
+
+**Date:** 2026-11-22
+**Status:** Accepted
+
+### Context
+
+Ruff's default rule set (about 400 rules in 0.17) leaves out most of what it
+can check. A first pass selected only the rules that enforce a written
+guideline, such as `PERF401` for
+[building a collection in one expression](../guidelines/coding/python.md#build-a-collection-in-one-expression-not-by-appending).
+That still left off rules that make the code stricter without contradicting
+anything we do: unused arguments, boolean positional parameters, magic numbers,
+`pathlib` over `os.path`, exception messages built at the `raise`.
+
+### Decision
+
+Every project selects `ALL`, and ignores only a rule that a convention is
+against, or that fights a tool we use. Each ignored rule is listed here with
+its reason:
+
+| Ignored | Why |
+|---|---|
+| `D203`, `D212` | Each is the opposite of a rule we keep. `D211`: no blank line before a class docstring, which is also what the formatter writes. `D213`: a multi-line docstring opens with `"""` alone and starts its summary on the next line, so the summary lines up with the detail below it. |
+| `CPY001` | The repository's LICENSE covers every file; a header per file repeats it. |
+| `TC001`–`TC003` | They move imports into a `TYPE_CHECKING` block, which [python.md](../guidelines/coding/python.md#import-at-module-level-and-defer-with-lazy-import) rules out. |
+| `RET505`–`RET508` | They delete the explicit `else` [python.md](../guidelines/coding/python.md#prefer-match-and-explicit-branches-over-chains-and-early-returns) asks for. |
+| `C901`, `PLR0911`, `PLR0912` | They count each `case` of a `match`, so they penalise the flat dispatch python.md prefers. `PLR0915` (`max-statements = 30`) still keeps functions short. |
+| `PLR0913` | Keyword seams ([python.md](../guidelines/coding/python.md#make-a-seam-a-keyword-parameter-whose-default-is-the-real-function)) add parameters by design. `PLR0917` still caps the positional ones at five. |
+| `S603`, `S607` | `S603` flags every `subprocess` call made with an argument list, the form [general.md](../guidelines/coding/general.md#escape-interpolated-text-or-keep-it-apart-from-markup) asks for; `S607` flags a program found on `PATH`, which is how mise provides tools. |
+| In `tests/**`: `D1`, `S101`, `PLR2004`, `S105`–`S107` | A test's name says what it checks, so [it needs no docstring](../guidelines/coding/general.md#document-every-public-module-class-and-function); pytest asserts with `assert`; a test's literals are its specification; the "secrets" are fakes or keyring entry names such as `passphrase_id`. `S108` stays on in tests: a test writes under `tmp_path`, and a `/tmp` path used only as data carries a `noqa`. |
+
+The rules ruff's documentation lists as conflicting with the formatter stay
+on as well. `E501` catches the strings, comments and docstrings the formatter
+leaves long, and since ruff 0.9 the formatter joins implicitly concatenated
+strings itself, so `ISC001` no longer fights it. `COM812` still can: the
+formatter may leave a call's last arguments on one line without a trailing
+comma, which the rule then adds, and the formatter then splits one argument per
+line. Running `ruff check --fix` and `ruff format` twice settles it, and
+`ruff format` prints a warning about the rule on every run.
+
+Two settings go with it: `ban-relative-imports = "all"`, since every project
+imports absolutely, and `PLW1514` selected by name with `preview = true` and
+`explicit-preview-rules = true`, because it is still a preview rule and `ALL`
+selects stable rules only.
+
+A project's own exception goes in its `pyproject.toml` with its reason, as
+narrow as it reaches, such as photree's `DTZ001` for EXIF times that carry no
+offset.
+
+### Rationale
+
+- A rule that is on catches the mistake when it is made; a rule nobody enabled
+  catches nothing. Listing what is off, with a reason, is shorter than listing
+  what is on, and makes each exception an explicit choice.
+- Rules that only enforce a taste we do not hold are rare once the conflicts
+  above are out: the rest describe code we would accept anyway.
+- `D401` (an imperative docstring summary) and `TID252` (absolute imports) set
+  conventions the guidelines had not written down; both were adopted rather
+  than ignored.
+
+### Consequences
+
+- A ruff upgrade turns on the rules it adds, so a Renovate pull request for ruff
+  can fail `lint-ruff`. Fix the new findings in that pull request, or add the
+  rule here with its reason.
+- Rules for frameworks we do not use (Airflow, Django, FastAPI, NumPy, pandas)
+  are selected too. They never fire, and need no entry.
+- The first adoption rewrote much of nbkp and photree: absolute imports,
+  keyword-only booleans, error types that build their own message.
+
+**Retire this** if ruff's default set grows to cover what `ALL` adds, or if the
+ignore list grows long enough that selecting rule families would be shorter.

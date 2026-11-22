@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from iglootools.mise import lockcheck
+from tests.conftest import UnexpectedCallError
 
 DEPENDENCY_LOCK = ".mise/locks/npm-renovate/44.239.1~026f02c4/aube-lock.yaml"
 STAGED = {
@@ -15,8 +16,12 @@ STAGED = {
 
 
 class FakeTools:
-    """`git show :<file>` and `git ls-files` answer from STAGED; `mise lock` writes
-    *regenerated*, and records the dependency lock it found in the scratch directory."""
+    """
+    Answer `git show :<file>` and `git ls-files` from STAGED, and fake `mise lock`.
+
+    `mise lock` writes *regenerated*, and records the dependency lock it found in the
+    scratch directory.
+    """
 
     def __init__(self, regenerated: str, lock_status: int = 0) -> None:
         self.regenerated = regenerated
@@ -25,14 +30,20 @@ class FakeTools:
         self.dependency_lock_seen: str | None = None
 
     def __call__(
-        self, command: Sequence[str], directory: Path, env: Mapping[str, str]
+        self,
+        command: Sequence[str],
+        directory: Path,
+        env: Mapping[str, str],
     ) -> subprocess.CompletedProcess[str]:
         match list(command):
             case ["git", "show", spec]:
                 name = spec.removeprefix(":")
                 found = name in STAGED
                 return subprocess.CompletedProcess(
-                    command, 0 if found else 128, STAGED.get(name, ""), ""
+                    command,
+                    0 if found else 128,
+                    STAGED.get(name, ""),
+                    "",
                 )
             case ["git", "ls-files", "--cached", "-z", "--", prefix]:
                 names = [name for name in STAGED if name.startswith(prefix + "/")]
@@ -44,10 +55,13 @@ class FakeTools:
                 assert (directory / "mise.toml").read_text() == STAGED["mise.toml"]
                 (directory / "mise.lock").write_text(self.regenerated)
                 return subprocess.CompletedProcess(
-                    command, self.lock_status, "", "network down"
+                    command,
+                    self.lock_status,
+                    "",
+                    "network down",
                 )
             case _:
-                raise AssertionError(f"unexpected command {command}")
+                raise UnexpectedCallError(command)
 
 
 def test_an_unchanged_lock_is_up_to_date(tmp_path: Path) -> None:
@@ -57,7 +71,9 @@ def test_an_unchanged_lock_is_up_to_date(tmp_path: Path) -> None:
 
 def test_a_changed_lock_is_reported_as_a_diff(tmp_path: Path) -> None:
     result = lockcheck.compare(
-        tmp_path, run=FakeTools("[[tools.uv]]\nnew\n"), environ={}
+        tmp_path,
+        run=FakeTools("[[tools.uv]]\nnew\n"),
+        environ={},
     )
     assert not result.up_to_date
     assert "-old\n" in result.diff()
@@ -75,7 +91,9 @@ def test_mise_lock_runs_without_the_python_override_and_trusts_only_scratch(
 ) -> None:
     tools = FakeTools(STAGED["mise.lock"])
     lockcheck.compare(
-        tmp_path, run=tools, environ={"MISE_PYTHON_VERSION": "3.9", "PATH": "/bin"}
+        tmp_path,
+        run=tools,
+        environ={"MISE_PYTHON_VERSION": "3.9", "PATH": "/bin"},
     )
     assert "MISE_PYTHON_VERSION" not in tools.lock_env
     assert tools.lock_env["PATH"] == "/bin"
@@ -94,10 +112,15 @@ def test_a_failing_mise_lock_is_an_error_not_a_pass(tmp_path: Path) -> None:
 
 def test_an_unstaged_file_is_reported(tmp_path: Path) -> None:
     def no_lock(
-        command: Sequence[str], directory: Path, env: Mapping[str, str]
+        command: Sequence[str],
+        _directory: Path,
+        _env: Mapping[str, str],
     ) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(
-            command, 128 if "lock" in command[2] else 0, "", ""
+            command,
+            128 if "lock" in command[2] else 0,
+            "",
+            "",
         )
 
     with pytest.raises(lockcheck.LockCheckError) as raised:

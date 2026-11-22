@@ -1,3 +1,5 @@
+"""The `iglootools demo` commands: record the demo, and publish what CI recorded."""
+
 import os
 import tempfile
 from pathlib import Path
@@ -47,11 +49,14 @@ def upload_command(
     run_id: Annotated[
         str | None,
         typer.Option(
-            "--run-id", help="Upload from this workflow run instead of the newest."
+            "--run-id",
+            help="Upload from this workflow run instead of the newest.",
         ),
     ] = None,
+    *,
     dry_run: Annotated[
-        bool, typer.Option("--dry-run", help="Download and report; do not upload.")
+        bool,
+        typer.Option("--dry-run", help="Download and report; do not upload."),
     ] = False,
     update_readme: Annotated[
         bool,
@@ -61,18 +66,19 @@ def upload_command(
         ),
     ] = True,
     commit: Annotated[
-        bool, typer.Option("--commit/--no-commit", help="Commit the README change.")
+        bool,
+        typer.Option("--commit/--no-commit", help="Commit the README change."),
     ] = True,
 ) -> None:
-    """Download the demo recorded by CI and upload it to asciinema.org.
+    """
+    Download the demo recorded by CI and upload it to asciinema.org.
 
-    Takes the newest successful run of the demo workflow, preferring main, uploads its cast,
-    then points the README's embed at the recording and commits that file alone.
+    Takes the newest successful run of the demo workflow, preferring main, uploads its
+    cast, then points the README's embed at the recording and commits that file alone.
     """
     proj = project(ctx)
     settings = proj.demo
     readme = settings.readme
-    shown = display_path(readme, proj.root)
     try:
         readme_was_dirty = (
             update_readme
@@ -84,7 +90,7 @@ def upload_command(
         )
         say(
             f"Run {workflow_run.run_id}:\n  {workflow_run.created_at}  "
-            f"{workflow_run.branch}  {workflow_run.title}"
+            f"{workflow_run.branch}  {workflow_run.title}",
         )
         with tempfile.TemporaryDirectory() as workdir:
             cast = uploads.download_cast(settings, workflow_run, Path(workdir))
@@ -98,13 +104,34 @@ def upload_command(
         warn(_describe(error, settings))
         raise typer.Exit(1) from None
 
-    if not update_readme:
-        return
+    if update_readme:
+        _record_in_readme(
+            proj.root,
+            settings,
+            output,
+            workflow_run,
+            commit=commit,
+            readme_was_dirty=readme_was_dirty,
+        )
+
+
+def _record_in_readme(
+    root: Path,
+    settings: DemoSettings,
+    output: str,
+    workflow_run: uploads.WorkflowRun,
+    *,
+    commit: bool,
+    readme_was_dirty: bool,
+) -> None:
+    """Point the README's embed at the uploaded recording, and commit it if asked."""
+    readme = settings.readme
+    shown = display_path(readme, root)
     url = uploads.recording_url(output)
     if url is None:
         warn(
             "The upload succeeded, but asciinema's output holds no recording URL, so "
-            f"{shown} was left alone. Update its embed by hand."
+            f"{shown} was left alone. Update its embed by hand.",
         )
         raise typer.Exit(1)
     _repoint_readme(readme, shown, url)
@@ -113,12 +140,13 @@ def upload_command(
         return
     if readme_was_dirty:
         warn(
-            f"{shown} had uncommitted changes before this run, so it was not committed: "
-            "a pathspec commit would take those too. Review the diff and commit it."
+            f"{shown} had uncommitted changes before this run, so it was not "
+            "committed: a pathspec commit would take those too. Review the diff and "
+            "commit it.",
         )
         raise typer.Exit(1)
     try:
-        say(f"Committed {uploads.commit_readme(readme, url, workflow_run, proj.root)}")
+        say(f"Committed {uploads.commit_readme(readme, url, workflow_run, root)}")
     except uploads.DemoError as error:
         warn(_describe(error, settings))
         raise typer.Exit(1) from None
@@ -127,7 +155,7 @@ def upload_command(
 def _repoint_readme(readme: Path, shown: str, url: str) -> None:
     if not readme.exists():
         warn(
-            f"{shown} not found, so the embed cannot be updated. The upload succeeded."
+            f"{shown} not found, so the embed cannot be updated. The upload succeeded.",
         )
         raise typer.Exit(1)
     result = uploads.apply_embed(readme.read_text(encoding="utf-8"), url)
@@ -135,7 +163,7 @@ def _repoint_readme(readme: Path, shown: str, url: str) -> None:
         warn(
             f"No asciicast embed in {shown}; expected a line like\n"
             f"  {uploads.render_embed(url)}\n"
-            "The upload succeeded: add or fix that line by hand."
+            "The upload succeeded: add or fix that line by hand.",
         )
         raise typer.Exit(1)
     if not result.changed:
@@ -153,7 +181,8 @@ def record_command(
         typer.Option("--title", help="Cast title (default: <name> v<version> demo)."),
     ] = None,
 ) -> None:
-    """Record the scripted demo (demo/demo.sh by default) as an asciinema cast.
+    """
+    Record the scripted demo (demo/demo.sh by default) as an asciinema cast.
 
     Runs in the project's environment, whose installed version names the cast. Publish a
     CI recording afterwards with `iglootools demo upload`.
@@ -162,11 +191,12 @@ def record_command(
     settings = proj.demo
     shown = display_path(settings.recording, proj.root)
     cast_title = title or recording.title(
-        proj.name, recording.installed_version(proj.name)
+        proj.name,
+        recording.installed_version(proj.name),
     )
     if not settings.script.exists():
         warn(
-            f"{display_path(settings.script, proj.root)} not found: nothing to record."
+            f"{display_path(settings.script, proj.root)} not found: nothing to record.",
         )
         raise typer.Exit(1)
     say(f"Recording {shown} ({cast_title})")

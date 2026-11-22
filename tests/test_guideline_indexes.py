@@ -1,4 +1,5 @@
-"""Every guideline is registered where readers and agents are routed to it.
+"""
+Every guideline is registered where readers and agents are routed to it.
 
 guidelines/documentation/writing-guidelines.md › Register a new or renamed guideline in
 every index that routes to it. A guideline missing from these is a file nobody reads.

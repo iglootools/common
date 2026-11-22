@@ -1,8 +1,9 @@
-"""Every program and credential an iglootools command depends on, declared once.
+"""
+Every program and credential an iglootools command depends on, declared once.
 
 Each subsystem checks its own subset before its first change, so a missing tool fails a
-command cleanly, with how to fix it, instead of half way: a release whose version bump has
-merged but whose tags could not be made. `iglootools preflight` checks them all.
+command cleanly, with how to fix it, instead of half way: a release whose version bump
+has merged but whose tags could not be made. `iglootools preflight` checks them all.
 """
 
 import shutil
@@ -21,12 +22,16 @@ TOKEN_VARIABLES = ("GH_TOKEN", "GITHUB_TOKEN")
 
 
 class Kind(StrEnum):
+    """How a requirement is checked: a program on PATH, or a GitHub token."""
+
     PROGRAM = "program"
-    GITHUB_TOKEN = "github-token"
+    GITHUB_TOKEN = "github-token"  # noqa: S105 - a requirement kind, not a secret
 
 
 @dataclass(frozen=True)
 class Requirement:
+    """A program or credential a command needs: what it is for and how to get it."""
+
     name: str
     purpose: str
     fix: str
@@ -64,27 +69,37 @@ BUILD = (MISE,)
 
 SUBSYSTEMS = {"github": GITHUB, "common": COMMON, "build": BUILD}
 ALL = tuple(
-    dict.fromkeys(requirement for group in SUBSYSTEMS.values() for requirement in group)
+    dict.fromkeys(
+        requirement for group in SUBSYSTEMS.values() for requirement in group
+    ),
 )
 
 
 def needed_by(requirement: Requirement) -> list[str]:
-    """The subsystems whose commands need *requirement*."""
+    """List the subsystems whose commands need *requirement*."""
     return [name for name, group in SUBSYSTEMS.items() if requirement in group]
 
 
 @dataclass(frozen=True)
 class Result:
+    """Whether a requirement is met, and where it was found or why it was not."""
+
     requirement: Requirement
     ok: bool
     detail: str
 
 
 def capture(
-    command: Sequence[str], directory: Path
+    command: Sequence[str],
+    directory: Path,
 ) -> subprocess.CompletedProcess[str]:
+    """Run *command* in *directory*, capturing its text output, whatever its status."""
     return subprocess.run(
-        command, cwd=directory, capture_output=True, text=True, check=False
+        command,
+        cwd=directory,
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 
@@ -112,7 +127,11 @@ def _check(
     match requirement.kind:
         case Kind.PROGRAM:
             found = which(requirement.name)
-            return Result(requirement, found is not None, found or "not on PATH")
+            return Result(
+                requirement,
+                ok=found is not None,
+                detail=found or "not on PATH",
+            )
         case Kind.GITHUB_TOKEN:
             return _token(requirement, root, environ, which, run)
 
@@ -126,10 +145,14 @@ def _token(
 ) -> Result:
     for variable in TOKEN_VARIABLES:
         if environ.get(variable):
-            return Result(requirement, True, f"from {variable}")
+            return Result(requirement, ok=True, detail=f"from {variable}")
     if which("gh") is None:
-        return Result(requirement, False, "no GH_TOKEN or GITHUB_TOKEN, and no gh")
+        return Result(
+            requirement,
+            ok=False,
+            detail="no GH_TOKEN or GITHUB_TOKEN, and no gh",
+        )
     result = run(["gh", "auth", "token"], root)
     if result.returncode != 0 or not result.stdout.strip():
-        return Result(requirement, False, "gh is not logged in")
-    return Result(requirement, True, "from gh")
+        return Result(requirement, ok=False, detail="gh is not logged in")
+    return Result(requirement, ok=True, detail="from gh")
