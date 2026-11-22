@@ -12,17 +12,18 @@ rules, and [git.md](git.md) how the change is committed.
   - [Write each departure, and its reason, where a reader will hit it](#write-each-departure-and-its-reason-where-a-reader-will-hit-it)
   - [Name the condition that retires it](#name-the-condition-that-retires-it)
 - [Structure](#structure)
-  - [Prefer pure functions and immutable data](#prefer-pure-functions-and-immutable-data)
   - [Keep functions short, at one level of abstraction](#keep-functions-short-at-one-level-of-abstraction)
   - [Keep cohesion high and coupling low, at every level](#keep-cohesion-high-and-coupling-low-at-every-level)
   - [Keep riskier changes structurally apart](#keep-riskier-changes-structurally-apart)
   - [Enforce with a tool what a tool can check](#enforce-with-a-tool-what-a-tool-can-check)
-- [Presentation at the Edges](#presentation-at-the-edges)
+- [The Core and Its Edges](#the-core-and-its-edges)
+  - [Prefer pure functions and immutable data](#prefer-pure-functions-and-immutable-data)
+  - [Pass the clock, the environment and configuration in](#pass-the-clock-the-environment-and-configuration-in)
   - [Return data from the core, and render it at the edge](#return-data-from-the-core-and-render-it-at-the-edge)
   - [Escape interpolated text, or keep it apart from markup](#escape-interpolated-text-or-keep-it-apart-from-markup)
-- [Errors, Encoding and Time](#errors-encoding-and-time)
+- [Errors and Encoding](#errors-and-encoding)
   - [Surface every error; never fail silently](#surface-every-error-never-fail-silently)
-  - [Use UTF-8 and UTC everywhere, and pass the current time in](#use-utf-8-and-utc-everywhere-and-pass-the-current-time-in)
+  - [Use UTF-8 and UTC everywhere](#use-utf-8-and-utc-everywhere)
 - [Testability](#testability)
   - [Control what a test needs with a decider, a fake or a cheap real resource](#control-what-a-test-needs-with-a-decider-a-fake-or-a-cheap-real-resource)
   - [Patch only in the three documented cases, and list each one](#patch-only-in-the-three-documented-cases-and-list-each-one)
@@ -75,13 +76,6 @@ it.
 
 ## Structure
 
-### Prefer pure functions and immutable data
-
-Mutate only where it genuinely simplifies the logic.
-
-**Why:** side effects stay at the edges.
-See [Functional style preferred](../philosophy.md#functional-style-preferred).
-
 ### Keep functions short, at one level of abstraction
 
 Extract named helpers when a function grows beyond ~30 lines or handles several
@@ -120,7 +114,32 @@ A compiler, type checker, linter, import contract or test, rather than prose.
 
 **Why:** a tool rejects the mistake when it is made; prose works only if read.
 
-## Presentation at the Edges
+## The Core and Its Edges
+
+The core computes on values it is given; the edges read the clock, the
+environment, configuration, the filesystem and the user, and render the results.
+
+### Prefer pure functions and immutable data
+
+Mutate only where it genuinely simplifies the logic.
+
+**Why:** side effects stay at the edges.
+See [Functional style preferred](../philosophy.md#functional-style-preferred).
+
+### Pass the clock, the environment and configuration in
+
+Core logic never reads ambient state: the clock, environment variables,
+configuration files, the platform, the current directory. Entry points read it
+and pass the values in; tests pass their own.
+
+**Why:** a function that reads ambient state behaves differently on each
+machine and at each moment, and cannot be tested for a given one without
+patching.
+
+- Configuration is read and validated once, at the entry point, into a value
+  the core takes as a parameter.
+- Where a parameter would burden every caller, make it a seam that defaults to
+  the real value (`platform: str = sys.platform`), which tests pass explicitly.
 
 ### Return data from the core, and render it at the edge
 
@@ -144,7 +163,7 @@ parameterized query; a plain-text print.
 **Why:** unescaped text fails silently, losing characters or changing meaning
 for the inputs nobody tested.
 
-## Errors, Encoding and Time
+## Errors and Encoding
 
 ### Surface every error; never fail silently
 
@@ -154,17 +173,15 @@ message.
 **Why:** a silent failure surfaces later, far from its cause. See
 [Errors as first-class values](../philosophy.md#errors-as-first-class-values).
 
-### Use UTF-8 and UTC everywhere, and pass the current time in
+### Use UTF-8 and UTC everywhere
 
-Core logic never reads the clock: entry points and tests pass `now` to it.
+Read and write text as UTF-8, naming the encoding rather than relying on the
+platform's default, and store and compare times in UTC.
 
-**Why:** local times are ambiguous, and a function that reads the clock cannot
-be tested for a given moment without patching.
+**Why:** a default encoding differs between machines, and local times are
+ambiguous.
 
 ## Testability
-
-Any ambient state is a parameter defaulting to the real value
-(`platform: str = sys.platform`), which tests pass explicitly.
 
 ### Control what a test needs with a decider, a fake or a cheap real resource
 

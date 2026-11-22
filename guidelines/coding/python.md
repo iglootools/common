@@ -8,9 +8,11 @@ project is [python-tooling.md](../project-setup/python-tooling.md)'s.
 <!-- toc -->
 **On this page**
 
-- [Style](#style)
+- [Functional Style](#functional-style)
   - [Build a collection in one expression, not by appending](#build-a-collection-in-one-expression-not-by-appending)
   - [Prefer `match` and explicit branches over chains and early returns](#prefer-match-and-explicit-branches-over-chains-and-early-returns)
+  - [Freeze every data class, but write exceptions as plain classes](#freeze-every-data-class-but-write-exceptions-as-plain-classes)
+- [Style](#style)
   - [Write structured multi-line strings with `dedent`](#write-structured-multi-line-strings-with-dedent)
   - [Annotate every function, including its return type](#annotate-every-function-including-its-return-type)
 - [Naming](#naming)
@@ -20,8 +22,6 @@ project is [python-tooling.md](../project-setup/python-tooling.md)'s.
   - [Start a function's name with the verb that says what the caller gets](#start-a-functions-name-with-the-verb-that-says-what-the-caller-gets)
   - [Name a parameter by the word its CLI option or role uses](#name-a-parameter-by-the-word-its-cli-option-or-role-uses)
   - [Name a test after the behaviour it checks](#name-a-test-after-the-behaviour-it-checks)
-- [Data Classes](#data-classes)
-  - [Freeze every data class, but write exceptions as plain classes](#freeze-every-data-class-but-write-exceptions-as-plain-classes)
 - [Errors](#errors)
   - [Give an error a kind and its fields, and subclass what callers catch](#give-an-error-a-kind-and-its-fields-and-subclass-what-callers-catch)
 - [Imports](#imports)
@@ -37,7 +37,12 @@ project is [python-tooling.md](../project-setup/python-tooling.md)'s.
   - [When a dependency lags](#when-a-dependency-lags)
 <!-- tocstop -->
 
-## Style
+## Functional Style
+
+The Python form of
+[general.md › Prefer pure functions and immutable data](general.md#prefer-pure-functions-and-immutable-data):
+values built in one expression, every branch visible, data that never
+changes.
 
 ### Build a collection in one expression, not by appending
 
@@ -61,6 +66,19 @@ and return a single expression where the logic allows
 (`return bool(x) and all(...)` over guard clauses returning `False`).
 
 **Why:** every case is visible at one level, with no implicit path.
+
+### Freeze every data class, but write exceptions as plain classes
+
+Serialized models are frozen pydantic dataclasses, and other data classes are
+frozen too. An exception is a plain class that sets its attributes in
+`__init__`, never a `@dataclass(frozen=True)`.
+
+**Why:** a frozen value is safe to share. But Python assigns `__traceback__`
+(and `add_note` writes `__notes__`) as an exception propagates, for instance
+through a `@contextmanager`, and a frozen dataclass replaces the real error with
+a `FrozenInstanceError`.
+
+## Style
 
 ### Write structured multi-line strings with `dedent`
 
@@ -121,7 +139,7 @@ A package takes the domain's own noun (`disks/`, `album/`). Layers inside it:
 - Enums subclass `StrEnum`, not `(str, Enum)`. Their values are stable tokens,
   kebab-case or one lowercase word (`"no-metadata"`, `"mounted"`), never prose:
   scripts match on the value, and the sentence a user reads is rendered at the
-  [edge](general.md#presentation-at-the-edges).
+  [edge](general.md#the-core-and-its-edges).
 - A `typing.Protocol` is named by its role (`VolumeCommandRunner`,
   `ConvertFile`); a callable type alias ends in `Fn` (`PromptFn`, `WhichFn`).
   Write aliases with `type X = ...`.
@@ -176,19 +194,6 @@ classes, and each name is `test_<subject>_<outcome>[_when_<condition>]`
 (`test_failed_open_is_not_kept`).
 
 **Why:** a failing test's name says which behaviour broke.
-
-## Data Classes
-
-### Freeze every data class, but write exceptions as plain classes
-
-Serialized models are frozen pydantic dataclasses, and other data classes are
-frozen too. An exception is a plain class that sets its attributes in
-`__init__`, never a `@dataclass(frozen=True)`.
-
-**Why:** a frozen value is safe to share. But Python assigns `__traceback__`
-(and `add_note` writes `__notes__`) as an exception propagates, for instance
-through a `@contextmanager`, and a frozen dataclass replaces the real error with
-a `FrozenInstanceError`.
 
 ## Errors
 
