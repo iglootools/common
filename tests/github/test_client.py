@@ -35,7 +35,8 @@ def test_slugs(slug: str, expected: Repository | None) -> None:
 
 def _gh(stdout: str, returncode: int = 0) -> client.Run:
     def run(
-        command: Sequence[str], directory: Path
+        command: Sequence[str],
+        _directory: Path,
     ) -> subprocess.CompletedProcess[str]:
         assert list(command) == ["gh", "auth", "token"]
         return subprocess.CompletedProcess(command, returncode, stdout, "")
@@ -45,7 +46,9 @@ def _gh(stdout: str, returncode: int = 0) -> client.Run:
 
 def test_the_environment_token_wins_over_gh(tmp_path: Path) -> None:
     token = client.resolve_token(
-        tmp_path, environ={"GITHUB_TOKEN": "env"}, run=_gh("gh")
+        tmp_path,
+        environ={"GITHUB_TOKEN": "env"},
+        run=_gh("gh"),
     )
     assert token == "env"
 
@@ -64,7 +67,10 @@ def test_requests_carry_the_token_and_report_errors_with_their_status() -> None:
     seen: dict[str, Mapping[str, str]] = {}
 
     def transport(
-        method: str, url: str, headers: Mapping[str, str], body: bytes | None
+        _method: str,
+        _url: str,
+        headers: Mapping[str, str],
+        _body: bytes | None,
     ) -> tuple[int, bytes]:
         seen["headers"] = headers
         return 404, b'{"message": "Not Found"}'
@@ -72,4 +78,5 @@ def test_requests_carry_the_token_and_report_errors_with_their_status() -> None:
     with pytest.raises(GitHubError) as raised:
         GitHub("secret", transport=transport).get("/repos/a/b")
     assert seen["headers"]["Authorization"] == "Bearer secret"
-    assert raised.value.status == 404 and "Not Found" in raised.value.detail
+    assert raised.value.status == 404
+    assert "Not Found" in raised.value.detail

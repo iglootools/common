@@ -6,8 +6,8 @@ import pytest
 
 from iglootools.docs import depgraph
 
-# Trimmed from real pydeps --show-dot output: node ids, labels, and edges that point from a
-# dependency to its dependent.
+# Trimmed from real pydeps --show-dot output: node ids, labels, and edges that point
+# from a dependency to its dependent.
 DOT = """\
 digraph G {
     config [label="config" fillcolor="#ffffff"];
@@ -28,7 +28,8 @@ def test_parse_dot_reverses_edges_to_point_at_the_dependency() -> None:
 
 def test_mermaid_marks_packages_with_a_slash_and_is_sorted() -> None:
     mermaid = depgraph.to_mermaid(
-        depgraph.parse_dot(DOT), is_package=lambda label: label == "sync"
+        depgraph.parse_dot(DOT),
+        is_package=lambda label: label == "sync",
     )
     assert mermaid == (
         "graph TD\n"
@@ -43,7 +44,10 @@ def test_mermaid_marks_packages_with_a_slash_and_is_sorted() -> None:
 
 
 def test_splice_replaces_only_the_marked_section() -> None:
-    document = f"# Architecture\n\n{depgraph.BEGIN_MARKER}\nold\n{depgraph.END_MARKER}\n\nAfter.\n"
+    document = (
+        f"# Architecture\n\n{depgraph.BEGIN_MARKER}\nold\n{depgraph.END_MARKER}"
+        "\n\nAfter.\n"
+    )
     assert depgraph.splice(document, "NEW") == "# Architecture\n\nNEW\n\nAfter.\n"
 
 
@@ -95,7 +99,9 @@ def test_run_pydeps_needs_graphviz() -> None:
 def test_run_pydeps_reports_its_stderr_on_failure() -> None:
     with pytest.raises(depgraph.DepgraphError) as raised:
         depgraph.run_pydeps(
-            ["pydeps"], run=completed(2, stderr="boom"), which=lambda _: "/bin/dot"
+            ["pydeps"],
+            run=completed(2, stderr="boom"),
+            which=lambda _: "/bin/dot",
         )
     assert (raised.value.kind, raised.value.detail) == (
         depgraph.DepgraphErrorKind.PYDEPS_FAILED,

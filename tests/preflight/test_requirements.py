@@ -14,7 +14,8 @@ def _which(*present: str) -> requirements.Which:
 
 def _gh(stdout: str, returncode: int = 0) -> requirements.Run:
     def run(
-        command: Sequence[str], directory: Path
+        command: Sequence[str],
+        _directory: Path,
     ) -> subprocess.CompletedProcess[str]:
         assert list(command) == ["gh", "auth", "token"]
         return subprocess.CompletedProcess(command, returncode, stdout, "")
@@ -24,11 +25,14 @@ def _gh(stdout: str, returncode: int = 0) -> requirements.Run:
 
 def test_programs_are_found_on_path(tmp_path: Path) -> None:
     results = requirements.check(
-        (GIT, CLAUDE), tmp_path, environ={}, which=_which("git")
+        (GIT, CLAUDE),
+        tmp_path,
+        environ={},
+        which=_which("git"),
     )
     assert results == [
-        Result(GIT, True, "/usr/bin/git"),
-        Result(CLAUDE, False, "not on PATH"),
+        Result(GIT, ok=True, detail="/usr/bin/git"),
+        Result(CLAUDE, ok=False, detail="not on PATH"),
     ]
 
 
@@ -39,26 +43,35 @@ def test_programs_are_found_on_path(tmp_path: Path) -> None:
             {"GH_TOKEN": "t"},
             _which(),
             _gh(""),
-            Result(GITHUB_TOKEN, True, "from GH_TOKEN"),
+            Result(GITHUB_TOKEN, ok=True, detail="from GH_TOKEN"),
         ),
         (
             {"GITHUB_TOKEN": "t"},
             _which(),
             _gh(""),
-            Result(GITHUB_TOKEN, True, "from GITHUB_TOKEN"),
+            Result(GITHUB_TOKEN, ok=True, detail="from GITHUB_TOKEN"),
         ),
-        ({}, _which("gh"), _gh("gho_x\n"), Result(GITHUB_TOKEN, True, "from gh")),
+        (
+            {},
+            _which("gh"),
+            _gh("gho_x\n"),
+            Result(GITHUB_TOKEN, ok=True, detail="from gh"),
+        ),
         (
             {},
             _which("gh"),
             _gh("", returncode=1),
-            Result(GITHUB_TOKEN, False, "gh is not logged in"),
+            Result(GITHUB_TOKEN, ok=False, detail="gh is not logged in"),
         ),
         (
             {},
             _which(),
             _gh(""),
-            Result(GITHUB_TOKEN, False, "no GH_TOKEN or GITHUB_TOKEN, and no gh"),
+            Result(
+                GITHUB_TOKEN,
+                ok=False,
+                detail="no GH_TOKEN or GITHUB_TOKEN, and no gh",
+            ),
         ),
     ],
 )
@@ -70,7 +83,11 @@ def test_the_github_token_comes_from_the_environment_or_gh(
     expected: Result,
 ) -> None:
     assert requirements.check(
-        (GITHUB_TOKEN,), tmp_path, environ=environ, which=which, run=run
+        (GITHUB_TOKEN,),
+        tmp_path,
+        environ=environ,
+        which=which,
+        run=run,
     ) == [expected]
 
 

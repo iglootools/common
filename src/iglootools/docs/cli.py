@@ -1,3 +1,5 @@
+"""The `iglootools docs` commands: the CLI reference, the module graph, the TOCs."""
+
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
@@ -8,11 +10,20 @@ from iglootools.cliwiring import display_path, invocation, project, say, warn
 from iglootools.docs import clidocs
 from iglootools.docs import depgraph as depgraphs
 from iglootools.docs import toc as tocs
+from iglootools.project import Project
 
 app = typer.Typer(
     help="Generate documentation from the project and check that it is up to date.",
     no_args_is_help=True,
 )
+
+
+class AddWithCheckError(typer.BadParameter):
+    """--add was given with --check, which changes nothing."""
+
+    def __init__(self) -> None:
+        """Build the error; it has no fields."""
+        super().__init__("--add changes files, so it cannot be used with --check.")
 
 
 def _describe_toc_error(error: tocs.TocError, root: Path) -> str:
@@ -25,12 +36,13 @@ def _describe_toc_error(error: tocs.TocError, root: Path) -> str:
 @app.command()
 def toc(
     ctx: typer.Context,
+    *,
     check: Annotated[
         bool,
         typer.Option(
             "--check",
-            help="List missing, duplicated and out-of-date tables of contents and exit 1; "
-            "change nothing.",
+            help="List missing, duplicated and out-of-date tables of contents and "
+            "exit 1; change nothing.",
         ),
     ] = False,
     add: Annotated[
@@ -60,20 +72,19 @@ def toc(
         ),
     ] = tocs.MIN_LINES,
 ) -> None:
-    """Give every Markdown document a table of contents, and keep each one up to date.
+    """
+    Give every Markdown document a table of contents, and keep each one up to date.
 
-    Every Markdown file git tracks under the project root that has a ## or ### heading and
-    runs to --min-lines lines needs one block between <!-- toc --> and <!-- tocstop -->,
-    filled from those headings. A shorter file's block, if it has one, is kept up to date.
-    Exempt: AGENTS.md, CLAUDE.md and SKILL.md, which agents read whole; whole generated
-    files, which start with <!-- AUTO-GENERATED; and files matching --exclude. Without
-    --check, a missing block is added.
+    Every Markdown file git tracks under the project root that has a ## or ### heading
+    and runs to --min-lines lines needs one block between <!-- toc --> and <!-- tocstop
+    -->, filled from those headings. A shorter file's block, if it has one, is kept up
+    to date. Exempt: AGENTS.md, CLAUDE.md and SKILL.md, which agents read whole; whole
+    generated files, which start with <!-- AUTO-GENERATED; and files matching --exclude.
+    Without --check, a missing block is added.
     """
     root = invocation(ctx).root
     if check and add:
-        raise typer.BadParameter(
-            "--add changes files, so it cannot be used with --check."
-        )
+        raise AddWithCheckError
     try:
         for path in add or []:
             tocs.add_block(path)
@@ -85,7 +96,7 @@ def toc(
     for path in found.duplicated:
         warn(
             f"More than one table of contents: {display_path(path, root)}; "
-            "remove all but the first."
+            "remove all but the first.",
         )
     if check:
         out_of_date = tocs.stale(found.with_toc)
@@ -95,8 +106,8 @@ def toc(
             warn(f"Out of date: {display_path(path, root)}")
         if found.missing or out_of_date:
             warn(
-                "Run `iglootools docs toc` to add and regenerate them, or exempt a file "
-                "with --exclude."
+                "Run `iglootools docs toc` to add and regenerate them, or exempt a "
+                "file with --exclude.",
             )
         if found.missing or out_of_date or found.duplicated:
             raise typer.Exit(1)
@@ -116,6 +127,8 @@ def toc(
 
 
 class GraphFormat(StrEnum):
+    """How `docs depgraph` prints the module graph."""
+
     MERMAID = "mermaid"
     ASCII = "ascii"
 
@@ -138,13 +151,15 @@ def _describe_depgraph_error(error: depgraphs.DepgraphError, document: str) -> s
         case depgraphs.DepgraphErrorKind.MARKERS_MISSING:
             return (
                 f"{document} has no Module Overview markers. Add these two lines where "
-                f"the section goes:\n  {depgraphs.BEGIN_MARKER}\n  {depgraphs.END_MARKER}"
+                f"the section goes:\n  {depgraphs.BEGIN_MARKER}"
+                f"\n  {depgraphs.END_MARKER}"
             )
 
 
 @app.command()
 def depgraph(
     ctx: typer.Context,
+    *,
     check: Annotated[
         bool,
         typer.Option(
@@ -157,7 +172,8 @@ def depgraph(
         typer.Option("--format", "-f", help="Print the graph in this format instead."),
     ] = None,
 ) -> None:
-    """Regenerate the Module Overview graph in the architecture document from pydeps.
+    """
+    Regenerate the Module Overview graph in the architecture document from pydeps.
 
     Needs graphviz installed, and runs in the project's environment so that pydeps can
     import the package.
@@ -166,16 +182,7 @@ def depgraph(
     document = proj.docs.architecture
     shown = display_path(document, proj.root)
     try:
-        package_dir = depgraphs.package_directory(proj.package)
-        excludes = [
-            *proj.docs.depgraph_exclude,
-            *depgraphs.third_party_imports(proj.requirements),
-        ]
-        dot = depgraphs.run_pydeps(depgraphs.pydeps_command(package_dir, excludes))
-        mermaid = depgraphs.to_mermaid(
-            depgraphs.parse_dot(dot),
-            is_package=lambda label: (package_dir / label / "__init__.py").exists(),
-        )
+        mermaid = _module_graph(proj)
         match fmt:
             case GraphFormat.MERMAID:
                 say(mermaid)
@@ -204,9 +211,24 @@ def depgraph(
         say(f"The Module Overview in {shown} is already up to date.")
 
 
+def _module_graph(proj: Project) -> str:
+    """Draw the package's module graph, as Mermaid, from pydeps."""
+    package_dir = depgraphs.package_directory(proj.package)
+    excludes = [
+        *proj.docs.depgraph_exclude,
+        *depgraphs.third_party_imports(proj.requirements),
+    ]
+    dot = depgraphs.run_pydeps(depgraphs.pydeps_command(package_dir, excludes))
+    return depgraphs.to_mermaid(
+        depgraphs.parse_dot(dot),
+        is_package=lambda label: (package_dir / label / "__init__.py").exists(),
+    )
+
+
 @app.command("cli")
 def cli_reference(
     ctx: typer.Context,
+    *,
     check: Annotated[
         bool,
         typer.Option(
@@ -215,17 +237,18 @@ def cli_reference(
         ),
     ] = False,
 ) -> None:
-    """Regenerate the CLI reference from the project's Typer app.
+    """
+    Regenerate the CLI reference from the project's Typer app.
 
-    Runs `typer <cli-module> utils docs` in the project's environment, so the module must
-    be importable there.
+    Runs `typer <cli-module> utils docs` in the project's environment, so the module
+    must be importable there.
     """
     proj = project(ctx)
     document = proj.docs.cli_reference
     shown = display_path(document, proj.root)
     try:
         expected = clidocs.generate(
-            clidocs.typer_docs_command(proj.docs.cli_module, proj.docs.cli_name)
+            clidocs.typer_docs_command(proj.docs.cli_module, proj.docs.cli_name),
         )
     except clidocs.ClidocsError as error:
         warn(f"typer utils docs failed for {proj.docs.cli_module}:\n{error.detail}")

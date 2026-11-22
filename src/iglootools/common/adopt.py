@@ -14,17 +14,20 @@ from iglootools.github.events import Event, Report, Stage
 
 @dataclass(frozen=True)
 class Plan:
+    """The pin rewrites that would move a project to a release of common."""
+
     version: str
     sha: str
     files: dict[Path, pins.Rewrite]
 
     @property
     def changed(self) -> bool:
+        """Tell whether any file's pins would move."""
         return bool(self.files)
 
 
 def plan(root: Path, version: str, sha: str, *, run: Run = capture) -> Plan:
-    """Every file under *root*, as it stands, whose pins on common would move to *version*."""
+    """Plan the files under *root*, as they stand, whose pins move to *version*."""
     files = {
         path: rewritten
         for path in pins.candidate_files(root, run=run)
@@ -35,7 +38,7 @@ def plan(root: Path, version: str, sha: str, *, run: Run = capture) -> Plan:
 
 
 def newer_pin(root: Path, version: str, *, run: Run = capture) -> str | None:
-    """The newest release *root* already pins, when it is newer than *version*."""
+    """Return the newest release *root* already pins, when newer than *version*."""
     found, _ = pins.scan(root, run=run)
     pinned = [r.version for r in found if r.version]
     newest = max(pinned, key=_version_key, default=None)
@@ -49,6 +52,7 @@ def _version_key(version: str) -> tuple[int, ...]:
 
 
 def branch_name(version: str) -> str:
+    """Return the name of the branch that adopts *version*."""
     return f"chore/iglootools-{version}"
 
 
@@ -70,6 +74,7 @@ def where_to_start(*, local_branch: bool, remote_branch: bool) -> Start:
 
 
 def commit_message(version: str) -> str:
+    """Return the message of the commit that moves the pins to *version*."""
     return (
         f"chore: move to iglootools {version}\n\n"
         "Every pin on iglootools/common moves to the release: the reusable workflows,\n"
@@ -78,6 +83,8 @@ def commit_message(version: str) -> str:
 
 
 class Result(StrEnum):
+    """How an adopt ended."""
+
     MERGED = "merged"
     UP_TO_DATE = "up to date"
     OPENED = "opened"
@@ -86,12 +93,15 @@ class Result(StrEnum):
 
 @dataclass(frozen=True)
 class Outcome:
+    """How an adopt ended, why, and the pull request it worked on, if any."""
+
     result: Result
     reason: str
     pull_number: int | None = None
 
     @property
     def succeeded(self) -> bool:
+        """Tell whether the adopt ended in anything but a refusal."""
         return self.result != Result.REFUSED
 
 
@@ -104,7 +114,7 @@ def preview(
     merge_it: bool,
     run: Run = capture,
 ) -> list[str]:
-    """What adopt would do, from the same state a run starts from, one step per line."""
+    """List what adopt would do, from the state a run starts from, one step per line."""
     branch = branch_name(found.version)
     state, number = prune.latest_pull(github, repository, branch)
     finish = (
@@ -137,13 +147,18 @@ def preview(
     opening = {
         Start.NEW: f"Would create {branch} from the default branch, up to date.",
         Start.LOCAL: f"Would continue on the local {branch} an earlier run left.",
-        Start.REMOTE: f"Would continue from {branch} on GitHub, which an earlier run pushed.",
+        Start.REMOTE: (
+            f"Would continue from {branch} on GitHub, which an earlier run pushed."
+        ),
     }[start]
     return [
         opening,
         *moves,
         *(["Would regenerate uv.lock."] if (root / "uv.lock").is_file() else []),
-        f"Would commit what still differs, and push: chore: move to iglootools {found.version}.",
+        (
+            "Would commit what still differs, and push: "
+            f"chore: move to iglootools {found.version}."
+        ),
         "Would open a pull request into the default branch.",
         finish,
     ]
@@ -163,13 +178,15 @@ def adopt(
     run: Run = capture,
     push_guard: AbstractContextManager[object] | None = None,
 ) -> Outcome:
-    """Move *root* to *version* through a pull request, merged once green.
+    """
+    Move *root* to *version* through a pull request, merged once green.
 
-    Safe to run again, after an interruption or alongside other projects: it picks up from
-    the pull request or branch an earlier run left, commits only what still differs, and
-    does nothing once the release is merged or already in place. A pull request for the
-    release that was closed without merging is refused, since someone closed it on purpose.
-    *push_guard* serialises pushes when several projects run at once.
+    Safe to run again, after an interruption or alongside other projects: it picks up
+    from the pull request or branch an earlier run left, commits only what still
+    differs, and does nothing once the release is merged or already in place. A pull
+    request for the release that was closed without merging is refused, since someone
+    closed it on purpose. *push_guard* serialises pushes when several projects run at
+    once. Raises GitStepError when a git or uv step fails, GitHubError when GitHub does.
     """
     branch = branch_name(version)
     local.require_clean(root, run=run)
@@ -192,12 +209,12 @@ def adopt(
                 repository,
                 number,
                 branch,
-                base,
-                merge_it,
-                report,
-                sleep,
-                now,
-                run,
+                base=base,
+                merge_it=merge_it,
+                report=report,
+                sleep=sleep,
+                now=now,
+                run=run,
             )
         case prune.PullState.OPEN | prune.PullState.NONE:
             pass  # nothing to resume: open one below
@@ -214,34 +231,9 @@ def adopt(
     )
     if start == Start.NEW and not plan(root, version, sha, run=run).changed:
         return Outcome(Result.UP_TO_DATE, f"already on iglootools {version}")
-    match start:
-        case Start.NEW:
-            local.git(root, "switch", "-q", "-c", branch, run=run)
-        case Start.LOCAL:
-            local.git(root, "switch", "-q", branch, run=run)
-        case Start.REMOTE:
-            local.git(root, "fetch", "-q", "origin", branch, run=run)
-            local.git(root, "switch", "-q", "-C", branch, f"origin/{branch}", run=run)
+    _switch(root, branch, start, run=run)
     report(Event(Stage.BRANCHED, f"On {branch}"))
-    found = plan(root, version, sha, run=run)
-    for path, rewritten in found.files.items():
-        path.write_text(rewritten.text, encoding="utf-8")
-        report(
-            Event(
-                Stage.MOVING,
-                f"Moved {rewritten.changed} pin(s) in {path.relative_to(root)}",
-            )
-        )
-    paths = [str(path.relative_to(root)) for path in found.files]
-    if (root / "uv.lock").is_file():
-        report(Event(Stage.LOCKING, "Updating uv.lock"))
-        result = run(
-            ["mise", "exec", "--", "uv", "lock", "--upgrade-package", "iglootools"],
-            root,
-        )
-        if result.returncode != 0:
-            raise local.GitStepError(f"uv lock: {result.stderr.strip()}")
-        paths.append("uv.lock")
+    paths = _move_pins(root, plan(root, version, sha, run=run), report, run=run)
     with push_guard or nullcontext():
         local.commit_and_push(root, paths, commit_message(version), branch, run=run)
     report(Event(Stage.PUSHED, f"Pushed {branch}"))
@@ -260,13 +252,58 @@ def adopt(
         repository,
         number,
         branch,
-        base,
-        merge_it,
-        report,
-        sleep,
-        now,
-        run,
+        base=base,
+        merge_it=merge_it,
+        report=report,
+        sleep=sleep,
+        now=now,
+        run=run,
     )
+
+
+def _switch(root: Path, branch: str, start: Start, *, run: Run) -> None:
+    match start:
+        case Start.NEW:
+            local.git(root, "switch", "-q", "-c", branch, run=run)
+        case Start.LOCAL:
+            local.git(root, "switch", "-q", branch, run=run)
+        case Start.REMOTE:
+            local.git(root, "fetch", "-q", "origin", branch, run=run)
+            local.git(root, "switch", "-q", "-C", branch, f"origin/{branch}", run=run)
+
+
+def _move_pins(root: Path, found: Plan, report: Report, *, run: Run) -> list[str]:
+    """Write the moved pins, refresh uv.lock, and return the paths to commit."""
+    for path, rewritten in found.files.items():
+        path.write_text(rewritten.text, encoding="utf-8")
+        report(
+            Event(
+                Stage.MOVING,
+                f"Moved {rewritten.changed} pin(s) in {path.relative_to(root)}",
+            ),
+        )
+    moved = [str(path.relative_to(root)) for path in found.files]
+    if (root / "uv.lock").is_file():
+        report(Event(Stage.LOCKING, "Updating uv.lock"))
+        command = [
+            "mise",
+            "exec",
+            "--",
+            "uv",
+            "lock",
+            "--upgrade-package",
+            "iglootools",
+        ]
+        result = run(command, root)
+        if result.returncode != 0:
+            raise local.GitStepError(
+                local.GitStepFailureKind.COMMAND_FAILED,
+                command,
+                result.stderr.strip(),
+            )
+        return [*moved, "uv.lock"]
+    else:
+        return moved
 
 
 def _finish(
@@ -275,6 +312,7 @@ def _finish(
     repository: Repository,
     number: int,
     branch: str,
+    *,
     base: str,
     merge_it: bool,
     report: Report,
@@ -285,7 +323,12 @@ def _finish(
     if not merge_it:
         return Outcome(Result.OPENED, "opened, not merged (--no-merge)", number)
     outcome = merge.merge_when_green(
-        github, repository, number, sleep=sleep, now=now, report=report
+        github,
+        repository,
+        number,
+        sleep=sleep,
+        now=now,
+        report=report,
     )
     if not outcome.merged:
         return Outcome(Result.REFUSED, outcome.reason, number)

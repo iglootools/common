@@ -9,7 +9,6 @@ from iglootools.common.release import FULL, Plan
 from iglootools.common.release import Stage as ReleaseStage
 from iglootools.github.client import GitHub, Repository
 from iglootools.github.events import Event, Stage
-from iglootools.github.local import GitStepError
 
 
 @pytest.mark.parametrize(
@@ -72,7 +71,12 @@ from iglootools.github.local import GitStepError
     ],
 )
 def test_the_plan_follows_what_github_already_has(
-    current: str, version: str, plugin_tag: bool, plain_tag: bool, expected: Plan
+    current: str,
+    version: str,
+    *,
+    plugin_tag: bool,
+    plain_tag: bool,
+    expected: Plan,
 ) -> None:
     assert (
         release.plan(current, version, plugin_tag=plugin_tag, plain_tag=plain_tag)
@@ -88,7 +92,7 @@ def test_the_bump_changes_only_the_version() -> None:
 
 
 def test_releases_are_cut_only_in_common(tmp_path: Path) -> None:
-    with pytest.raises(GitStepError, match="releases are cut in iglootools/common"):
+    with pytest.raises(release.WrongRepositoryError) as raised:
         release.release(
             tmp_path,
             GitHub("t"),
@@ -96,16 +100,20 @@ def test_releases_are_cut_only_in_common(tmp_path: Path) -> None:
             "1.33.0",
             Plan(FULL, ""),
             report=print,
-            sleep=lambda seconds: None,
+            sleep=lambda _seconds: None,
             now=lambda: 0.0,
         )
+    assert raised.value.repository == Repository("iglootools", "nbkp")
 
 
 def test_the_dry_run_of_a_resumed_release_lists_only_what_is_left() -> None:
     found = Plan((ReleaseStage.PLAIN_TAG,), "resuming: iglootools--v1.33.0 exists")
     assert release.steps(found, "1.33.0") == [
         "Resuming: iglootools--v1.33.0 exists.",
-        "Would tag iglootools--v1.33.0's commit v1.33.0, push it, and check both tags name it.",
+        (
+            "Would tag iglootools--v1.33.0's commit v1.33.0, push it, "
+            "and check both tags name it."
+        ),
     ]
 
 
@@ -115,7 +123,9 @@ class FakeTagging:
         self.commands: list[list[str]] = []
 
     def __call__(
-        self, command: Sequence[str], directory: Path
+        self,
+        command: Sequence[str],
+        _directory: Path,
     ) -> subprocess.CompletedProcess[str]:
         self.commands.append(list(command))
         if list(command[:2]) == ["git", "rev-parse"]:
@@ -154,7 +164,14 @@ def test_the_plain_tag_goes_on_the_plugin_tag_s_commit(tmp_path: Path) -> None:
 
 
 def test_tags_naming_different_commits_are_an_error(tmp_path: Path) -> None:
-    with pytest.raises(GitStepError, match="name different commits"):
+    with pytest.raises(release.TagMismatchError) as raised:
         release.plain_tag(
-            tmp_path, "1.33.0", report=print, run=FakeTagging(plain_commit="c2")
+            tmp_path,
+            "1.33.0",
+            report=print,
+            run=FakeTagging(plain_commit="c2"),
         )
+    assert (raised.value.plain_tag, raised.value.plugin_tag) == (
+        "v1.33.0",
+        "iglootools--v1.33.0",
+    )

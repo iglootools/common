@@ -1,9 +1,10 @@
-"""The project's mise tasks, by family, and running one.
+"""
+The project's mise tasks, by family, and running one.
 
-The tasks are the project's own: `iglootools build` only names them uniformly and runs them
-through mise, so a contributor or an agent reaches `preflight`, `lint-types` or `test` the
-same way in every project. Their families follow guidelines/project-setup/mise.md › Name
-tasks by family.
+The tasks are the project's own: `iglootools build` only names them uniformly and runs
+them through mise, so a contributor or an agent reaches `preflight`, `lint-types` or
+`test` the same way in every project. Their families follow
+guidelines/project-setup/mise.md › Name tasks by family.
 """
 
 import json
@@ -24,11 +25,14 @@ OTHER = "Other"
 
 @dataclass(frozen=True)
 class Task:
+    """A mise task, as `mise tasks ls` lists it."""
+
     name: str
     description: str
 
     @property
     def family(self) -> str:
+        """Return the title of the family the task's name prefix puts it in."""
         return next(
             (
                 title
@@ -40,7 +44,7 @@ class Task:
 
 
 def parse(listing: str) -> list[Task]:
-    """The visible tasks in `mise tasks ls --json` output."""
+    """Parse the visible tasks from `mise tasks ls --json` output."""
     return [
         Task(item["name"], item.get("description") or "")
         for item in json.loads(listing)
@@ -67,10 +71,16 @@ type Delegate = Callable[[Sequence[str], Path], int]
 
 
 def capture(
-    command: Sequence[str], directory: Path
+    command: Sequence[str],
+    directory: Path,
 ) -> subprocess.CompletedProcess[str]:
+    """Run *command* in *directory*, capturing its text output, whatever its status."""
     return subprocess.run(
-        command, cwd=directory, capture_output=True, text=True, check=False
+        command,
+        cwd=directory,
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 
@@ -84,6 +94,11 @@ class TaskListError(RuntimeError):
 
 
 def list_tasks(root: Path, *, run: Run = capture) -> list[Task]:
+    """
+    Return the project's visible mise tasks.
+
+    Raises TaskListError, with mise's message, when mise cannot list them.
+    """
     result = run(["mise", "tasks", "ls", "--json"], root)
     if result.returncode != 0:
         raise TaskListError(result.stderr.strip() or "mise tasks ls failed")
@@ -91,11 +106,16 @@ def list_tasks(root: Path, *, run: Run = capture) -> list[Task]:
 
 
 def run_task(
-    root: Path, task: str, args: Sequence[str], *, delegate: Delegate = passthrough
+    root: Path,
+    task: str,
+    args: Sequence[str],
+    *,
+    delegate: Delegate = passthrough,
 ) -> int:
-    """Run the project's *task* through mise, passing *args* on, and return its status."""
+    """Run the project's *task* through mise, passing *args* on; return its status."""
     return delegate(mise_command(task, args), root)
 
 
 def mise_command(task: str, args: Sequence[str]) -> list[str]:
+    """Return the `mise run` command that runs *task* with *args*."""
     return ["mise", "run", task, *args]

@@ -26,7 +26,9 @@ def test_add_then_regenerate_fills_the_block(git_repo: Path) -> None:
 
 def test_check_lists_a_stale_file_and_fails(git_repo: Path) -> None:
     track(
-        git_repo, "guide.md", GUIDE.replace("Intro.", "<!-- toc -->\n<!-- tocstop -->")
+        git_repo,
+        "guide.md",
+        GUIDE.replace("Intro.", "<!-- toc -->\n<!-- tocstop -->"),
     )
     code, output = iglootools(git_repo, "docs", "toc", "--check")
     assert code == 1
@@ -36,7 +38,9 @@ def test_check_lists_a_stale_file_and_fails(git_repo: Path) -> None:
 
 def test_check_passes_once_regenerated(git_repo: Path) -> None:
     track(
-        git_repo, "guide.md", GUIDE.replace("Intro.", "<!-- toc -->\n<!-- tocstop -->")
+        git_repo,
+        "guide.md",
+        GUIDE.replace("Intro.", "<!-- toc -->\n<!-- tocstop -->"),
     )
     iglootools(git_repo, "docs", "toc")
     assert iglootools(git_repo, "docs", "toc", "--check") == (
@@ -105,7 +109,12 @@ def test_agent_loaded_generated_and_excluded_files_are_exempt(git_repo: Path) ->
     )
     track(git_repo, "content/a/page.md", LONG_GUIDE)
     assert iglootools(
-        git_repo, "docs", "toc", "--check", "--exclude", "content/**"
+        git_repo,
+        "docs",
+        "toc",
+        "--check",
+        "--exclude",
+        "content/**",
     ) == (0, "0 table(s) of contents up to date.\n")
 
 

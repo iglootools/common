@@ -1,9 +1,11 @@
-"""Delete the branches whose pull request has merged, on GitHub and locally.
+"""
+Delete the branches whose pull request has merged, on GitHub and locally.
 
-A branch is deleted only when its latest pull request is merged. Everything else is kept,
-each for a reason the plan states: the default branch, a protected branch, a branch with an
-open pull request, one whose latest pull request was closed without merging (it may hold
-work nobody merged), and one with no pull request at all, such as `gh-pages`.
+A branch is deleted only when its latest pull request is merged. Everything else is
+kept, each for a reason the plan states: the default branch, a protected branch, a
+branch with an open pull request, one whose latest pull request was closed without
+merging (it may hold work nobody merged), and one with no pull request at all, such as
+`gh-pages`.
 """
 
 from collections.abc import Sequence
@@ -14,6 +16,8 @@ from iglootools.github.client import GitHub, GitHubError, Repository
 
 
 class PullState(StrEnum):
+    """The state of a branch's latest pull request, NONE when it has none."""
+
     NONE = "none"
     OPEN = "open"
     MERGED = "merged"
@@ -22,6 +26,8 @@ class PullState(StrEnum):
 
 @dataclass(frozen=True)
 class Branch:
+    """A branch on GitHub or in the checkout, and its latest pull request."""
+
     name: str
     on_remote: bool
     local: bool
@@ -32,29 +38,36 @@ class Branch:
 
 @dataclass(frozen=True)
 class Decision:
+    """Whether prune deletes a branch, and why."""
+
     branch: Branch
     delete: bool
     reason: str
 
 
 def decide(branch: Branch, default_branch: str) -> Decision:
-    """Whether to delete *branch*, and why."""
+    """Decide whether to delete *branch*, and why."""
     match branch:
         case Branch(name=name) if name == default_branch:
-            return Decision(branch, False, "default branch")
+            return Decision(branch, delete=False, reason="default branch")
         case Branch(protected=True):
-            return Decision(branch, False, "protected")
+            return Decision(branch, delete=False, reason="protected")
         case Branch(pull=PullState.MERGED, pull_number=number):
-            return Decision(branch, True, f"#{number} merged")
+            return Decision(branch, delete=True, reason=f"#{number} merged")
         case Branch(pull=PullState.OPEN, pull_number=number):
-            return Decision(branch, False, f"#{number} open")
+            return Decision(branch, delete=False, reason=f"#{number} open")
         case Branch(pull=PullState.CLOSED, pull_number=number):
-            return Decision(branch, False, f"#{number} closed without merging")
+            return Decision(
+                branch,
+                delete=False,
+                reason=f"#{number} closed without merging",
+            )
         case _:
-            return Decision(branch, False, "no pull request")
+            return Decision(branch, delete=False, reason="no pull request")
 
 
 def plan(branches: Sequence[Branch], default_branch: str) -> list[Decision]:
+    """Decide for each of *branches*, sorted by name."""
     return [decide(branch, default_branch) for branch in sorted(branches, key=_name)]
 
 
@@ -63,12 +76,14 @@ def _name(branch: Branch) -> str:
 
 
 def latest_pull(
-    github: GitHub, repository: Repository, branch: str
+    github: GitHub,
+    repository: Repository,
+    branch: str,
 ) -> tuple[PullState, int | None]:
-    """The state of the most recent pull request whose head is *branch*."""
+    """Return the state of the most recent pull request whose head is *branch*."""
     pulls = github.get(
         f"/repos/{repository.slug}/pulls?state=all&head={repository.owner}:{branch}"
-        "&sort=created&direction=desc&per_page=1"
+        "&sort=created&direction=desc&per_page=1",
     )
     if not pulls:
         return PullState.NONE, None
@@ -80,9 +95,15 @@ def latest_pull(
 
 
 def gather(
-    github: GitHub, repository: Repository, local_branches: Sequence[str]
+    github: GitHub,
+    repository: Repository,
+    local_branches: Sequence[str],
 ) -> tuple[str, list[Branch]]:
-    """The default branch, and every branch on GitHub or in the checkout, with its state."""
+    """
+    Return the default branch, and every other branch on GitHub or in the checkout.
+
+    Each branch comes with its latest pull request's state.
+    """
     default_branch = github.get(f"/repos/{repository.slug}")["default_branch"]
     remote = {
         item["name"]: bool(item.get("protected"))
@@ -105,6 +126,7 @@ def gather(
 
 
 def delete_remote(github: GitHub, repository: Repository, branch: str) -> None:
+    """Delete *branch* on GitHub; one already gone is not an error."""
     try:
         github.request("DELETE", f"/repos/{repository.slug}/git/refs/heads/{branch}")
     except GitHubError as error:

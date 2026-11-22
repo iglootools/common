@@ -1,15 +1,16 @@
-"""Whether built wheels carry the dynamic-versioning fallback version.
+"""
+Whether built wheels carry the dynamic-versioning fallback version.
 
 `[tool.uv-dynamic-versioning] fallback-version` turns "no git history" into a successful
-build that produces 0.0.0 instead of an error. The fallback is required, because Renovate
-runs `uv lock --upgrade-package`, which builds with no git context, so nothing else in the
-publish path catches a mis-versioned artifact, and PyPI never lets a version number be
-reused.
+build that produces 0.0.0 instead of an error. The fallback is required, because
+Renovate runs `uv lock --upgrade-package`, which builds with no git context, so nothing
+else in the publish path catches a mis-versioned artifact, and PyPI never lets a version
+number be reused.
 
 A build falls back when the source tree cannot see the git history or tags: a shallow CI
 checkout without `fetch-tags`, a repository with no tags yet, an exported archive. Plain
-`uv build` is not one of them: it builds the wheel from the sdist, but hatchling writes the
-resolved version into the sdist's PKG-INFO and reads it back.
+`uv build` is not one of them: it builds the wheel from the sdist, but hatchling writes
+the resolved version into the sdist's PKG-INFO and reads it back.
 """
 
 import zipfile
@@ -19,12 +20,17 @@ from pathlib import Path
 
 
 class VerifyVersionErrorKind(StrEnum):
+    """Why a wheel's version could not be read."""
+
     NO_METADATA = "no-metadata"
     NO_VERSION_FIELD = "no-version-field"
 
 
 class VerifyVersionError(ValueError):
+    """A wheel whose version could not be read: the kind, and the wheel."""
+
     def __init__(self, kind: VerifyVersionErrorKind, wheel: Path) -> None:
+        """Build the error from its kind and the wheel's path."""
         super().__init__(f"{kind}: {wheel}")
         self.kind = kind
         self.wheel = wheel
@@ -32,19 +38,24 @@ class VerifyVersionError(ValueError):
 
 @dataclass(frozen=True)
 class WheelVersion:
+    """A built wheel and the version its metadata records."""
+
     wheel: Path
     version: str
 
 
 def metadata_version(wheel: Path) -> str:
-    """The `Version:` field of the wheel's .dist-info/METADATA.
+    """
+    Read the `Version:` field of the wheel's .dist-info/METADATA.
 
-    Read from the metadata rather than the filename on purpose: a legitimate version such as
-    1.0.0.dev0 contains "0.0.0" as a substring, so a filename match reports false positives.
+    Read from the metadata rather than the filename on purpose: a legitimate version
+    such as 1.0.0.dev0 contains "0.0.0" as a substring, so a filename match reports
+    false positives.
     """
     with zipfile.ZipFile(wheel) as archive:
         metadata = next(
-            (n for n in archive.namelist() if n.endswith(".dist-info/METADATA")), None
+            (n for n in archive.namelist() if n.endswith(".dist-info/METADATA")),
+            None,
         )
         if metadata is None:
             raise VerifyVersionError(VerifyVersionErrorKind.NO_METADATA, wheel)
@@ -63,6 +74,11 @@ def metadata_version(wheel: Path) -> str:
 
 
 def wheel_versions(dist_dir: Path) -> list[WheelVersion]:
+    """
+    Read the version of each wheel in *dist_dir*, sorted by file name.
+
+    Raises VerifyVersionError when a wheel has no metadata or no Version field.
+    """
     return [
         WheelVersion(wheel, metadata_version(wheel))
         for wheel in sorted(dist_dir.glob("*.whl"))

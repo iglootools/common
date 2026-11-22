@@ -22,4 +22,5 @@ def open_pull(
 
 
 def default_branch(github: GitHub, repository: Repository) -> str:
+    """Return the name of *repository*'s default branch on GitHub."""
     return str(github.get(f"/repos/{repository.slug}")["default_branch"])

@@ -1,4 +1,5 @@
-"""A mermaid graph of the dependencies between a package's top-level modules.
+"""
+A mermaid graph of the dependencies between a package's top-level modules.
 
 pydeps analyses the imports and prints graphviz DOT; this turns that into a mermaid
 `graph TD` and splices it into the architecture document between two markers, or renders
@@ -17,7 +18,7 @@ from importlib.util import find_spec
 from pathlib import Path
 from textwrap import indent
 
-# mermaid-ascii leaves render_ascii's parameter unannotated; retire the ignore once it is.
+# mermaid-ascii leaves render_ascii's parameter unannotated; drop the ignore once fixed.
 from mermaid_ascii import (
     parse_mermaid,
     render_ascii,  # pyright: ignore[reportUnknownVariableType]
@@ -36,6 +37,8 @@ type Run = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]
 
 
 class DepgraphErrorKind(StrEnum):
+    """Why the module graph could not be drawn or written."""
+
     GRAPHVIZ_MISSING = "graphviz-missing"
     PACKAGE_NOT_FOUND = "package-not-found"
     PYDEPS_FAILED = "pydeps-failed"
@@ -43,7 +46,10 @@ class DepgraphErrorKind(StrEnum):
 
 
 class DepgraphError(RuntimeError):
+    """The module graph could not be drawn or written: the kind, and any detail."""
+
     def __init__(self, kind: DepgraphErrorKind, detail: str = "") -> None:
+        """Build the error from its kind and detail, such as pydeps' message."""
         super().__init__(f"{kind}: {detail}".rstrip(": "))
         self.kind = kind
         self.detail = detail
@@ -51,6 +57,8 @@ class DepgraphError(RuntimeError):
 
 @dataclass(frozen=True)
 class Graph:
+    """The dependencies between a package's top-level modules."""
+
     nodes: tuple[str, ...]
     """Module labels, relative to the package."""
     edges: tuple[tuple[str, str], ...]
@@ -61,7 +69,8 @@ def third_party_imports(
     requirements: Sequence[str],
     distributions: Mapping[str, list[str]] | None = None,
 ) -> list[str]:
-    """Import names provided by the distributions *requirements* name.
+    """
+    Return the import names provided by the distributions *requirements* name.
 
     *distributions* maps import names to distribution names, as
     importlib.metadata.packages_distributions() does for the running environment.
@@ -82,7 +91,11 @@ def _canonical(distribution: str) -> str:
 
 
 def package_directory(package: str) -> Path:
-    """Where *package* is imported from in the running environment."""
+    """
+    Return the directory *package* is imported from in the running environment.
+
+    Raises DepgraphError(PACKAGE_NOT_FOUND) when it is not importable.
+    """
     spec = find_spec(package)
     if spec is None or not spec.submodule_search_locations:
         raise DepgraphError(DepgraphErrorKind.PACKAGE_NOT_FOUND, package)
@@ -90,8 +103,11 @@ def package_directory(package: str) -> Path:
 
 
 def pydeps_command(
-    package_dir: Path, excludes: Sequence[str], python: str = sys.executable
+    package_dir: Path,
+    excludes: Sequence[str],
+    python: str = sys.executable,
 ) -> list[str]:
+    """Return the pydeps command that prints the package's module graph as DOT."""
     package = package_dir.name
     return [
         python,
@@ -119,7 +135,12 @@ def run_pydeps(
     run: Run | None = None,
     which: Callable[[str], str | None] = shutil.which,
 ) -> str:
-    """pydeps' DOT output. pydeps renders through graphviz's `dot`, so check for it."""
+    """
+    Run pydeps and return its DOT output.
+
+    pydeps renders through graphviz's `dot`, so its absence raises
+    DepgraphError(GRAPHVIZ_MISSING) up front; a failed run raises PYDEPS_FAILED.
+    """
     if which("dot") is None:
         raise DepgraphError(DepgraphErrorKind.GRAPHVIZ_MISSING)
     result = (run or _run)(command)
@@ -133,7 +154,11 @@ def _run(command: Sequence[str]) -> subprocess.CompletedProcess[str]:
 
 
 def parse_dot(dot: str) -> Graph:
-    """pydeps draws an edge from a dependency to its dependent; Graph reverses it."""
+    """
+    Parse pydeps' DOT output into a Graph.
+
+    pydeps draws an edge from a dependency to its dependent; Graph reverses it.
+    """
     node_pattern = re.compile(r'^\s+(\w+)\s+\[.*?label="([^"]+)".*?\]', re.MULTILINE)
     labels = {m.group(1): m.group(2) for m in node_pattern.finditer(dot)}
     edge_pattern = re.compile(r"^\s+(\w+)\s+->\s+(\w+)", re.MULTILINE)
@@ -143,7 +168,7 @@ def parse_dot(dot: str) -> Graph:
             sorted(
                 (labels.get(dependent, dependent), labels.get(dep, dep))
                 for dep, dependent in (m.groups() for m in edge_pattern.finditer(dot))
-            )
+            ),
         ),
     )
 
@@ -161,15 +186,17 @@ def to_mermaid(graph: Graph, is_package: Callable[[str], bool]) -> str:
             *(indent(line, _MERMAID_INDENT) for line in node_lines),
             "",
             *(indent(line, _MERMAID_INDENT) for line in edge_lines),
-        ]
+        ],
     )
 
 
 def to_ascii(mermaid: str) -> str:
+    """Render a mermaid graph as ASCII art."""
     return render_ascii(parse_mermaid(mermaid))
 
 
 def module_overview(mermaid: str) -> str:
+    """Return the Module Overview section, between its markers, showing *mermaid*."""
     return (
         f"{BEGIN_MARKER}\n"
         "## Module Overview\n"

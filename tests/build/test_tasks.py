@@ -19,7 +19,7 @@ LISTING = json.dumps(
         {"name": "lint", "description": "Every lint"},
         {"name": "secret-helper", "description": "Hidden", "hide": True},
         {"name": "testkit", "description": "Not a test-* task"},
-    ]
+    ],
 )
 
 
@@ -59,7 +59,7 @@ def test_families_come_in_their_usual_order_with_names_sorted() -> None:
 def test_a_task_runs_through_mise_with_its_arguments_and_status(tmp_path: Path) -> None:
     seen: list[list[str]] = []
 
-    def delegate(command: Sequence[str], directory: Path) -> int:
+    def delegate(command: Sequence[str], _directory: Path) -> int:
         seen.append(list(command))
         return 3
 
@@ -72,7 +72,8 @@ def test_a_task_runs_through_mise_with_its_arguments_and_status(tmp_path: Path) 
 
 def test_a_failing_listing_is_an_error(tmp_path: Path) -> None:
     def run(
-        command: Sequence[str], directory: Path
+        command: Sequence[str],
+        _directory: Path,
     ) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(command, 1, "", "mise: no config")
 

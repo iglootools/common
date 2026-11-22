@@ -19,7 +19,11 @@ from tests.conftest import track
     ],
 )
 def test_is_shell_script(
-    tmp_path: Path, name: str, first_line: str, expected: bool
+    tmp_path: Path,
+    name: str,
+    first_line: str,
+    *,
+    expected: bool,
 ) -> None:
     path = tmp_path / name
     path.parent.mkdir(parents=True, exist_ok=True)

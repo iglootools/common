@@ -1,9 +1,10 @@
-"""Publishing the demo that CI recorded to asciinema.org.
+"""
+Publishing the demo that CI recorded to asciinema.org.
 
-GitHub-hosted runners have no route to asciinema.org, so the demo workflow records the cast
-and keeps it as an artifact, and this is the manual half: download the artifact, upload the
-cast unchanged (its title was written into the header at record time), point the README's
-asciicast embed at the new recording, and commit that one file.
+GitHub-hosted runners have no route to asciinema.org, so the demo workflow records the
+cast and keeps it as an artifact, and this is the manual half: download the artifact,
+upload the cast unchanged (its title was written into the header at record time), point
+the README's asciicast embed at the new recording, and commit that one file.
 """
 
 import json
@@ -30,6 +31,8 @@ _RECORDING_URL = re.compile(r"https?://\S+?/a/[A-Za-z0-9]+")
 
 
 class DemoErrorKind(StrEnum):
+    """What went wrong while fetching or publishing the demo."""
+
     TOOL_MISSING = "tool-missing"
     COMMAND_FAILED = "command-failed"
     NO_SUCCESSFUL_RUN = "no-successful-run"
@@ -38,12 +41,15 @@ class DemoErrorKind(StrEnum):
 
 
 class DemoError(RuntimeError):
+    """A step of publishing the demo failed: its kind, the command, and any detail."""
+
     def __init__(
         self,
         kind: DemoErrorKind,
         command: Sequence[str] = (),
         detail: str = "",
     ) -> None:
+        """Build the error from its kind, the command that failed and its output."""
         super().__init__(f"{kind}: {' '.join(command)} {detail}".rstrip())
         self.kind = kind
         self.command = tuple(command)
@@ -52,6 +58,8 @@ class DemoError(RuntimeError):
 
 @dataclass(frozen=True)
 class WorkflowRun:
+    """A run of the demo workflow, as `gh run` reports it."""
+
     run_id: str
     created_at: str
     branch: str
@@ -59,7 +67,7 @@ class WorkflowRun:
 
     @staticmethod
     def from_json(payload: dict[str, object]) -> WorkflowRun:
-        """One entry of `gh run list --json` or `gh run view --json`."""
+        """Build a run from an entry of `gh run list --json` or `gh run view --json`."""
         return WorkflowRun(
             run_id=str(payload.get("databaseId", "")),
             created_at=str(payload.get("createdAt", "")),
@@ -70,12 +78,19 @@ class WorkflowRun:
 
 @dataclass(frozen=True)
 class ReadmeUpdate:
+    """The README with its embed repointed: whether it had one, and if it changed."""
+
     found: bool
     changed: bool
     content: str
 
 
 def capture(command: Sequence[str]) -> subprocess.CompletedProcess[str]:
+    """
+    Run *command*, capturing its text output, whatever its status.
+
+    Raises DemoError(TOOL_MISSING) when the program is not installed.
+    """
     try:
         return subprocess.run(command, capture_output=True, text=True, check=False)
     except FileNotFoundError:
@@ -90,7 +105,9 @@ def _stdout(command: Sequence[str], run: Capture) -> str:
 
 
 def _runs(
-    settings: DemoSettings, branch: str | None, run: Capture
+    settings: DemoSettings,
+    branch: str | None,
+    run: Capture,
 ) -> list[WorkflowRun]:
     output = _stdout(
         [
@@ -104,15 +121,22 @@ def _runs(
 
 
 def view_run(run_id: str, run: Capture = capture) -> WorkflowRun:
+    """
+    Return the demo workflow run *run_id*.
+
+    Raises DemoError(COMMAND_FAILED) when `gh run view` fails.
+    """
     output = _stdout(["gh", "run", "view", run_id, "--json", _RUN_FIELDS], run)
     return WorkflowRun.from_json(json.loads(output))
 
 
 def latest_run(settings: DemoSettings, run: Capture = capture) -> WorkflowRun:
-    """The newest successful run, preferring the default branch.
+    """
+    Return the newest successful run, preferring the default branch.
 
-    Tag-triggered runs report the tag as their branch, so the branch-scoped search can come
-    back empty for a release; any successful run is the fallback.
+    Tag-triggered runs report the tag as their branch, so the branch-scoped search can
+    come back empty for a release; any successful run is the fallback. Raises
+    DemoError(NO_SUCCESSFUL_RUN) when there is none.
     """
     candidates = [
         *_runs(settings, PREFERRED_BRANCH, run),
@@ -129,6 +153,11 @@ def download_cast(
     destination: Path,
     run: Capture = capture,
 ) -> Path:
+    """
+    Download *workflow_run*'s demo artifact into *destination*; return the cast's path.
+
+    Raises DemoError(NO_CAST_IN_ARTIFACT) when the artifact holds no cast.
+    """
     _stdout(
         [
             "gh", "run", "download", workflow_run.run_id,
@@ -143,7 +172,7 @@ def download_cast(
 
 
 def cast_title(cast: Path) -> str | None:
-    """The title in the cast's JSON header, or None when there is none to read."""
+    """Return the title in the cast's JSON header, or None when it has none."""
     with cast.open(encoding="utf-8") as handle:
         header = handle.readline()
     try:
@@ -167,11 +196,13 @@ def upload(cast: Path, run: Capture = capture) -> str:
 
 
 def recording_url(upload_output: str) -> str | None:
+    """Return the recording URL asciinema printed on upload, or None if it has none."""
     match = _RECORDING_URL.search(upload_output)
     return match.group(0).rstrip(".,") if match else None
 
 
 def render_embed(url: str) -> str:
+    """Return the README's asciicast embed, a linked image, for the recording *url*."""
     return f"[![asciicast]({url}.svg)]({url})"
 
 
@@ -182,8 +213,12 @@ def apply_embed(readme: str, url: str) -> ReadmeUpdate:
 
 
 def has_uncommitted_changes(path: Path, root: Path) -> bool:
-    """Checked before uploading: a pathspec `git commit` takes the whole file, so
-    committing on top of an edit in progress would sweep it up."""
+    """
+    Check whether *path* has changes git has not committed, staged or not.
+
+    Checked before uploading: a pathspec `git commit` takes the whole file, so
+    committing on top of an edit in progress would sweep it up.
+    """
     return any(
         subprocess.run(
             ["git", "-C", str(root), "diff", *scope, "--quiet", "--", str(path)],
@@ -209,6 +244,7 @@ def commit_readme(
         f"{url}\n"
     )
     _stdout(
-        ["git", "-C", str(root), "commit", "--message", message, "--", str(readme)], run
+        ["git", "-C", str(root), "commit", "--message", message, "--", str(readme)],
+        run,
     )
     return _stdout(["git", "-C", str(root), "log", "-1", "--oneline"], run).strip()

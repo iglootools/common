@@ -1,3 +1,5 @@
+"""The `iglootools shell` commands: lint the project's shell scripts."""
+
 import typer
 
 from iglootools.cliwiring import invocation, say, warn
@@ -8,7 +10,8 @@ app = typer.Typer(help="Check the project's shell scripts.", no_args_is_help=Tru
 
 @app.command("lint")
 def lint_command(ctx: typer.Context) -> None:
-    """Run shellcheck on every tracked shell script.
+    """
+    Run shellcheck on every tracked shell script.
 
     Finds .sh and .bash files and files with an sh or bash shebang, such as mise file
     tasks, and skips files marked linguist-vendored or linguist-generated.
