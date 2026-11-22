@@ -14,7 +14,7 @@ the release.
 - [The shared workflows](#the-shared-workflows)
 - [The version is the pin](#the-version-is-the-pin)
 - [Releasing](#releasing)
-- [Propagating a release](#propagating-a-release)
+  - [By hand](#by-hand)
 <!-- tocstop -->
 
 ## Changing what other repositories pin
@@ -87,8 +87,55 @@ so turns a forgotten bump into a failure instead of silence.
 
 ## Releasing
 
+Cut a release, then move every project to it, from common's checkout. Set the
+version once and paste the rest:
+
+```bash
+VERSION=1.33.0                            # the release to cut
+WORKSPACE=~/Workspace/iglootools          # where the iglootools repositories are checked out
+PROJECTS=(nbkp photree network-infra alberta-hiking-resources)
+
+cd "$WORKSPACE/common"
+uv run --no-sync iglootools preflight                      # git, a GitHub token, mise, claude
+uv run --no-sync iglootools common release "$VERSION" -n   # the plan, changing nothing
+uv run --no-sync iglootools common release "$VERSION"
+
+for project in "${PROJECTS[@]}"; do
+  (cd "$WORKSPACE/$project" &&
+    uvx --from "git+https://github.com/iglootools/common@v$VERSION" \
+      iglootools common adopt "$VERSION")
+done
+
+for project in common "${PROJECTS[@]}"; do
+  (cd "$WORKSPACE/$project" &&
+    uvx --from "git+https://github.com/iglootools/common@v$VERSION" \
+      iglootools github prune-branches)
+done
+```
+
+- **`common release`** opens the pull request bumping
+  `.claude-plugin/plugin.json`, merges it once every check has passed, then tags
+  the merge commit both ways and checks the two tags name it. It plans from what
+  GitHub already has, so rerunning it after an interruption finishes the
+  release, and rerunning it on a finished release changes nothing.
+- **`common adopt`** moves every pin on common in the project (the reusable
+  workflows to the release's commit, the `iglootools` command, the Renovate
+  presets, `IGLOOTOOLS_VERSION`), regenerates `uv.lock` where there is one, and
+  merges the pull request once green. A project already on the release is left
+  alone, so the loop can be rerun. Add `-n` to see the pins it would move. uvx
+  runs the release being adopted, in an environment of its own, so the loop
+  works in projects with and without Python alike.
+- **`github prune-branches`** then deletes the merged branches, on GitHub and
+  locally, keeping open pull requests and branches that never had one.
+
+Renovate would open the adopt pull requests on its own, since the shared preset
+exempts common's releases from the release-age hold; the loop does it at once,
+and reports what merged.
+
+### By hand
+
 From a clean working tree on `main`, with `version` already bumped in
-`.claude-plugin/plugin.json`:
+`.claude-plugin/plugin.json` through a merged pull request:
 
 ```bash
 claude plugin validate .
@@ -103,26 +150,3 @@ which `claude plugin tag` creates and the plugin installs by, and a plain
 the `iglootools` command by. The plain tag exists because Renovate resolves
 ordinary version tags, not the prefixed spelling; without it no project gets an
 update pull request for the release.
-
-## Propagating a release
-
-Each project moves to the release through a pull request that
-`iglootools common adopt` opens and merges once its checks pass. It moves every
-pin on common: the reusable workflows to the release's commit, the `iglootools`
-command, the Renovate presets and `IGLOOTOOLS_VERSION`, and regenerates
-`uv.lock` where there is one. Run it from each project's checkout, with
-`-n` first to see the pins it would move:
-
-```bash
-for repo in ~/Workspace/iglootools/{nbkp,photree,network-infra,alberta-hiking-resources}; do
-  (cd "$repo" && uvx --from git+https://github.com/iglootools/common@v<version> \
-    iglootools common adopt <version>)
-done
-```
-
-uvx runs the release being adopted, in an environment of its own, so the loop
-works in projects with and without Python alike.
-
-Renovate would open the same pull requests without the release-age hold, which
-the shared preset lifts for common's own releases; the command does it at once,
-and reports what merged.

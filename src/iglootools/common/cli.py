@@ -6,6 +6,7 @@ import typer
 from iglootools.cliwiring import display_path, invocation, say, warn
 from iglootools.common import adopt as adoption
 from iglootools.common import pins
+from iglootools.common import release as releasing
 from iglootools.github.cli import REPO_OPTION, github_session
 from iglootools.github.client import GitHubError
 from iglootools.github.local import GitStepError
@@ -76,3 +77,63 @@ def adopt(
         return
     warn(f"{repository.slug}#{outcome.pull_number}: not merged, {outcome.reason}.")
     raise typer.Exit(1)
+
+
+@app.command("release")
+def release(
+    ctx: typer.Context,
+    version: Annotated[str, VERSION_ARGUMENT],
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", "-n", help="Say what it would do, and stop.")
+    ] = False,
+) -> None:
+    """Cut a release of iglootools/common: bump, merge once green, tag both ways.
+
+    Run from common's checkout. Opens a pull request bumping .claude-plugin/plugin.json,
+    merges it once every check has passed, then tags the merge commit with
+    `claude plugin tag` (iglootools--vX.Y.Z) and the plain vX.Y.Z projects pin by, and
+    checks both name the same commit.
+
+    Plans from what GitHub already has: a release that stopped half way is resumed
+    (tags only), one that is complete changes nothing, and tags that disagree with
+    plugin.json are refused.
+    """
+    root = invocation(ctx).root
+    repository, github = github_session(ctx, None)
+    if repository != pins.COMMON:
+        warn(f"Releases are cut in {pins.COMMON.slug}, not {repository.slug}.")
+        raise typer.Exit(2)
+    try:
+        found = releasing.plan_from_github(github, version)
+    except GitHubError as error:
+        warn(f"{repository.slug}: {error.detail}")
+        raise typer.Exit(1) from None
+    if found.problem:
+        warn(f"{found.problem[0].upper()}{found.problem[1:]}.")
+        raise typer.Exit(2 if not pins.VERSION.match(version) else 1)
+    if not found.stages:
+        say(f"{found.reason[0].upper()}{found.reason[1:]}: nothing to do.")
+        return
+    if dry_run:
+        for line in releasing.steps(found, version):
+            say(f"[dry-run] {line}")
+        return
+    try:
+        outcome = releasing.release(
+            root,
+            github,
+            repository,
+            version,
+            found,
+            report=say,
+            sleep=time.sleep,
+            now=time.monotonic,
+        )
+    except (GitHubError, GitStepError, ValueError) as error:
+        warn(f"{repository.slug}: {getattr(error, 'detail', error)}")
+        raise typer.Exit(1) from None
+    where = f"#{outcome.pull_number}" if outcome.pull_number else ""
+    if not outcome.released:
+        warn(f"{repository.slug}{where}: not released, {outcome.reason}.")
+        raise typer.Exit(1)
+    say(f"{repository.slug}{where}: {outcome.reason}.")
