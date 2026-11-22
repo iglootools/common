@@ -22,7 +22,7 @@ names. Read it before adding or reworking a rule. Rules are one of the
 - [Ownership](#ownership)
   - [Own each rule in one file, and cite it everywhere else](#own-each-rule-in-one-file-and-cite-it-everywhere-else)
   - [Let a check hold what a check can enforce](#let-a-check-hold-what-a-check-can-enforce)
-  - [Make an index say when to read a file, not what it says](#make-an-index-say-when-to-read-a-file-not-what-it-says)
+  - [Register a new or renamed guideline in every index that routes to it](#register-a-new-or-renamed-guideline-in-every-index-that-routes-to-it)
   - [Keep the always-on files to what every change needs](#keep-the-always-on-files-to-what-every-change-needs)
   - [Leave out what is not a rule](#leave-out-what-is-not-a-rule)
 <!-- tocstop -->
@@ -137,14 +137,20 @@ argues.
 - When a check is out of reach (it would need judgement, or cost more than the
   mistakes it catches), keep the rule in prose.
 
-### Make an index say when to read a file, not what it says
+### Register a new or renamed guideline in every index that routes to it
 
-The guidelines' indexes, each directory's `README.md` and the skill's routing
-table, are [maps](types.md#say-when-to-go-there-not-what-is-inside): one line
-per file, naming the change that should send a reader there.
+Give it one line in its directory's `README.md`, written as
+[maps](types.md#say-when-to-go-there-not-what-is-inside) are: the change that
+should send a reader there. Then register it where agents are routed to it: the
+`guidelines` skill's routing table for a file under `project-setup/` or
+`documentation/`, the `SessionStart` hook for a file under `coding/`, the
+auditor agent for one under `review/`. A new directory, or a file at the top of
+`guidelines/`, also gets a line in `guidelines/README.md`. Update every one when
+the file is renamed or its trigger changes.
 
-**Why:** an index that summarizes each file is a second copy of every file, and
-the guidelines have several indexes.
+**Why:** the skill reads only the files its table lists, and readers find the
+rest through the indexes, so an unregistered guideline exists without ever being
+read.
 
 ### Keep the always-on files to what every change needs
 
