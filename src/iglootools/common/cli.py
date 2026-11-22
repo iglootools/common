@@ -3,7 +3,7 @@ from typing import Annotated
 
 import typer
 
-from iglootools.cliwiring import display_path, ensure, invocation, say, warn
+from iglootools.cliwiring import ensure, invocation, say, warn
 from iglootools.common import adopt as adoption
 from iglootools.common import pins
 from iglootools.common import release as releasing
@@ -43,29 +43,29 @@ def adopt(
     Moves the reusable workflows (to the release's commit), the iglootools command, the
     Renovate presets and IGLOOTOOLS_VERSION, and regenerates uv.lock where there is one.
     Then opens a pull request and merges it once every check has passed, as
-    merge-when-green does.
+    merge-when-green does. Safe to run again: it picks up from the pull request or branch
+    an earlier run left, and does nothing once the release is in place. Needs a checkout
+    with no changes and no untracked files.
     """
     ensure(ctx, requirements.COMMON)
     version = _version(version)
     root = invocation(ctx).root
     repository, github = github_session(ctx, repo)
     try:
-        found = adoption.plan(root, github, version)
-        if not found.changed:
-            say(f"Already on iglootools {version}: nothing to move.")
-            return
-        for path, rewritten in found.files.items():
-            label = "[dry-run] Would move" if dry_run else "Moving"
-            say(f"{label} {rewritten.changed} pin(s) in {display_path(path, root)}")
+        sha = pins.tag_commit(github, version)
         if dry_run:
-            for line in adoption.steps(root, found, merge_it=not no_merge):
+            found = adoption.plan(root, version, sha)
+            for line in adoption.preview(
+                root, github, repository, found, merge_it=not no_merge
+            ):
                 say(f"[dry-run] {line}")
             return
         outcome = adoption.adopt(
             root,
             github,
             repository,
-            found,
+            version,
+            sha,
             merge_it=not no_merge,
             report=lambda event: say(event.detail),
             sleep=time.sleep,
@@ -74,10 +74,11 @@ def adopt(
     except (GitHubError, GitStepError) as error:
         warn(f"{repository.slug}: {getattr(error, 'detail', error)}")
         raise typer.Exit(1) from None
-    if no_merge or outcome.merged:
-        say(f"{repository.slug}#{outcome.pull_number}: {outcome.reason}.")
+    where = f"#{outcome.pull_number}" if outcome.pull_number else ""
+    if outcome.succeeded:
+        say(f"{repository.slug}{where}: {outcome.reason}.")
         return
-    warn(f"{repository.slug}#{outcome.pull_number}: not merged, {outcome.reason}.")
+    warn(f"{repository.slug}{where}: not merged, {outcome.reason}.")
     raise typer.Exit(1)
 
 

@@ -10,7 +10,10 @@ from enum import StrEnum
 
 
 class Stage(StrEnum):
+    BRANCHED = "branched"
+    MOVING = "moving"
     LOCKING = "locking"
+    PUSHED = "pushed"
     OPENED = "opened"
     WAITING = "waiting"
     TAGGED = "tagged"

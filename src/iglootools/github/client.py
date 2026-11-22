@@ -8,6 +8,7 @@ The token is the one `gh` already uses: GH_TOKEN or GITHUB_TOKEN when set, other
 """
 
 import json
+import os
 import re
 import subprocess
 import urllib.error
@@ -69,11 +70,32 @@ def urllib_transport(
         return error.code, error.read()
 
 
+NONINTERACTIVE = {
+    "GIT_TERMINAL_PROMPT": "0",
+    "SSH_ASKPASS_REQUIRE": "never",
+    "GCM_INTERACTIVE": "never",
+}
+"""Make git and ssh fail rather than prompt: several projects run at once, and a prompt
+for one key's passphrase would wait on a terminal nobody is watching."""
+
+
+def noninteractive(environ: Mapping[str, str]) -> dict[str, str]:
+    """*environ* with git's and ssh's prompts turned into failures."""
+    ssh = environ.get("GIT_SSH_COMMAND", "ssh")
+    batch = ssh if "BatchMode" in ssh else f"{ssh} -o BatchMode=yes"
+    return {**environ, **NONINTERACTIVE, "GIT_SSH_COMMAND": batch}
+
+
 def capture(
     command: Sequence[str], directory: Path
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        command, cwd=directory, capture_output=True, text=True, check=False
+        command,
+        cwd=directory,
+        capture_output=True,
+        text=True,
+        check=False,
+        env=noninteractive(os.environ),
     )
 
 
