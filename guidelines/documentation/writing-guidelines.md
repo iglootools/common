@@ -23,7 +23,7 @@ names. Read it before adding or reworking a rule. Rules are one of the
   - [Own each rule in one file, and cite it everywhere else](#own-each-rule-in-one-file-and-cite-it-everywhere-else)
   - [Let a check hold what a check can enforce](#let-a-check-hold-what-a-check-can-enforce)
   - [Register a new or renamed guideline in every index that routes to it](#register-a-new-or-renamed-guideline-in-every-index-that-routes-to-it)
-  - [Keep the always-on files to what every change needs](#keep-the-always-on-files-to-what-every-change-needs)
+  - [Keep the always-on guidelines to what every change needs](#keep-the-always-on-guidelines-to-what-every-change-needs)
   - [Leave out what is not a rule](#leave-out-what-is-not-a-rule)
 <!-- tocstop -->
 
@@ -153,14 +153,16 @@ missing from any of them (`tests/test_guideline_indexes.py`).
 rest through the indexes, so an unregistered guideline exists without ever being
 read.
 
-### Keep the always-on files to what every change needs
+### Keep the always-on guidelines to what every change needs
 
-`coding/general.md`, `coding/git.md` and `coding/python.md` go into every
-session. A rule there must apply to every change in their scope. A rule about
-particular files belongs in the guideline those files trigger.
+The shared `coding/general.md`, `coding/git.md` and `coding/python.md`, and each
+project's entry file (`docs/guidelines.md`, or `docs/guidelines/README.md`), go
+into every agent session. A rule there must apply to every change in its scope.
+A rule about particular files belongs in the guideline those files trigger, and
+anything long moves to a file of its own, linked from the entry file.
 
-**Why:** a line in an always-on file is read thousands of times, by readers who
-do not need it.
+**Why:** a line in an always-on file is read in every session, by readers who do
+not need it.
 
 ### Leave out what is not a rule
 
