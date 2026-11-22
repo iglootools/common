@@ -1,14 +1,24 @@
+import threading
 import time
+from collections.abc import Callable
+from contextlib import AbstractContextManager
+from dataclasses import dataclass, field
 from typing import Annotated
 
 import typer
+from rich.console import Console
+from rich.live import Live
+from rich.table import Table
 
 from iglootools.cliwiring import ensure, invocation, say, warn
 from iglootools.common import adopt as adoption
+from iglootools.common import adopt_all as everywhere
 from iglootools.common import pins
 from iglootools.common import release as releasing
+from iglootools.github import pulls
 from iglootools.github.cli import REPO_OPTION, github_session
-from iglootools.github.client import GitHubError
+from iglootools.github.client import GitHub, GitHubError
+from iglootools.github.events import Event, Report
 from iglootools.github.local import GitStepError
 from iglootools.preflight import requirements
 
@@ -166,3 +176,181 @@ def check_pins(ctx: typer.Context) -> None:
         return
     checked = " and uv.lock" if lock else ""
     say(f"{len(found)} pins on iglootools/common, all at v{versions[0]}{checked}.")
+
+
+@dataclass
+class _Row:
+    stage: str = "starting"
+    pull: int | None = None
+    started: float = field(default_factory=time.monotonic)
+    finished: float | None = None
+
+
+class _Board:
+    """Each project's latest event, shared by the worker threads and the renderer."""
+
+    def __init__(self, names: list[str], live: bool) -> None:
+        self.rows = {name: _Row() for name in names}
+        self.live = live
+        self.lock = threading.Lock()
+
+    def report(self, name: str, event: Event) -> None:
+        with self.lock:
+            row = self.rows[name]
+            row.stage = event.detail
+            row.pull = event.pull or row.pull
+        if not self.live:
+            say(f"[{name}] {event.detail}")
+
+    def finish(self, name: str, outcome: adoption.Outcome) -> None:
+        with self.lock:
+            row = self.rows[name]
+            row.stage = f"{outcome.result}: {outcome.reason}"
+            row.pull = outcome.pull_number or row.pull
+            row.finished = time.monotonic()
+
+    def table(self) -> Table:
+        table = Table(box=None, pad_edge=False)
+        for column in ("project", "stage", "PR", "elapsed"):
+            table.add_column(column, no_wrap=column != "stage")
+        with self.lock:
+            for name, row in self.rows.items():
+                seconds = int((row.finished or time.monotonic()) - row.started)
+                table.add_row(
+                    name,
+                    row.stage,
+                    f"#{row.pull}" if row.pull else "",
+                    f"{seconds // 60}:{seconds % 60:02d}",
+                )
+        return table
+
+
+@app.command("adopt-all")
+def adopt_all(
+    ctx: typer.Context,
+    version: Annotated[str, VERSION_ARGUMENT],
+    only: Annotated[
+        list[str] | None,
+        typer.Option("--only", help="Adopt only this project; repeat."),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="Leave this project out; repeat."),
+    ] = None,
+    no_merge: Annotated[
+        bool,
+        typer.Option("--no-merge", help="Open the pull requests, do not merge them."),
+    ] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", "-n", help="Check and plan, change nothing.")
+    ] = False,
+) -> None:
+    """Move every iglootools project in the workspace to a release of common, in parallel.
+
+    Run from common's checkout: the workspace is the directory it sits in. Takes every
+    checked-out iglootools project that pins common (narrowed by --only and --exclude),
+    fails when a repository of the organization pins common but has no checkout here,
+    and checks every project (no changes or untracked files, origin reachable without a
+    prompt, a default branch GitHub has every commit of) before changing any. Then adopts
+    them all at once, as `common adopt` does, and summarises what merged. Safe to run
+    again: each project picks up where it stopped.
+    """
+    ensure(ctx, requirements.COMMON)
+    version = _version(version)
+    root = invocation(ctx).root
+    repository, github = github_session(ctx, None)
+    if repository != pins.COMMON:
+        warn(
+            f"Run adopt-all from {pins.COMMON.slug}'s checkout, not {repository.slug}'s."
+        )
+        raise typer.Exit(2)
+    try:
+        sha = pins.tag_commit(github, version)
+        projects, skipped = everywhere.discover(root.parent)
+        selected, left_out = everywhere.select(projects, only or [], exclude or [])
+        missing = everywhere.missing_checkouts(
+            github, {p.name for p in projects}, set(exclude or [])
+        )
+    except everywhere.SelectionError as error:
+        warn(f"{error}.")
+        raise typer.Exit(2) from None
+    except GitHubError as error:
+        warn(f"{error.detail}")
+        raise typer.Exit(1) from None
+    for item in [*skipped, *left_out]:
+        say(f"Skipping {item.name}: {item.reason}.")
+    blocked = [
+        f"{name}: pins common on GitHub, but has no checkout in {root.parent}; clone it, "
+        "or pass --exclude"
+        for name in missing
+    ]
+    bases = {p.name: pulls.default_branch(github, p.repository) for p in selected}
+    blocked += [
+        f"{p.name}: {issue}"
+        for p in selected
+        for issue in everywhere.problems(p, bases[p.name])
+    ]
+    if blocked:
+        for issue in blocked:
+            warn(issue)
+        warn("Nothing was changed.")
+        raise typer.Exit(1)
+    if not selected:
+        say("No project to adopt.")
+        return
+    if dry_run:
+        for p in selected:
+            found = adoption.plan(p.root, version, sha)
+            for line in adoption.preview(
+                p.root, github, p.repository, found, merge_it=not no_merge
+            ):
+                say(f"[dry-run] [{p.name}] {line}")
+        return
+    outcomes = _run_everywhere(github, selected, version, sha, merge_it=not no_merge)
+    say("")
+    for p in selected:
+        outcome = outcomes[p.name]
+        where = f" #{outcome.pull_number}" if outcome.pull_number else ""
+        line = f"{p.name}{where}: {outcome.result}, {outcome.reason}"
+        (say if outcome.succeeded else warn)(line)
+    if not all(outcome.succeeded for outcome in outcomes.values()):
+        raise typer.Exit(1)
+
+
+def _run_everywhere(
+    github: GitHub,
+    projects: list[everywhere.Project],
+    version: str,
+    sha: str,
+    *,
+    merge_it: bool,
+) -> dict[str, adoption.Outcome]:
+    console = Console(highlight=False)
+    board = _Board([p.name for p in projects], live=console.is_terminal)
+    stop = threading.Event()
+
+    def adopt_one(
+        project: everywhere.Project,
+        report: Report,
+        sleep: Callable[[float], None],
+        push_guard: AbstractContextManager[object],
+    ) -> adoption.Outcome:
+        outcome = adoption.adopt(
+            project.root,
+            github,
+            project.repository,
+            version,
+            sha,
+            merge_it=merge_it,
+            report=report,
+            sleep=sleep,
+            now=time.monotonic,
+            push_guard=push_guard,
+        )
+        board.finish(project.name, outcome)
+        return outcome
+
+    if not board.live:
+        return everywhere.run_all(projects, adopt_one, report=board.report, stop=stop)
+    with Live(get_renderable=board.table, console=console, refresh_per_second=2):
+        return everywhere.run_all(projects, adopt_one, report=board.report, stop=stop)

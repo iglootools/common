@@ -37,6 +37,7 @@ script in the project.
 | `iglootools github merge-when-green <pr>` | merging a pull request once every check has passed, then deleting its branch, on GitHub and locally |
 | `iglootools github prune-branches` | deleting every branch whose latest pull request merged, on GitHub and locally; `-n` shows what it would delete |
 | `iglootools common adopt <version>` | moving every pin on iglootools/common to a release, through a pull request merged once green |
+| `iglootools common adopt-all <version>` | adopting a release in every iglootools project checked out beside common, in parallel, after checking all of them (from common) |
 | `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
 | `iglootools common check-pins` | failing when the pins on common disagree, or `adopt` would miss one |
 | `iglootools build [<task>]` | running one of the project's mise tasks (`preflight`, `lint-*`, `test*`, `fmt`, `ci-*`, …) through `mise run`; with no task, listing them by family |
