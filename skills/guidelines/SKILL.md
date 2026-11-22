@@ -136,11 +136,6 @@ Say what you changed as a result.
 ## When a rule does not fit
 
 Never edit around a rule silently. First check whether the project has already
-decided: its guidelines entry file (already in context), any guidelines file
-that governs what you are editing, and any comment at the point of departure in
-the file itself. A documented project rule wins; if the project records none,
-the shared guideline stands. Undocumented divergence is drift: do not carry it
-into the change, follow the shared guideline and say what you found.
-
-Otherwise, record the exception as `applying-the-guidelines.md` › Documented
-Exceptions (already in context) describes.
+decided, as `applying-the-guidelines.md` › Precedence (already in context)
+describes. Otherwise, record the exception as its Documented Exceptions section
+describes.

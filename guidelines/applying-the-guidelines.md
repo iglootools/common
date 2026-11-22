@@ -1,17 +1,40 @@
 # Applying the Guidelines
 
-How the shared guidelines apply to an iglootools project, and how a project
-departs from one. It covers every guideline and
-[philosophy.md](philosophy.md), not only the coding rules; the plugin puts it in
-every session.
+How the shared guidelines apply to an iglootools project, which rule wins when a
+project has its own, and how a project departs from one. It covers every
+guideline and [philosophy.md](philosophy.md), not only the coding rules; the
+plugin puts it in every session.
 
 <!-- toc -->
 **On this page**
 
+- [Precedence](#precedence)
+  - [The most specific documented rule wins](#the-most-specific-documented-rule-wins)
 - [Documented Exceptions](#documented-exceptions)
   - [Write each departure, and its reason, where a reader will hit it](#write-each-departure-and-its-reason-where-a-reader-will-hit-it)
   - [Name the condition that retires it](#name-the-condition-that-retires-it)
 <!-- tocstop -->
+
+## Precedence
+
+### The most specific documented rule wins
+
+A subsystem's guidelines (`<dir>/guidelines.md`, `<dir>/guidelines/`) override
+the project's for every file under `<dir>`; the project's (`docs/guidelines.md`
+and what it links) override the shared guidelines; the shared guidelines apply
+[philosophy.md](philosophy.md). Where no more specific rule is written down, the
+shared one stands. Where the guidelines live and what goes in them is
+[layout.md](documentation/layout.md#keep-the-projects-guidelines-at-conventional-paths-and-the-entry-file-lean)'s.
+
+**Why:** the people who own an area know its constraints, so their written rule
+beats a general one; written down, it can be reviewed, where a divergence only
+in the code cannot be told from a mistake.
+
+- **Check before departing:** the project's guidelines entry file, already in
+  context; any guidelines file that governs what you are editing; and any
+  comment at the point of departure in the file itself.
+- **Undocumented divergence is drift, not an override:** do not carry it into
+  the change. Follow the shared rule, and say what you found.
 
 ## Documented Exceptions
 
