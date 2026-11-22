@@ -31,8 +31,11 @@ def _assess(
     checks: tuple[Check, ...] = (GREEN,),
     required: frozenset[str] = frozenset({"preflight"}),
     settled: bool = False,
+    block_settled: bool = True,
 ) -> merge.Verdict:
-    return merge.assess(pull, checks, required, settled=settled)
+    return merge.assess(
+        pull, checks, required, settled=settled, block_settled=block_settled
+    )
 
 
 def test_green_checks_on_a_clean_pull_request_merge() -> None:
@@ -65,11 +68,6 @@ def test_a_second_run_of_a_passed_check_is_still_waited_for() -> None:
         (OPEN, (RED,), "failed: preflight"),
         (replace(OPEN, state="closed"), (GREEN,), "closed without being merged"),
         (replace(OPEN, draft=True), (GREEN,), "still a draft"),
-        (
-            replace(OPEN, mergeable_state="blocked"),
-            (GREEN,),
-            "blocked by a rule other than the checks",
-        ),
         (replace(OPEN, mergeable_state="dirty"), (GREEN,), "conflicts with main"),
         (
             replace(OPEN, mergeable_state="behind"),
@@ -143,10 +141,14 @@ class FakeGitHub:
     """Answers the endpoints merge_when_green calls, from a script of check states."""
 
     def __init__(
-        self, check_states: list[list[dict[str, str]]], rules_status: int = 200
+        self,
+        check_states: list[list[dict[str, str]]],
+        rules_status: int = 200,
+        merge_states: list[str] | None = None,
     ) -> None:
         self.check_states = check_states
         self.rules_status = rules_status
+        self.merge_states = merge_states or ["clean"]
         self.merged = False
         self.calls: list[tuple[str, str, object]] = []
 
@@ -157,8 +159,16 @@ class FakeGitHub:
         self.calls.append((method, path, json.loads(body) if body else None))
         match method, path:
             case "GET", "/repos/iglootools/common/pulls/7":
+                state = (
+                    self.merge_states.pop(0)
+                    if len(self.merge_states) > 1
+                    else self.merge_states[0]
+                )
                 pull = replace(
-                    OPEN, merged=self.merged, state="closed" if self.merged else "open"
+                    OPEN,
+                    merged=self.merged,
+                    state="closed" if self.merged else "open",
+                    mergeable_state=state,
                 )
                 return 200, json.dumps(_pull_json(pull)).encode()
             case "GET", "/repos/iglootools/common/rules/branches/main":
@@ -311,3 +321,38 @@ def test_the_dry_run_of_a_fork_or_keep_branch_deletes_nothing() -> None:
     assert merge.describe(found, delete_branch=True) == [
         "Would merge #7 (head abc123) into main with a merge commit."
     ]
+
+
+def test_a_block_with_every_check_green_is_waited_on_before_it_counts() -> None:
+    assert _assess(
+        replace(OPEN, mergeable_state="blocked"), block_settled=False
+    ) == merge.Verdict(Action.WAIT, merge.CLEARING_BLOCK)
+    assert _assess(
+        replace(OPEN, mergeable_state="blocked"), block_settled=True
+    ) == merge.Verdict(Action.REFUSE, "blocked by a rule other than the checks")
+
+
+def test_a_merge_state_that_lags_the_last_check_still_merges() -> None:
+    # The race nbkp#317 hit: the required check passed, GitHub still said "blocked".
+    fake = FakeGitHub(
+        [[RUN_PASSED]], merge_states=["blocked", "blocked", "blocked", "clean"]
+    )
+    outcome = _run(fake, Clock())
+    assert outcome.merged
+
+
+def test_a_block_that_outlasts_the_grace_is_refused() -> None:
+    fake, clock = FakeGitHub([[RUN_PASSED]], merge_states=["blocked"]), Clock()
+    outcome = _run(fake, clock, block_grace=30)
+    assert not outcome.merged
+    assert outcome.reason == "blocked by a rule other than the checks"
+    assert clock.time >= 30
+
+
+def test_time_spent_waiting_for_checks_does_not_use_up_the_grace() -> None:
+    fake = FakeGitHub(
+        [[RUN_PENDING]] * 10 + [[RUN_PASSED]],
+        merge_states=["blocked"] * 12 + ["clean"],
+    )
+    outcome = _run(fake, Clock(), block_grace=30)
+    assert outcome.merged

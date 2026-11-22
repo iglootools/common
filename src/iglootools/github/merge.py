@@ -9,6 +9,11 @@ The decision is a pure function of what GitHub reports (`assess`); the loop arou
   none, the first check is waited for during a settling period.
 - Every check run on the head commit counts, not only the latest per name. Reopening a
   pull request starts a second run of the same workflow, and the ruleset waits for it.
+- "Blocked" with every check green is waited on for a grace period before it counts. GitHub
+  recomputes the merge state a few seconds after the last required check passes, so a
+  poll in between still reads the block the missing check caused. Only a block that
+  outlasts the grace, such as a required review, is refused. The grace starts once every
+  check is green, so a long run of checks does not use it up.
 - The merge names the head commit it assessed, so a push that lands in between is refused
   by GitHub rather than merged unchecked.
 - The branch is deleted only after GitHub reports the pull request merged, and only when
@@ -26,6 +31,7 @@ FAILED_CONCLUSIONS = frozenset(
 )
 FAILED_STATES = frozenset({"failure", "error"})
 MERGEABLE_STATES = frozenset({"clean", "unstable", "has_hooks"})
+CLEARING_BLOCK = "waiting for GitHub to clear the merge block"
 
 
 @dataclass(frozen=True)
@@ -74,12 +80,14 @@ def assess(
     required: frozenset[str],
     *,
     settled: bool,
+    block_settled: bool = True,
 ) -> Verdict:
     """What to do next, given the pull request and the checks on its head commit.
 
     *required* names the checks a ruleset requires. *settled* says whether the settling
     period has passed, after which a repository that requires no checks and reports none is
-    taken to have none.
+    taken to have none. *block_settled* says whether a block that remains with every check
+    green has outlasted its grace period; until then it is waited on.
     """
     names = {check.name for check in checks}
     failed = sorted({check.name for check in checks if check.failed})
@@ -105,9 +113,11 @@ def assess(
             return Verdict(Action.MERGE, "every check passed")
         case "unknown" | "":
             return Verdict(Action.WAIT, "waiting for GitHub to compute mergeability")
+        case "blocked" if not block_settled:
+            return Verdict(Action.WAIT, CLEARING_BLOCK)
         case "blocked":
-            # Checks done and green but still blocked: a review or another rule GitHub
-            # will not lift on its own.
+            # Still blocked after the grace: a review or another rule GitHub will not lift
+            # on its own.
             return Verdict(Action.REFUSE, "blocked by a rule other than the checks")
         case "behind":
             return Verdict(Action.REFUSE, f"behind {pull.base_ref}: update the branch")
@@ -213,7 +223,9 @@ def preview(github: GitHub, repository: Repository, number: int) -> Preview:
     pull = fetch_pull(github, repository, number)
     required = fetch_required(github, repository, pull.base_ref)
     checks = fetch_checks(github, repository, pull.head_sha)
-    return Preview(pull, assess(pull, checks, required, settled=False))
+    return Preview(
+        pull, assess(pull, checks, required, settled=False, block_settled=False)
+    )
 
 
 def describe(found: Preview, *, delete_branch: bool) -> list[str]:
@@ -254,6 +266,7 @@ def merge_when_green(
     timeout: float = 1800,
     interval: float = 10,
     settle: float = 60,
+    block_grace: float = 60,
     delete_branch: bool = True,
 ) -> Outcome:
     """Wait for *number*'s checks, merge it with a merge commit, and delete its branch.
@@ -264,9 +277,24 @@ def merge_when_green(
     pull = fetch_pull(github, repository, number)
     required = fetch_required(github, repository, pull.base_ref)
     last_reason = ""
+    green_but_blocked_since: float | None = None
     while True:
         checks = fetch_checks(github, repository, pull.head_sha)
-        verdict = assess(pull, checks, required, settled=now() - start >= settle)
+        block_settled = (
+            green_but_blocked_since is not None
+            and now() - green_but_blocked_since >= block_grace
+        )
+        verdict = assess(
+            pull,
+            checks,
+            required,
+            settled=now() - start >= settle,
+            block_settled=block_settled,
+        )
+        if verdict.reason != CLEARING_BLOCK:
+            green_but_blocked_since = None
+        elif green_but_blocked_since is None:
+            green_but_blocked_since = now()
         match verdict.action:
             case Action.DONE:
                 return _cleaned(github, repository, pull, verdict.reason, delete_branch)
