@@ -166,9 +166,13 @@ not need it.
 
 ### Leave out what is not a rule
 
-- **No history.** What changed, and when, belongs in the commit or the
-  decision record. Keep a line about the old way only when it prevents a
-  return to it, and then write it as the reason.
+- **No history.** What changed, and when, belongs in the commit. When a reader
+  needs the history to understand a rule (what was tried, what broke, what was
+  decided against), record it as an entry in the
+  [architecture decision record](layout.md#record-architectural-decisions-in-an-append-only-log)
+  and link it from the rule's **Why:** line. Keep a line about the old way in
+  the guideline itself only when it prevents a return to it, and then write it
+  as the reason.
 - **No hedging, and no addressing an agent.** Write the rule for a person
   ([Documentation for people first](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps)).
   Which file an agent reads, and when, is for the skill and the hooks to
