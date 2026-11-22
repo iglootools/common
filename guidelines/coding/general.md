@@ -18,7 +18,7 @@ rules, and [git.md](git.md) how the change is committed.
   - [Enforce with a tool what a tool can check](#enforce-with-a-tool-what-a-tool-can-check)
 - [The Core and Its Edges](#the-core-and-its-edges)
   - [Prefer pure functions and immutable data](#prefer-pure-functions-and-immutable-data)
-  - [Pass the current time in](#pass-the-current-time-in)
+  - [Pass the clock, the environment and configuration in](#pass-the-clock-the-environment-and-configuration-in)
   - [Return data from the core, and render it at the edge](#return-data-from-the-core-and-render-it-at-the-edge)
   - [Escape interpolated text, or keep it apart from markup](#escape-interpolated-text-or-keep-it-apart-from-markup)
 - [Errors and Encoding](#errors-and-encoding)
@@ -117,7 +117,7 @@ A compiler, type checker, linter, import contract or test, rather than prose.
 ## The Core and Its Edges
 
 The core computes on values it is given; the edges read the clock, the
-filesystem and the user, and render the results.
+environment, configuration, the filesystem and the user, and render the results.
 
 ### Prefer pure functions and immutable data
 
@@ -126,12 +126,20 @@ Mutate only where it genuinely simplifies the logic.
 **Why:** side effects stay at the edges.
 See [Functional style preferred](../philosophy.md#functional-style-preferred).
 
-### Pass the current time in
+### Pass the clock, the environment and configuration in
 
-Core logic never reads the clock: entry points and tests pass `now` to it.
+Core logic never reads ambient state: the clock, environment variables,
+configuration files, the platform, the current directory. Entry points read it
+and pass the values in; tests pass their own.
 
-**Why:** a function that reads the clock cannot be tested for a given moment
-without patching.
+**Why:** a function that reads ambient state behaves differently on each
+machine and at each moment, and cannot be tested for a given one without
+patching.
+
+- Configuration is read and validated once, at the entry point, into a value
+  the core takes as a parameter.
+- Where a parameter would burden every caller, make it a seam that defaults to
+  the real value (`platform: str = sys.platform`), which tests pass explicitly.
 
 ### Return data from the core, and render it at the edge
 
@@ -174,9 +182,6 @@ platform's default, and store and compare times in UTC.
 ambiguous.
 
 ## Testability
-
-Any ambient state is a parameter defaulting to the real value
-(`platform: str = sys.platform`), which tests pass explicitly.
 
 ### Control what a test needs with a decider, a fake or a cheap real resource
 
