@@ -114,7 +114,7 @@ def missing_checkouts(
 
 def problems(project: Project, base: str, *, run: Run = capture) -> list[str]:
     """What stops *project* from being adopted safely, found without changing it."""
-    issues = []
+    issues: list[str] = []
     try:
         local.require_clean(project.root, run=run)
     except local.GitStepError:

@@ -119,6 +119,8 @@ def preview(
             return [f"Would refuse: #{number} was closed without merging."]
         case prune.PullState.OPEN:
             return [f"Would resume #{number}.", finish]
+        case prune.PullState.NONE:
+            pass  # no pull request yet: plan one below
     newer = newer_pin(root, found.version, run=run)
     if newer:
         return [f"Would refuse: the project already pins the newer {newer}."]
@@ -197,6 +199,8 @@ def adopt(
                 now,
                 run,
             )
+        case prune.PullState.OPEN | prune.PullState.NONE:
+            pass  # nothing to resume: open one below
     local.sync(root, base, run=run)
     newer = newer_pin(root, version, run=run)
     if newer:

@@ -192,13 +192,13 @@ def release(
     else:
         local.sync(root, base, run=run)
     if Stage.PLUGIN_TAG in found.stages:
-        _plugin_tag(root, run=run)
+        plugin_tag(root, run=run)
     if Stage.PLAIN_TAG in found.stages:
-        _plain_tag(root, version, report=report, run=run)
+        plain_tag(root, version, report=report, run=run)
     return Outcome(number, True, f"released {version}")
 
 
-def _plugin_tag(root: Path, *, run: Run) -> None:
+def plugin_tag(root: Path, *, run: Run) -> None:
     for command in (
         ["claude", "plugin", "validate", "."],
         ["claude", "plugin", "tag", "--push", "-m", "Release %s"],
@@ -210,7 +210,7 @@ def _plugin_tag(root: Path, *, run: Run) -> None:
             )
 
 
-def _plain_tag(root: Path, version: str, *, report: events.Report, run: Run) -> None:
+def plain_tag(root: Path, version: str, *, report: events.Report, run: Run) -> None:
     """Tag the plugin tag's commit v<version>, and check the two name the same commit."""
     plugin_tag = f"iglootools--v{version}"
     plain_tag = f"v{version}"

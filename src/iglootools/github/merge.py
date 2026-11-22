@@ -101,6 +101,8 @@ def assess(
             return Verdict(Action.REFUSE, "closed without being merged")
         case PullRequest(draft=True):
             return Verdict(Action.REFUSE, "still a draft")
+        case _:
+            pass  # open and ready for review: the checks decide
     if failed:
         return Verdict(Action.REFUSE, f"failed: {', '.join(failed)}")
     if missing:
@@ -128,6 +130,11 @@ def assess(
             return Verdict(Action.REFUSE, f"not mergeable ({other})")
 
 
+def _full_name(repo: Json) -> str:
+    """The `owner/name` of a pull request's head repository; empty once it is deleted."""
+    return repo["full_name"] if repo else ""
+
+
 def parse_pull(data: Json) -> PullRequest:
     head, base = data["head"], data["base"]
     return PullRequest(
@@ -138,7 +145,7 @@ def parse_pull(data: Json) -> PullRequest:
         mergeable_state=data.get("mergeable_state") or "",
         head_sha=head["sha"],
         head_ref=head["ref"],
-        head_repository=(head.get("repo") or {}).get("full_name", ""),
+        head_repository=_full_name(head.get("repo")),
         base_ref=base["ref"],
         base_repository=base["repo"]["full_name"],
     )

@@ -17,7 +17,11 @@ from importlib.util import find_spec
 from pathlib import Path
 from textwrap import indent
 
-from mermaid_ascii import parse_mermaid, render_ascii
+# mermaid-ascii leaves render_ascii's parameter unannotated; retire the ignore once it is.
+from mermaid_ascii import (
+    parse_mermaid,
+    render_ascii,  # pyright: ignore[reportUnknownVariableType]
+)
 
 # The marker text and the section's wording are what nbkp's and photree's architecture
 # documents already carry; changing them rewrites every consumer's generated section.
