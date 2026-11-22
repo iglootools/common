@@ -222,9 +222,12 @@ project.
 
 - It runs `mise run ci-demo-record` and uploads the cast as the `demo-recording`
   artifact. Its inputs and guards are in `reusable-demo.yml`.
-- It skips a `workflow_run` whose release failed or released nothing, with the
-  checks
-  [pypi-publishing.md](pypi-publishing.md#skip-a-release-run-that-did-not-release)
+- It records the release tag, never a branch head: pass
+  `tag: ${{ inputs.tag || github.event.client_payload.tag }}` from a `tag` input
+  on the caller's `workflow_dispatch`. It skips a `workflow_run` whose release
+  failed or released nothing, and records the branch head for a dispatch with
+  no tag, as
+  [workflows.md › Build what a release triggers from its tag](workflows.md#build-what-a-release-triggers-from-its-tag)
   describes.
 - `apt-packages` lists the system packages the session calls beyond mise's
   tools. It replaces the default, `pv`, which demo-magic needs, so keep `pv` in

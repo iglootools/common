@@ -20,7 +20,7 @@ workflow follows are in [workflows.md](workflows.md).
   - [Pick the bump by hand when the commits undersell the change](#pick-the-bump-by-hand-when-the-commits-undersell-the-change)
 - [Publishing](#publishing)
   - [Chain publish to release with `workflow_run`, and also listen for `v*` tags](#chain-publish-to-release-with-workflow_run-and-also-listen-for-v-tags)
-  - [Skip a release run that did not release](#skip-a-release-run-that-did-not-release)
+  - [Build the release tag, never a branch head](#build-the-release-tag-never-a-branch-head)
   - [Check out the released commit, with its history and tags](#check-out-the-released-commit-with-its-history-and-tags)
   - [Build in CI, and verify before uploading](#build-in-ci-and-verify-before-uploading)
   - [Publish with trusted publishing, never an API token](#publish-with-trusted-publishing-never-an-api-token)
@@ -151,31 +151,46 @@ run after an automated release, and nothing would report it.
 - `workflows:` matches the release workflow's `name:`, not its filename, which
   is one more reason to
   [name every workflow after its file](workflows.md#name-every-workflow-after-its-own-file).
-- `workflow_dispatch` re-runs a publish that never happened. Always pass the tag
-  as `--ref`: from a branch, the build gets a development version such as
-  `1.4.0.post3.dev0+2a99beb`, which `build-verify` lets through and PyPI
-  rejects at upload, since it accepts no local versions (`+…`).
+- `workflow_dispatch` re-runs a publish that never happened. Pass the tag, as
+  `-f tag=v1.4.0` or `--ref v1.4.0`: the run then builds that tag whatever the
+  branch head has become, and refuses to start without one, as
+  [Build the release tag, never a branch head](#build-the-release-tag-never-a-branch-head)
+  describes.
 - `release.yml`, `publish.yml` and `publish-test.yml` queue rather than cancel,
   which also covers a manual dispatch that overlaps either path:
   [workflows.md › Queue runs whose partial state cannot be redone](workflows.md#queue-runs-whose-partial-state-cannot-be-redone).
 
-### Skip a release run that did not release
+### Build the release tag, never a branch head
 
-Right after the checkout, check that the commit carries a `v*` tag, and skip the
-rest of the job when it does not: a step that sets `skip=true` when
-`git describe --exact-match --tags --match 'v*' HEAD` fails, and
-`if: steps.released.outputs.skip != 'true'` on every later step, as nbkp's
+Right after the checkout, resolve the release tag and check it out, as
+[workflows.md › Build what a release triggers from its tag](workflows.md#build-what-a-release-triggers-from-its-tag)
+describes, with a step that sets `skip=true` for a `workflow_run` on an untagged
+commit, and `if: steps.release.outputs.skip != 'true'` on every later step, as
+nbkp's
 [publish.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/publish.yml)
-does.
+does. Declare the input on the trigger:
+
+```yaml
+workflow_dispatch:
+  inputs:
+    tag:
+      description: Release tag to publish, such as v1.2.0.
+      type: string
+      required: false
+```
 
 **Why:** a dry run (`dry-run: true`) and a run dispatched on another branch both
-complete successfully and push no tag, yet start the publish. It then builds an
-untagged commit, and only PyPI's refusal of local versions stands between that
-development version and PyPI.
+complete successfully and push no tag, yet start the publish; and a manual
+re-run from `main` would build whatever merged since the release. Either way the
+build is a development version such as `1.4.0.post3.dev0+2a99beb`, which
+`build-verify` lets through, and only PyPI's refusal of local versions (`+…`)
+stands between it and PyPI.
 
-- It skips rather than fails: nothing went wrong, there was nothing to publish.
-- The shared demo workflow applies the same check, since a dry run would
-  otherwise record a demo titled with a development version.
+- A `workflow_run` with no tag skips rather than fails: nothing went wrong,
+  there was nothing to publish. A manual run with no tag fails before building.
+- The shared demo workflow resolves the tag the same way, through its `tag`
+  input, since a dry run would otherwise record a demo titled with a development
+  version.
 
 ### Check out the released commit, with its history and tags
 
@@ -196,8 +211,9 @@ build something other than the tagged version.
 - **`ref: github.event.workflow_run.head_sha`.** Under `workflow_run`,
   `github.sha` is the current head of the default branch, not the commit the
   release tagged. If anything merged in between, the publish would build a
-  development version. The `|| github.sha` fallback covers the other triggers,
-  where `github.sha` is the tagged commit.
+  development version. The `|| github.sha` fallback covers the other triggers: a
+  pushed tag or `--ref v1.4.0` lands on the tagged commit, and for a dispatch
+  from a branch the next step checks out the tag it names.
 
 ### Build in CI, and verify before uploading
 
