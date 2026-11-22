@@ -10,6 +10,7 @@ either, or when fixing a bug in one of its commands.
 
 - [Use the shared command instead of a copied script](#use-the-shared-command-instead-of-a-copied-script)
 - [Install it as a dev dependency, pinned to a release](#install-it-as-a-dev-dependency-pinned-to-a-release)
+- [Check that every pin on common agrees](#check-that-every-pin-on-common-agrees)
 - [Call it from one-line mise tasks](#call-it-from-one-line-mise-tasks)
 - [Configure it in `[tool.iglootools]`, only where the defaults do not fit](#configure-it-in-tooliglootools-only-where-the-defaults-do-not-fit)
 - [Try a change from a local checkout before releasing it](#try-a-change-from-a-local-checkout-before-releasing-it)
@@ -37,6 +38,7 @@ script in the project.
 | `iglootools github prune-branches` | deleting every branch whose latest pull request merged, on GitHub and locally; `-n` shows what it would delete |
 | `iglootools common adopt <version>` | moving every pin on iglootools/common to a release, through a pull request merged once green |
 | `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
+| `iglootools common check-pins` | failing when the pins on common disagree, or `adopt` would miss one |
 | `iglootools build [<task>]` | running one of the project's mise tasks (`preflight`, `lint-*`, `test*`, `fmt`, `ci-*`, …) through `mise run`; with no task, listing them by family |
 | `iglootools preflight` | checking every program and credential the other commands use, with how to fix what is missing; each subsystem checks its own before its first change |
 
@@ -74,6 +76,18 @@ from an isolated tool environment.
 
   uv caches the build, so only the first run after the version moves builds
   anything.
+
+## Check that every pin on common agrees
+
+Run `iglootools common check-pins` as a `lint-common-pins` task, part of `lint`.
+It finds every pin on common in the tracked files, spelled any way, and fails
+when two name different releases, a SHA pin lacks its `# vX.Y.Z` comment, they
+disagree with what `uv.lock` resolved, or `iglootools common adopt` would not
+move one.
+
+**Why:** the reusable workflows, the command, the Renovate presets and
+`IGLOOTOOLS_VERSION` pin the same release in several files, and a pin written a
+new way would be left behind by `adopt` without anything failing.
 
 ## Call it from one-line mise tasks
 

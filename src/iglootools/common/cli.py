@@ -140,3 +140,28 @@ def release(
         warn(f"{repository.slug}{where}: not released, {outcome.reason}.")
         raise typer.Exit(1)
     say(f"{repository.slug}{where}: {outcome.reason}.")
+
+
+@app.command("check-pins")
+def check_pins(ctx: typer.Context) -> None:
+    """Fail when the project's pins on iglootools/common disagree or adopt would miss one.
+
+    Finds every pin on common in the files git tracks, spelled any way, and fails when
+    `common adopt` would not move one, when two name different releases, when a SHA pin
+    lacks its `# vX.Y.Z` comment, or when they disagree with what uv.lock resolved. Runs
+    offline, so it fits a `lint-common-pins` task.
+    """
+    ensure(ctx, (requirements.GIT,))
+    root = invocation(ctx).root
+    found, lock = pins.scan(root)
+    issues = pins.problems(found, lock, root)
+    for issue in issues:
+        warn(issue)
+    if issues:
+        raise typer.Exit(1)
+    versions = sorted({r.version for r in found if r.version})
+    if not found:
+        say("No pins on iglootools/common.")
+        return
+    checked = " and uv.lock" if lock else ""
+    say(f"{len(found)} pins on iglootools/common, all at v{versions[0]}{checked}.")
