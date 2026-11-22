@@ -22,7 +22,8 @@ rules, and [git.md](git.md) how the change is committed.
   - [Escape interpolated text, or keep it apart from markup](#escape-interpolated-text-or-keep-it-apart-from-markup)
 - [Errors, Encoding and Time](#errors-encoding-and-time)
   - [Surface every error; never fail silently](#surface-every-error-never-fail-silently)
-  - [Use UTF-8 and UTC everywhere, and pass the current time in](#use-utf-8-and-utc-everywhere-and-pass-the-current-time-in)
+  - [Use UTF-8 and UTC everywhere](#use-utf-8-and-utc-everywhere)
+  - [Pass the current time in](#pass-the-current-time-in)
 - [Testability](#testability)
   - [Control what a test needs with a decider, a fake or a cheap real resource](#control-what-a-test-needs-with-a-decider-a-fake-or-a-cheap-real-resource)
   - [Patch only in the three documented cases, and list each one](#patch-only-in-the-three-documented-cases-and-list-each-one)
@@ -154,12 +155,20 @@ message.
 **Why:** a silent failure surfaces later, far from its cause. See
 [Errors as first-class values](../philosophy.md#errors-as-first-class-values).
 
-### Use UTF-8 and UTC everywhere, and pass the current time in
+### Use UTF-8 and UTC everywhere
+
+Read and write text as UTF-8, naming the encoding rather than relying on the
+platform's default, and store and compare times in UTC.
+
+**Why:** a default encoding differs between machines, and local times are
+ambiguous.
+
+### Pass the current time in
 
 Core logic never reads the clock: entry points and tests pass `now` to it.
 
-**Why:** local times are ambiguous, and a function that reads the clock cannot
-be tested for a given moment without patching.
+**Why:** a function that reads the clock cannot be tested for a given moment
+without patching.
 
 ## Testability
 
