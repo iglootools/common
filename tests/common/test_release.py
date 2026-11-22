@@ -5,8 +5,10 @@ from pathlib import Path
 import pytest
 
 from iglootools.common import release
-from iglootools.common.release import FULL, Plan, Stage
+from iglootools.common.release import FULL, Plan
+from iglootools.common.release import Stage as ReleaseStage
 from iglootools.github.client import GitHub, Repository
+from iglootools.github.events import Event, Stage
 from iglootools.github.local import GitStepError
 
 
@@ -25,14 +27,17 @@ from iglootools.github.local import GitStepError
             "1.33.0",
             False,
             False,
-            Plan((Stage.PLUGIN_TAG, Stage.PLAIN_TAG), "resuming: the bump has merged"),
+            Plan(
+                (ReleaseStage.PLUGIN_TAG, ReleaseStage.PLAIN_TAG),
+                "resuming: the bump has merged",
+            ),
         ),
         (
             "1.33.0",
             "1.33.0",
             True,
             False,
-            Plan((Stage.PLAIN_TAG,), "resuming: iglootools--v1.33.0 exists"),
+            Plan((ReleaseStage.PLAIN_TAG,), "resuming: iglootools--v1.33.0 exists"),
         ),
         ("1.33.0", "1.33.0", True, True, Plan((), "1.33.0 is already released")),
         ("1.34.0", "1.33.0", True, True, Plan((), "1.33.0 is already released")),
@@ -97,7 +102,7 @@ def test_releases_are_cut_only_in_common(tmp_path: Path) -> None:
 
 
 def test_the_dry_run_of_a_resumed_release_lists_only_what_is_left() -> None:
-    found = Plan((Stage.PLAIN_TAG,), "resuming: iglootools--v1.33.0 exists")
+    found = Plan((ReleaseStage.PLAIN_TAG,), "resuming: iglootools--v1.33.0 exists")
     assert release.steps(found, "1.33.0") == [
         "Resuming: iglootools--v1.33.0 exists.",
         "Would tag iglootools--v1.33.0's commit v1.33.0, push it, and check both tags name it.",
@@ -144,7 +149,7 @@ def test_the_plain_tag_goes_on_the_plugin_tag_s_commit(tmp_path: Path) -> None:
         ],
         ["git", "push", "-q", "origin", "v1.33.0"],
     ]
-    assert reports == ["Tagged iglootools--v1.33.0 and v1.33.0"]
+    assert reports == [Event(Stage.TAGGED, "Tagged iglootools--v1.33.0 and v1.33.0")]
 
 
 def test_tags_naming_different_commits_are_an_error(tmp_path: Path) -> None:

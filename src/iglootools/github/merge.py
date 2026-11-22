@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from iglootools.github.client import GitHub, GitHubError, Json, Repository
+from iglootools.github.events import Event, Report, Stage
 
 FAILED_CONCLUSIONS = frozenset(
     {"failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure"}
@@ -262,7 +263,7 @@ def merge_when_green(
     *,
     sleep: Callable[[float], None],
     now: Callable[[], float],
-    report: Callable[[str], None],
+    report: Report,
     timeout: float = 1800,
     first_interval: float = 30,
     interval: float = 60,
@@ -315,7 +316,7 @@ def merge_when_green(
                 if now() - start >= timeout:
                     return Outcome(False, f"timed out, {verdict.reason}", pull)
                 if verdict.reason != last_reason:
-                    report(verdict.reason)
+                    report(Event(Stage.WAITING, verdict.reason, number))
                     last_reason = verdict.reason
                 sleep(interval if waited else first_interval)
                 waited = True

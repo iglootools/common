@@ -7,6 +7,7 @@ from pathlib import Path
 from iglootools.common import pins
 from iglootools.github import local, merge, pulls
 from iglootools.github.client import GitHub, Repository, Run, capture
+from iglootools.github.events import Event, Report, Stage
 
 
 @dataclass(frozen=True)
@@ -68,7 +69,7 @@ def adopt(
     found: Plan,
     *,
     merge_it: bool,
-    report: Callable[[str], None],
+    report: Report,
     sleep: Callable[[float], None],
     now: Callable[[], float],
     run: Run = capture,
@@ -81,7 +82,7 @@ def adopt(
         path.write_text(rewritten.text, encoding="utf-8")
     paths = [str(path.relative_to(root)) for path in found.files]
     if (root / "uv.lock").is_file():
-        report("Updating uv.lock")
+        report(Event(Stage.LOCKING, "Updating uv.lock"))
         result = run(
             ["mise", "exec", "--", "uv", "lock", "--upgrade-package", "iglootools"],
             root,
@@ -98,7 +99,7 @@ def adopt(
         title=f"chore: move to iglootools {found.version}",
         body=f"Moves every pin on iglootools/common to {found.version}.",
     )
-    report(f"Opened {repository.slug}#{number}")
+    report(Event(Stage.OPENED, f"Opened {repository.slug}#{number}", number))
     if not merge_it:
         return Outcome(number, False, "opened, not merged (--no-merge)")
     outcome = merge.merge_when_green(

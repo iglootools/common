@@ -67,7 +67,7 @@ def adopt(
             repository,
             found,
             merge_it=not no_merge,
-            report=say,
+            report=lambda event: say(event.detail),
             sleep=time.sleep,
             now=time.monotonic,
         )
@@ -128,7 +128,7 @@ def release(
             repository,
             version,
             found,
-            report=say,
+            report=lambda event: say(event.detail),
             sleep=time.sleep,
             now=time.monotonic,
         )

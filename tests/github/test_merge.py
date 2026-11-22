@@ -6,6 +6,7 @@ import pytest
 
 from iglootools.github import merge
 from iglootools.github.client import GitHub, Repository
+from iglootools.github.events import Event
 from iglootools.github.merge import Action, Check, PullRequest
 
 REPO = Repository("iglootools", "common")
@@ -223,7 +224,7 @@ RUN_FAILED = {"name": "preflight", "status": "completed", "conclusion": "failure
 
 
 def _run(fake: FakeGitHub, clock: Clock, **kwargs: object) -> merge.Outcome:
-    reports: list[str] = []
+    reports: list[Event] = []
     outcome = merge.merge_when_green(
         GitHub("token", transport=fake),
         REPO,
