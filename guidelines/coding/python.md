@@ -73,8 +73,8 @@ such as `"key: value\n"` stays as it is.
 ### Annotate every function, including its return type
 
 **Why:** pyright
-([setup](../project-setup/python-tooling.md#type-check-with-pyright)) checks
-only what is annotated.
+([setup](../project-setup/python-tooling.md#type-check-with-pyright-in-strict-mode-tests-included))
+checks only what is annotated.
 
 ## Naming
 

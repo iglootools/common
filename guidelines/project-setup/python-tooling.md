@@ -28,7 +28,7 @@ naming in [mise.md](mise.md#name-tasks-by-family).
   - [Keep `install` and `reinstall` as tasks over `mise deps`](#keep-install-and-reinstall-as-tasks-over-mise-deps)
 - [Code Quality Tools](#code-quality-tools)
   - [Lint and format with ruff](#lint-and-format-with-ruff)
-  - [Type-check with pyright](#type-check-with-pyright)
+  - [Type-check with pyright, in strict mode, tests included](#type-check-with-pyright-in-strict-mode-tests-included)
   - [Declare module boundaries as import-linter contracts](#declare-module-boundaries-as-import-linter-contracts)
   - [Prefer contracts whose coverage follows the code](#prefer-contracts-whose-coverage-follows-the-code)
   - [Give every `ignore_imports` entry its reason](#give-every-ignore_imports-entry-its-reason)
@@ -344,14 +344,36 @@ enforces the [patching rule](#enforce-the-patching-rule), and `TID255` flags a
 lazy import that module-level code resolves straight away, losing the deferral
 [python.md › Imports](../coding/python.md#imports) asks for.
 
-### Type-check with pyright
+### Type-check with pyright, in strict mode, tests included
 
 Add `pyright` to the dev dependency group and run it as `lint-types`
-(`uv run --no-sync pyright`), configured under `[tool.pyright]`.
+(`uv run --no-sync pyright`, with no paths), configured under `[tool.pyright]`:
+
+```toml
+[tool.pyright]
+include = ["src", "tests"]                    # every directory of Python: package, tests, scripts
+typeCheckingMode = "strict"
+reportUnnecessaryTypeIgnoreComment = "error"
+```
 
 **Why:** the same configuration then serves the CLI, CI, the editor and Claude
-Code's language server.
+Code's language server, and checks the same files in each. Strict mode reports
+what standard mode lets through: values of unknown type, a `match` that misses a
+case, a bare `list` or `dict`, a check that cannot fail, a private name used
+from another module. Tests are code too; left unchecked, they drift from the
+signatures they call.
 
+- **A `match` that handles only some cases ends in `case _: pass`** with a
+  comment saying where the other cases go, so the fall-through is visible.
+- **Suppress one line, never a rule project-wide:**
+  `# pyright: ignore[<rule>]` with its reason, as
+  [general.md › Write each departure where a reader will hit it](../coding/general.md#write-each-departure-and-its-reason-where-a-reader-will-hit-it)
+  asks. The usual reason is a dependency that leaves something unannotated.
+  `reportUnnecessaryTypeIgnoreComment` fails on a suppression that is no longer
+  needed, so none outlives its reason.
+- **Give an empty container its type** (`found: list[Reference] = []`), and
+  test a public function rather than a `_private` one: make the function public
+  when a test needs it.
 - `pythonVersion` is one of the
   [four version settings](#name-the-version-in-the-four-places-that-pin-it).
 - `venvPath` and `venv` are in
