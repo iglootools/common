@@ -4,6 +4,7 @@ from typing import Annotated
 
 import typer
 
+from iglootools.build import cli as build_cli
 from iglootools.cliwiring import Invocation, say
 from iglootools.common import cli as common_cli
 from iglootools.demo import cli as demo_cli
@@ -26,6 +27,10 @@ app.add_typer(mise_cli.app, name="mise")
 app.add_typer(shell_cli.app, name="shell")
 app.add_typer(github_cli.app, name="github")
 app.add_typer(common_cli.app, name="common")
+app.command(
+    "build",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(build_cli.build)
 
 
 def _print_version(requested: bool) -> None:
