@@ -40,3 +40,11 @@ def clean_local(
         problem = "" if deleted else result.stderr.strip()
     run(["git", "fetch", "-q", "--prune"], root)
     return LocalCleanup(switched, deleted, problem)
+
+
+def local_branches(root: Path, *, run: Run = capture) -> list[str]:
+    """The branches in the checkout at *root*."""
+    result = run(
+        ["git", "for-each-ref", "--format=%(refname:short)", "refs/heads"], root
+    )
+    return [line for line in result.stdout.splitlines() if line]

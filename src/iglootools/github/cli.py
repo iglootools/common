@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 
 from iglootools.cliwiring import invocation, say, warn
-from iglootools.github import local, merge
+from iglootools.github import local, merge, prune
 from iglootools.github.client import (
     GitHub,
     GitHubError,
@@ -126,3 +126,47 @@ def merge_when_green(
             say(f"Deleted the local {outcome.pull.head_ref}.")
         if cleanup.problem:
             warn(f"Local cleanup stopped: {cleanup.problem}")
+
+
+@app.command("prune-branches")
+def prune_branches(
+    ctx: typer.Context,
+    repo: Annotated[str | None, REPO_OPTION] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", "-n", help="Show what would be deleted.")
+    ] = False,
+) -> None:
+    """Delete every branch whose latest pull request has merged, on GitHub and locally.
+
+    Keeps the default branch, protected branches, branches with an open pull request,
+    branches whose latest pull request was closed without merging, and branches that
+    never had one, such as gh-pages. Local branches are deleted with `git branch -d`, so
+    one carrying commits the default branch lacks is kept and reported.
+    """
+    repository = _repository(ctx, repo)
+    github = _github(ctx)
+    root = invocation(ctx).root
+    on_origin = _is_origin(ctx, repository)
+    locals_ = local.local_branches(root) if on_origin else []
+    try:
+        default_branch, branches = prune.gather(github, repository, locals_)
+        decisions = prune.plan(branches, default_branch)
+        for decision in decisions:
+            name = decision.branch.name
+            if not decision.delete:
+                say(f"Keep {name}: {decision.reason}.")
+                continue
+            if dry_run:
+                say(f"[dry-run] Would delete {name}: {decision.reason}.")
+                continue
+            if decision.branch.on_remote:
+                prune.delete_remote(github, repository, name)
+            if decision.branch.local:
+                cleanup = local.clean_local(root, name, default_branch)
+                if cleanup.problem:
+                    warn(f"Kept the local {name}: {cleanup.problem}")
+                    continue
+            say(f"Deleted {name}: {decision.reason}.")
+    except GitHubError as error:
+        warn(f"{repository.slug}: {error.detail}")
+        raise typer.Exit(1) from None

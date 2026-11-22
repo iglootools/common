@@ -176,6 +176,7 @@ instead of leaving it to be guessed change by change.
   prompt.
 - Once a pull request is merged, delete its branch, locally and on the remote.
   A merged branch left behind looks like work in progress.
+  `iglootools github prune-branches` deletes every one left over.
 - When the modes apply is refined as they are used.
 
 ### Exploratory: iterate in small steps, and publish only when asked

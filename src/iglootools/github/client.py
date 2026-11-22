@@ -104,6 +104,18 @@ class GitHub:
     def get(self, path: str) -> Json:
         return self.request("GET", path)
 
+    def get_all(self, path: str, *, per_page: int = 100) -> list[Json]:
+        """Every item of a paginated list, page by page until a short page."""
+        separator = "&" if "?" in path else "?"
+        items: list[Json] = []
+        page = 1
+        while True:
+            batch = self.get(f"{path}{separator}per_page={per_page}&page={page}")
+            items.extend(batch)
+            if len(batch) < per_page:
+                return items
+            page += 1
+
 
 def _message(raw: bytes) -> str:
     try:

@@ -34,6 +34,7 @@ script in the project.
 | `iglootools mise lock-check` | failing when the staged `mise.lock` is stale |
 | `iglootools shell lint` | running shellcheck on every tracked shell script |
 | `iglootools github merge-when-green <pr>` | merging a pull request once every check has passed, then deleting its branch, on GitHub and locally |
+| `iglootools github prune-branches` | deleting every branch whose latest pull request merged, on GitHub and locally; `-n` shows what it would delete |
 
 - `iglootools --help` and `iglootools <group> --help` list the options.
 - Each command works on the current directory, or on `--root <dir>`. The
