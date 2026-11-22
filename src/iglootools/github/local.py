@@ -13,6 +13,22 @@ class LocalCleanup:
     problem: str = ""
 
 
+def update_commands(base: str) -> list[list[str]]:
+    """Switch to *base* and fast-forward it to the remote, without `git pull`.
+
+    `git pull` merges whatever .git/FETCH_HEAD lists, and that file has no lock: a fetch
+    running at the same moment, such as an editor's background fetch, can leave it naming
+    the branch twice, and the pull then refuses ("Cannot fast-forward to multiple
+    branches"). Fetching the one branch and fast-forwarding from its remote-tracking ref,
+    which git updates under a lock, does not depend on that file.
+    """
+    return [
+        ["git", "switch", "-q", base],
+        ["git", "fetch", "-q", "origin", base],
+        ["git", "merge", "-q", "--ff-only", f"origin/{base}"],
+    ]
+
+
 def clean_local(
     root: Path, branch: str, base: str, *, run: Run = capture
 ) -> LocalCleanup:
@@ -24,10 +40,7 @@ def clean_local(
     current = run(["git", "branch", "--show-current"], root).stdout.strip()
     switched = current == branch
     if switched:
-        for command in (
-            ["git", "switch", "-q", base],
-            ["git", "pull", "-q", "--ff-only"],
-        ):
+        for command in update_commands(base):
             result = run(command, root)
             if result.returncode != 0:
                 return LocalCleanup(False, False, result.stderr.strip())
@@ -79,8 +92,8 @@ def start_branch(root: Path, base: str, branch: str, *, run: Run = capture) -> N
 
 def sync(root: Path, base: str, *, run: Run = capture) -> None:
     """Switch to *base* and bring it up to date with the remote, fast-forward only."""
-    git(root, "switch", "-q", base, run=run)
-    git(root, "pull", "-q", "--ff-only", run=run)
+    for command in update_commands(base):
+        git(root, *command[1:], run=run)
 
 
 def has_local_branch(root: Path, branch: str, *, run: Run = capture) -> bool:

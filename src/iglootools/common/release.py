@@ -190,8 +190,7 @@ def release(
             return Outcome(number, False, merged.reason)
         local.clean_local(root, branch, base, run=run)
     else:
-        local.git(root, "switch", "-q", base, run=run)
-        local.git(root, "pull", "-q", "--ff-only", run=run)
+        local.sync(root, base, run=run)
     if Stage.PLUGIN_TAG in found.stages:
         _plugin_tag(root, run=run)
     if Stage.PLAIN_TAG in found.stages:
