@@ -64,10 +64,12 @@ it overrides: "we ignore this rule because X, and do Y instead".
 
 ### Name the condition that retires it
 
-"Revisit when X supports Y", "drop this once we no longer support Z". The shape
-to copy is [When a dependency lags](python.md#when-a-dependency-lags): next to
-the setting it overrides, naming the dependency that forces it and the event
-that retires it.
+Every exception names the event that would retire it: "revisit when X supports
+Y", "drop this once we no longer support Z". One that can never retire says why,
+such as a constraint of the platform that will not change. The shape to copy is
+[When a dependency lags](python.md#when-a-dependency-lags): next to the setting
+it overrides, naming the dependency that forces it and the event that retires
+it.
 
 **Why:** without one it becomes permanent once nobody remembers why.
 
