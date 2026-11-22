@@ -264,7 +264,8 @@ def merge_when_green(
     now: Callable[[], float],
     report: Callable[[str], None],
     timeout: float = 1800,
-    interval: float = 10,
+    first_interval: float = 30,
+    interval: float = 60,
     settle: float = 60,
     block_grace: float = 60,
     delete_branch: bool = True,
@@ -272,12 +273,16 @@ def merge_when_green(
     """Wait for *number*'s checks, merge it with a merge commit, and delete its branch.
 
     Returns without merging when a check fails, GitHub refuses, or *timeout* passes.
+    Polls *first_interval* after the first look, then every *interval*: most checks take
+    a minute or more, so polling faster only spends API requests, which several runs in
+    parallel share under one rate limit.
     """
     start = now()
     pull = fetch_pull(github, repository, number)
     required = fetch_required(github, repository, pull.base_ref)
     last_reason = ""
     green_but_blocked_since: float | None = None
+    waited = False
     while True:
         checks = fetch_checks(github, repository, pull.head_sha)
         block_settled = (
@@ -312,7 +317,8 @@ def merge_when_green(
                 if verdict.reason != last_reason:
                     report(verdict.reason)
                     last_reason = verdict.reason
-                sleep(interval)
+                sleep(interval if waited else first_interval)
+                waited = True
                 pull = fetch_pull(github, repository, number)
 
 

@@ -247,7 +247,7 @@ def test_waits_for_checks_then_merges_with_a_merge_commit_and_deletes_the_branch
         "/repos/iglootools/common/pulls/7/merge",
         {"merge_method": "merge", "sha": "abc123"},
     ) in fake.calls
-    assert clock.sleeps == [10, 10]
+    assert clock.sleeps == [30, 60]
 
 
 def test_a_failed_check_is_never_merged() -> None:
@@ -334,9 +334,7 @@ def test_a_block_with_every_check_green_is_waited_on_before_it_counts() -> None:
 
 def test_a_merge_state_that_lags_the_last_check_still_merges() -> None:
     # The race nbkp#317 hit: the required check passed, GitHub still said "blocked".
-    fake = FakeGitHub(
-        [[RUN_PASSED]], merge_states=["blocked", "blocked", "blocked", "clean"]
-    )
+    fake = FakeGitHub([[RUN_PASSED]], merge_states=["blocked", "clean"])
     outcome = _run(fake, Clock())
     assert outcome.merged
 
@@ -352,7 +350,7 @@ def test_a_block_that_outlasts_the_grace_is_refused() -> None:
 def test_time_spent_waiting_for_checks_does_not_use_up_the_grace() -> None:
     fake = FakeGitHub(
         [[RUN_PENDING]] * 10 + [[RUN_PASSED]],
-        merge_states=["blocked"] * 12 + ["clean"],
+        merge_states=["blocked"] * 11 + ["clean"],
     )
     outcome = _run(fake, Clock(), block_grace=30)
     assert outcome.merged
