@@ -174,6 +174,8 @@ instead of leaving it to be guessed change by change.
 - In every mode, the rest of this file still applies: the history reaching
   review is clean, and nothing bypasses a check, a ruleset or a permission
   prompt.
+- Once a pull request is merged, delete its branch, locally and on the remote.
+  A merged branch left behind looks like work in progress.
 - When the modes apply is refined as they are used.
 
 ### Exploratory: iterate in small steps, and publish only when asked
