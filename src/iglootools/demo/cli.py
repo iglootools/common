@@ -35,6 +35,11 @@ def _describe(error: uploads.DemoError, settings: DemoSettings) -> str:
                 f"No {settings.cast} in the {settings.artifact} artifact of run "
                 f"{error.detail}."
             )
+        case uploads.DemoErrorKind.POSTER_FAILED:
+            return (
+                f"Could not save the recording's preview from {error.command[-1]}: "
+                f"{error.detail}. The upload succeeded; the README was left alone."
+            )
         case uploads.DemoErrorKind.UPLOAD_FAILED:
             return (
                 f"asciinema upload failed:\n{error.detail}\n"
@@ -62,19 +67,24 @@ def upload_command(
         bool,
         typer.Option(
             "--readme/--no-readme",
-            help="Point the README's asciicast embed at the new recording.",
+            help="Save the recording's preview, and point the README's embed at both.",
         ),
     ] = True,
     commit: Annotated[
         bool,
-        typer.Option("--commit/--no-commit", help="Commit the README change."),
+        typer.Option(
+            "--commit/--no-commit",
+            help="Commit the README and the preview.",
+        ),
     ] = True,
 ) -> None:
     """
     Download the demo recorded by CI and upload it to asciinema.org.
 
-    Takes the newest successful run of the demo workflow, preferring main, uploads its
-    cast, then points the README's embed at the recording and commits that file alone.
+    Takes the newest successful run of the demo workflow, preferring main, and uploads
+    its cast. Then saves the recording's preview image in the repository, points the
+    README's embed at both, and commits those two files alone: GitHub cannot show an
+    image hosted on asciinema.org, so the README shows the copy.
     """
     proj = project(ctx)
     settings = proj.demo
@@ -83,7 +93,10 @@ def upload_command(
         readme_was_dirty = (
             update_readme
             and commit
-            and uploads.has_uncommitted_changes(readme, proj.root)
+            and any(
+                uploads.has_uncommitted_changes(path, proj.root)
+                for path in (readme, settings.poster)
+            )
         )
         workflow_run = (
             uploads.view_run(run_id) if run_id else uploads.latest_run(settings)
@@ -134,35 +147,43 @@ def _record_in_readme(
             f"{shown} was left alone. Update its embed by hand.",
         )
         raise typer.Exit(1)
-    _repoint_readme(readme, shown, url)
+    try:
+        uploads.download_poster(url, settings.poster)
+    except uploads.DemoError as error:
+        warn(_describe(error, settings))
+        raise typer.Exit(1) from None
+    image = Path(os.path.relpath(settings.poster, readme.parent)).as_posix()
+    _repoint_readme(readme, shown, url, image)
+    paths = (readme, settings.poster)
+    files = " ".join(display_path(path, root) for path in paths)
     if not commit:
-        say(f"Not committing: `git add {shown}` and commit when ready.")
+        say(f"Not committing: `git add {files}` and commit when ready.")
         return
     if readme_was_dirty:
         warn(
-            f"{shown} had uncommitted changes before this run, so it was not "
+            f"{files} had uncommitted changes before this run, so they were not "
             "committed: a pathspec commit would take those too. Review the diff and "
             "commit it.",
         )
         raise typer.Exit(1)
     try:
-        say(f"Committed {uploads.commit_readme(readme, url, workflow_run, root)}")
+        say(f"Committed {uploads.commit_demo(paths, url, workflow_run, root)}")
     except uploads.DemoError as error:
         warn(_describe(error, settings))
         raise typer.Exit(1) from None
 
 
-def _repoint_readme(readme: Path, shown: str, url: str) -> None:
+def _repoint_readme(readme: Path, shown: str, url: str, image: str) -> None:
     if not readme.exists():
         warn(
             f"{shown} not found, so the embed cannot be updated. The upload succeeded.",
         )
         raise typer.Exit(1)
-    result = uploads.apply_embed(readme.read_text(encoding="utf-8"), url)
+    result = uploads.apply_embed(readme.read_text(encoding="utf-8"), url, image)
     if not result.found:
         warn(
             f"No asciicast embed in {shown}; expected a line like\n"
-            f"  {uploads.render_embed(url)}\n"
+            f"  {uploads.render_embed(url, image)}\n"
             "The upload succeeded: add or fix that line by hand.",
         )
         raise typer.Exit(1)

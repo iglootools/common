@@ -3,13 +3,15 @@ Publishing the demo that CI recorded to asciinema.org.
 
 GitHub-hosted runners have no route to asciinema.org, so the demo workflow records the
 cast and keeps it as an artifact, and this is the manual half: download the artifact,
-upload the cast unchanged (its title was written into the header at record time), point
-the README's asciicast embed at the new recording, and commit that one file.
+upload the cast unchanged (its title was written into the header at record time), save
+the recording's preview image in the repository, point the README's asciicast embed at
+both, and commit those two files.
 """
 
 import json
 import re
 import subprocess
+import urllib.request
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -20,11 +22,15 @@ from iglootools.project import DemoSettings
 type Capture = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]
 """Runs a command and returns its result with stdout and stderr captured."""
 
+type Fetch = Callable[[str], bytes]
+"""Returns the body at a URL; raises OSError when it cannot be fetched."""
+
 # Release-triggered runs land on the default branch and their recordings carry a release
 # version; a pull request branch would title the cast with a .devN version.
 PREFERRED_BRANCH = "main"
 _RUN_FIELDS = "databaseId,createdAt,headBranch,displayTitle"
-# [![asciicast](<url>.svg)](<url>), the embed near the top of the README.
+# [![asciicast](<image>)](<url>), the embed near the top of the README, whatever image
+# it shows: the copy in the repository, or the asciinema-hosted one it replaces.
 _EMBED = re.compile(r"\[!\[asciicast\]\([^)]*\)\]\([^)]*\)")
 # asciinema prints the recording URL on success. The server need not be asciinema.org.
 _RECORDING_URL = re.compile(r"https?://\S+?/a/[A-Za-z0-9]+")
@@ -38,6 +44,7 @@ class DemoErrorKind(StrEnum):
     NO_SUCCESSFUL_RUN = "no-successful-run"
     NO_CAST_IN_ARTIFACT = "no-cast-in-artifact"
     UPLOAD_FAILED = "upload-failed"
+    POSTER_FAILED = "poster-failed"
 
 
 class DemoError(RuntimeError):
@@ -201,14 +208,55 @@ def recording_url(upload_output: str) -> str | None:
     return match.group(0).rstrip(".,") if match else None
 
 
-def render_embed(url: str) -> str:
-    """Return the README's asciicast embed, a linked image, for the recording *url*."""
-    return f"[![asciicast]({url}.svg)]({url})"
+def poster_url(url: str) -> str:
+    """Return the URL of the preview image asciinema serves for the recording *url*."""
+    return f"{url}.svg"
 
 
-def apply_embed(readme: str, url: str) -> ReadmeUpdate:
-    """Point the README's asciicast embed at *url*."""
-    updated, count = _EMBED.subn(lambda _: render_embed(url), readme, count=1)
+def fetch_url(url: str) -> bytes:
+    """Return the body at *url*; raise OSError when it cannot be fetched."""
+    # An http(s) URL: the recording URL asciinema printed, as _RECORDING_URL matched it.
+    with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310
+        body: bytes = response.read()
+        return body
+
+
+def download_poster(url: str, poster: Path, fetch: Fetch = fetch_url) -> None:
+    """
+    Save the preview image of the recording *url* at *poster*.
+
+    The README embeds this copy rather than the image on the asciinema server: GitHub
+    shows a README's images through its camo proxy, which cannot reach asciinema.org,
+    and then falls back to a bare link. Raises DemoError when the image cannot be
+    fetched, or the response is not an SVG.
+    """
+    source = poster_url(url)
+    try:
+        body = fetch(source)
+    except OSError as error:
+        raise DemoError(
+            DemoErrorKind.POSTER_FAILED,
+            ("GET", source),
+            str(error),
+        ) from error
+    if b"<svg" not in body[:1024]:
+        raise DemoError(
+            DemoErrorKind.POSTER_FAILED,
+            ("GET", source),
+            "not an SVG image",
+        )
+    poster.parent.mkdir(parents=True, exist_ok=True)
+    poster.write_bytes(body)
+
+
+def render_embed(url: str, image: str) -> str:
+    """Return the README's asciicast embed: the local *image*, linked to *url*."""
+    return f"[![asciicast]({image})]({url})"
+
+
+def apply_embed(readme: str, url: str, image: str) -> ReadmeUpdate:
+    """Point the README's asciicast embed at the recording *url* and its *image*."""
+    updated, count = _EMBED.subn(lambda _: render_embed(url, image), readme, count=1)
     return ReadmeUpdate(found=count == 1, changed=updated != readme, content=updated)
 
 
@@ -229,22 +277,27 @@ def has_uncommitted_changes(path: Path, root: Path) -> bool:
     )
 
 
-def commit_readme(
-    readme: Path,
+def commit_demo(
+    paths: Sequence[Path],
     url: str,
     workflow_run: WorkflowRun,
     root: Path,
     run: Capture = capture,
 ) -> str:
-    """Commit the embed change on its own; returns the new commit's one-line summary."""
+    """Commit the README and the preview on their own; return the commit's summary."""
     message = (
         f"docs(readme): point the demo at {url.rsplit('/', 1)[-1]}\n\n"
         f"Uploaded the recording from demo workflow run {workflow_run.run_id} "
-        f"({workflow_run.branch}) with `iglootools demo upload`.\n\n"
+        f"({workflow_run.branch}) with `iglootools demo upload`, and saved its "
+        "preview in the repository.\n\n"
         f"{url}\n"
     )
+    files = [str(path) for path in paths]
+    # The preview is untracked on the first upload, and a pathspec commit takes only
+    # files git already knows.
+    _stdout(["git", "-C", str(root), "add", "--", *files], run)
     _stdout(
-        ["git", "-C", str(root), "commit", "--message", message, "--", str(readme)],
+        ["git", "-C", str(root), "commit", "--message", message, "--", *files],
         run,
     )
     return _stdout(["git", "-C", str(root), "log", "-1", "--oneline"], run).strip()
