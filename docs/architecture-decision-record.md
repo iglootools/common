@@ -14,6 +14,11 @@ format is in
   - [Decision](#decision)
   - [Rationale](#rationale)
   - [Consequences](#consequences)
+- [ADR-002 — Keep pyright as the type checker, rather than switching to ty](#adr-002--keep-pyright-as-the-type-checker-rather-than-switching-to-ty)
+  - [Context](#context-1)
+  - [Decision](#decision-1)
+  - [Rationale](#rationale-1)
+  - [Consequences](#consequences-1)
 <!-- tocstop -->
 
 ## ADR-001 — Check the pins on common offline, trusting uv.lock and IGLOOTOOLS_VERSION's name
@@ -118,3 +123,84 @@ Alternatives not pursued:
 **Retire this** when a project's CI can rely on a token and network access for
 its lints, or when a wrong SHA or a misnamed variable gets through: then add
 the `--online` verification and run it from adopt, or from CI.
+
+## ADR-002 — Keep pyright as the type checker, rather than switching to ty
+
+**Date:** 2026-11-22
+**Status:** Accepted
+
+### Context
+
+Every Python project type-checks with pyright, in strict mode, tests included,
+as
+[python-tooling.md](../guidelines/project-setup/python-tooling.md#type-check-with-pyright-in-strict-mode-tests-included)
+asks; common, nbkp and photree reached zero errors on 2026-11-22. Astral's ty
+is a faster alternative, still pre-1.0 (0.0.107 at the time), releasing several
+times a week. We re-evaluated pyright against ty twice: on the code as it was
+before strict mode, and again once it passed strict mode.
+
+Before strict mode, ty reported 12, 28 and 42 findings in common, nbkp and
+photree, mostly false positives. Once the projects passed strict mode it
+reported 20, none a real bug:
+
+- 9 already suppressed for pyright: ty reads neither `# pyright: ignore[...]`
+  nor the mypy-style `# type: ignore[arg-type]`.
+- 6 deliberate invalid writes in nbkp's tests, inside
+  `pytest.raises(ValidationError)`. ty sees pydantic's frozen fields as
+  read-only, which pyright does not; the tests are correct.
+- 5 false positives from ty's inference: narrowing across the `case` branches
+  of a tuple `match`, a `match` covering every member of an enum, narrowing
+  inside a nested function, and generic types between two functions.
+
+ty did not report what strict mode found before the projects were fixed: in
+common, the three `match` statements that handled only some cases, the untyped
+empty lists, and the private functions used from tests. Its 165 rules have no
+equivalent for most of strict mode:
+
+| Strict-mode check | ty |
+|---|---|
+| a `match` that misses a case | none; only a function that then returns nothing, not code that carries on after the `match` |
+| values of unknown type | only calls to functions with unknown signatures |
+| missing parameter or return annotations | none |
+| a `_private` name used from another module | none |
+| a bare `list` or `dict` | `missing-type-argument` |
+| a check or cast that cannot fail | `redundant-condition`, `redundant-cast` |
+| a suppression no longer needed | `unused-ignore-comment` |
+
+### Decision
+
+- **Keep pyright, in strict mode, as the type checker and `lint-types` gate for
+  the foreseeable future.**
+- **Do not run ty alongside it in CI.** Anyone may try ty as an editor language
+  server; nothing depends on it.
+
+### Rationale
+
+Switching would let the strict baseline erode without anything failing: new
+code could bring in values of unknown type, unannotated functions and partial
+`match` statements, which ty does not check. ty's advantage is speed, and
+pyright already checks each project in about two seconds. On top of that, ty
+has no compatibility promise before 1.0 and releases several times a week, its
+five false positives on our code would each need a `# ty: ignore`, and every
+existing `# pyright: ignore` would need rewriting in its syntax.
+
+Alternatives not pursued:
+
+- **Switch to ty.** Faster, and more precise on pydantic's frozen fields, but
+  it gives up most of what strict mode checks.
+- **Run both in CI.** It adds nothing pyright misses on our code, and doubles
+  the suppressions: every correct line ty misreads needs its own ignore.
+- **Run ty in CI as an advisory, non-blocking check.** A check nobody has to
+  act on is noise that teaches everyone to ignore it.
+
+### Consequences
+
+- The projects keep pyright's slower check, about two seconds each, which does
+  not matter at their size.
+- ty's real strengths, such as reading pydantic's frozen fields as read-only,
+  go unused.
+- Suppressions stay in pyright's syntax only.
+
+**Retire this** when ty reaches a stable 1.0 with equivalents for at least
+`match` exhaustiveness and unknown-type reporting: then re-run the comparison
+(`uvx ty@<version> check` on each project) and decide again.

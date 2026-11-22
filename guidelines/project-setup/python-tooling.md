@@ -362,6 +362,8 @@ what standard mode lets through: values of unknown type, a `match` that misses a
 case, a bare `list` or `dict`, a check that cannot fail, a private name used
 from another module. Tests are code too; left unchecked, they drift from the
 signatures they call.
+[ADR-002](../../docs/architecture-decision-record.md#adr-002--keep-pyright-as-the-type-checker-rather-than-switching-to-ty)
+records why pyright rather than ty.
 
 - **A `match` that handles only some cases ends in `case _: pass`** with a
   comment saying where the other cases go, so the fall-through is visible.
