@@ -12,18 +12,18 @@ rules, and [git.md](git.md) how the change is committed.
   - [Write each departure, and its reason, where a reader will hit it](#write-each-departure-and-its-reason-where-a-reader-will-hit-it)
   - [Name the condition that retires it](#name-the-condition-that-retires-it)
 - [Structure](#structure)
-  - [Prefer pure functions and immutable data](#prefer-pure-functions-and-immutable-data)
   - [Keep functions short, at one level of abstraction](#keep-functions-short-at-one-level-of-abstraction)
   - [Keep cohesion high and coupling low, at every level](#keep-cohesion-high-and-coupling-low-at-every-level)
   - [Keep riskier changes structurally apart](#keep-riskier-changes-structurally-apart)
   - [Enforce with a tool what a tool can check](#enforce-with-a-tool-what-a-tool-can-check)
-- [Presentation at the Edges](#presentation-at-the-edges)
+- [The Core and Its Edges](#the-core-and-its-edges)
+  - [Prefer pure functions and immutable data](#prefer-pure-functions-and-immutable-data)
+  - [Pass the current time in](#pass-the-current-time-in)
   - [Return data from the core, and render it at the edge](#return-data-from-the-core-and-render-it-at-the-edge)
   - [Escape interpolated text, or keep it apart from markup](#escape-interpolated-text-or-keep-it-apart-from-markup)
-- [Errors, Encoding and Time](#errors-encoding-and-time)
+- [Errors and Encoding](#errors-and-encoding)
   - [Surface every error; never fail silently](#surface-every-error-never-fail-silently)
   - [Use UTF-8 and UTC everywhere](#use-utf-8-and-utc-everywhere)
-  - [Pass the current time in](#pass-the-current-time-in)
 - [Testability](#testability)
   - [Control what a test needs with a decider, a fake or a cheap real resource](#control-what-a-test-needs-with-a-decider-a-fake-or-a-cheap-real-resource)
   - [Patch only in the three documented cases, and list each one](#patch-only-in-the-three-documented-cases-and-list-each-one)
@@ -76,13 +76,6 @@ it.
 
 ## Structure
 
-### Prefer pure functions and immutable data
-
-Mutate only where it genuinely simplifies the logic.
-
-**Why:** side effects stay at the edges.
-See [Functional style preferred](../philosophy.md#functional-style-preferred).
-
 ### Keep functions short, at one level of abstraction
 
 Extract named helpers when a function grows beyond ~30 lines or handles several
@@ -121,7 +114,24 @@ A compiler, type checker, linter, import contract or test, rather than prose.
 
 **Why:** a tool rejects the mistake when it is made; prose works only if read.
 
-## Presentation at the Edges
+## The Core and Its Edges
+
+The core computes on values it is given; the edges read the clock, the
+filesystem and the user, and render the results.
+
+### Prefer pure functions and immutable data
+
+Mutate only where it genuinely simplifies the logic.
+
+**Why:** side effects stay at the edges.
+See [Functional style preferred](../philosophy.md#functional-style-preferred).
+
+### Pass the current time in
+
+Core logic never reads the clock: entry points and tests pass `now` to it.
+
+**Why:** a function that reads the clock cannot be tested for a given moment
+without patching.
 
 ### Return data from the core, and render it at the edge
 
@@ -145,7 +155,7 @@ parameterized query; a plain-text print.
 **Why:** unescaped text fails silently, losing characters or changing meaning
 for the inputs nobody tested.
 
-## Errors, Encoding and Time
+## Errors and Encoding
 
 ### Surface every error; never fail silently
 
@@ -162,13 +172,6 @@ platform's default, and store and compare times in UTC.
 
 **Why:** a default encoding differs between machines, and local times are
 ambiguous.
-
-### Pass the current time in
-
-Core logic never reads the clock: entry points and tests pass `now` to it.
-
-**Why:** a function that reads the clock cannot be tested for a given moment
-without patching.
 
 ## Testability
 

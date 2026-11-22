@@ -139,7 +139,7 @@ A package takes the domain's own noun (`disks/`, `album/`). Layers inside it:
 - Enums subclass `StrEnum`, not `(str, Enum)`. Their values are stable tokens,
   kebab-case or one lowercase word (`"no-metadata"`, `"mounted"`), never prose:
   scripts match on the value, and the sentence a user reads is rendered at the
-  [edge](general.md#presentation-at-the-edges).
+  [edge](general.md#the-core-and-its-edges).
 - A `typing.Protocol` is named by its role (`VolumeCommandRunner`,
   `ConvertFile`); a callable type alias ends in `Fn` (`PromptFn`, `WhichFn`).
   Write aliases with `type X = ...`.
