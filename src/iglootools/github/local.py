@@ -62,13 +62,38 @@ def git(root: Path, *args: str, run: Run = capture) -> str:
     return result.stdout
 
 
+def require_clean(root: Path, *, run: Run = capture) -> None:
+    """Raise unless the checkout has no changes and no untracked files."""
+    if git(root, "status", "--porcelain", run=run).strip():
+        raise GitStepError(
+            "the checkout has changes or untracked files; commit, stash or remove them"
+        )
+
+
 def start_branch(root: Path, base: str, branch: str, *, run: Run = capture) -> None:
-    """Create *branch* from an up-to-date *base*, in a checkout with nothing uncommitted."""
-    if git(root, "status", "--porcelain", "--untracked-files=no", run=run).strip():
-        raise GitStepError("the checkout has uncommitted changes; commit or stash them")
+    """Create *branch* from an up-to-date *base*, in a clean checkout."""
+    require_clean(root, run=run)
+    sync(root, base, run=run)
+    git(root, "switch", "-q", "-c", branch, run=run)
+
+
+def sync(root: Path, base: str, *, run: Run = capture) -> None:
+    """Switch to *base* and bring it up to date with the remote, fast-forward only."""
     git(root, "switch", "-q", base, run=run)
     git(root, "pull", "-q", "--ff-only", run=run)
-    git(root, "switch", "-q", "-c", branch, run=run)
+
+
+def has_local_branch(root: Path, branch: str, *, run: Run = capture) -> bool:
+    return (
+        run(
+            ["git", "show-ref", "-q", "--verify", f"refs/heads/{branch}"], root
+        ).returncode
+        == 0
+    )
+
+
+def has_remote_branch(root: Path, branch: str, *, run: Run = capture) -> bool:
+    return bool(git(root, "ls-remote", "--heads", "origin", branch, run=run).strip())
 
 
 def commit_and_push(
@@ -80,5 +105,6 @@ def commit_and_push(
     run: Run = capture,
 ) -> None:
     git(root, "add", "--", *paths, run=run)
-    git(root, "commit", "-q", "-m", message, run=run)
+    if run(["git", "diff", "--cached", "--quiet"], root).returncode != 0:
+        git(root, "commit", "-q", "-m", message, run=run)
     git(root, "push", "-q", "-u", "origin", branch, run=run)

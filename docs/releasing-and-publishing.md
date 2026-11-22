@@ -91,26 +91,14 @@ Cut a release, then move every project to it, from common's checkout. Set the
 version once and paste the rest:
 
 ```bash
-VERSION=1.33.0                            # the release to cut
-WORKSPACE=~/Workspace/iglootools          # where the iglootools repositories are checked out
-PROJECTS=(nbkp photree network-infra alberta-hiking-resources)
+VERSION=1.34.0                     # the release to cut
 
-cd "$WORKSPACE/common"
-uv run --no-sync iglootools preflight                      # git, a GitHub token, mise, claude
-uv run --no-sync iglootools common release "$VERSION" -n   # the plan, changing nothing
+cd ~/Workspace/iglootools/common
+uv run --no-sync iglootools preflight                          # git, a GitHub token, mise, claude
+uv run --no-sync iglootools common release "$VERSION" -n       # the plan, changing nothing
 uv run --no-sync iglootools common release "$VERSION"
-
-for project in "${PROJECTS[@]}"; do
-  (cd "$WORKSPACE/$project" &&
-    uvx --from "git+https://github.com/iglootools/common@v$VERSION" \
-      iglootools common adopt "$VERSION")
-done
-
-for project in common "${PROJECTS[@]}"; do
-  (cd "$WORKSPACE/$project" &&
-    uvx --from "git+https://github.com/iglootools/common@v$VERSION" \
-      iglootools github prune-branches)
-done
+uv run --no-sync iglootools common adopt-all "$VERSION" -n     # every project: checks and plan
+uv run --no-sync iglootools common adopt-all "$VERSION"
 ```
 
 - **`common release`** opens the pull request bumping
@@ -118,18 +106,20 @@ done
   the merge commit both ways and checks the two tags name it. It plans from what
   GitHub already has, so rerunning it after an interruption finishes the
   release, and rerunning it on a finished release changes nothing.
-- **`common adopt`** moves every pin on common in the project (the reusable
+- **`common adopt-all`** takes every iglootools project checked out beside
+  common that pins it, and fails if a repository of the organization pins common
+  without a checkout there. It checks every project before changing any, then
+  adopts them in parallel: each moves every pin on common (the reusable
   workflows to the release's commit, the `iglootools` command, the Renovate
   presets, `IGLOOTOOLS_VERSION`), regenerates `uv.lock` where there is one, and
-  merges the pull request once green. A project already on the release is left
-  alone, so the loop can be rerun. Add `-n` to see the pins it would move. uvx
-  runs the release being adopted, in an environment of its own, so the loop
-  works in projects with and without Python alike.
-- **`github prune-branches`** then deletes the merged branches, on GitHub and
-  locally, keeping open pull requests and branches that never had one.
+  merges its pull request once green, deleting the branch. It runs from common's
+  own environment, so the release being adopted needs no install in the
+  projects. Rerunning it picks up each project where it stopped; `--only` and
+  `--exclude` narrow it. `common adopt` does the same for one project, from its
+  checkout.
 
 Renovate would open the adopt pull requests on its own, since the shared preset
-exempts common's releases from the release-age hold; the loop does it at once,
+exempts common's releases from the release-age hold; adopt-all does it at once,
 and reports what merged.
 
 ### By hand

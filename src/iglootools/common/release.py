@@ -16,7 +16,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from iglootools.common.pins import COMMON, VERSION
-from iglootools.github import local, merge, pulls
+from iglootools.github import events, local, merge, pulls
 from iglootools.github.client import GitHub, GitHubError, Repository, Run, capture
 
 PLUGIN_JSON = Path(".claude-plugin") / "plugin.json"
@@ -148,7 +148,7 @@ def release(
     version: str,
     found: Plan,
     *,
-    report: Callable[[str], None],
+    report: events.Report,
     sleep: Callable[[float], None],
     now: Callable[[], float],
     run: Run = capture,
@@ -178,7 +178,11 @@ def release(
             title=f"chore: release {version}",
             body=f"Release {version}.",
         )
-        report(f"Opened {repository.slug}#{number}")
+        report(
+            events.Event(
+                events.Stage.OPENED, f"Opened {repository.slug}#{number}", number
+            )
+        )
         merged = merge.merge_when_green(
             github, repository, number, sleep=sleep, now=now, report=report
         )
@@ -207,9 +211,7 @@ def _plugin_tag(root: Path, *, run: Run) -> None:
             )
 
 
-def _plain_tag(
-    root: Path, version: str, *, report: Callable[[str], None], run: Run
-) -> None:
+def _plain_tag(root: Path, version: str, *, report: events.Report, run: Run) -> None:
     """Tag the plugin tag's commit v<version>, and check the two name the same commit."""
     plugin_tag = f"iglootools--v{version}"
     plain_tag = f"v{version}"
@@ -231,4 +233,4 @@ def _plain_tag(
     }
     if len(commits) != 1:
         raise local.GitStepError(f"{plain_tag} and {plugin_tag} name different commits")
-    report(f"Tagged {plugin_tag} and {plain_tag}")
+    report(events.Event(events.Stage.TAGGED, f"Tagged {plugin_tag} and {plain_tag}"))

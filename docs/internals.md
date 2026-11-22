@@ -14,6 +14,7 @@ it is in
 - [The ones that load in every session](#the-ones-that-load-in-every-session)
 - [The `iglootools` command](#the-iglootools-command)
 - [Checking the pins on common](#checking-the-pins-on-common)
+- [Adopting a release everywhere](#adopting-a-release-everywhere)
 <!-- tocstop -->
 
 ## Two delivery mechanisms
@@ -133,3 +134,35 @@ which records the alternatives too:
   always write the right one.
 - `IGLOOTOOLS_VERSION` counts as a pin on common by its name; the check does not
   read the `IGLOOTOOLS` alias or the Renovate comment beside it.
+
+## Adopting a release everywhere
+
+`iglootools common adopt-all` runs from common's checkout and treats the
+directory it sits in as the workspace. It takes every git checkout there whose
+`origin` is a repository of the iglootools organization and that pins common,
+narrowed by `--only` and `--exclude`, and passes over the rest with the reason.
+A repository of the organization whose `renovate.json` mentions common, found
+through GitHub's code search, but which has no checkout in the workspace, fails
+the run: a project nobody cloned would otherwise be silently left on the old
+release.
+
+Before changing any project it checks all of them: no changes or untracked
+files, `origin` reachable with git and ssh unable to prompt, and a local default
+branch GitHub already has every commit of. One problem anywhere stops the run
+while nothing has happened.
+
+Then each project runs `common adopt` in a thread of its own. The work is almost
+all waiting, on CI and on GitHub's API, so threads cost nothing and keep the
+tested, synchronous adopt as it is. Each project's waits go through a sleep that
+an interrupt cancels, so Ctrl-C stops every project at its next poll; pushes
+take turns behind one lock, so two credential helpers never run at once; and a
+failure in one project leaves the others running. adopt is safe to run again,
+picking up from the pull request or branch an earlier run left, so rerunning
+adopt-all after an interruption or a failure resumes each project where it
+stopped. Progress is a live table in a terminal and lines prefixed with the
+project's name elsewhere, from the same events.
+
+**No project depends on another**, so the projects run in any order and at once.
+If one ever did, for instance a project consuming another's package, adopt-all
+would need an order: adopt and release the dependency first, then the projects
+that depend on it, which turns the single parallel step into stages.

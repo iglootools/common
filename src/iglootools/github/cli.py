@@ -110,7 +110,7 @@ def merge_when_green(
             pr,
             sleep=time.sleep,
             now=time.monotonic,
-            report=lambda reason: say(f"{repository.slug}#{pr}: {reason}"),
+            report=lambda event: say(f"{repository.slug}#{pr}: {event.detail}"),
             timeout=timeout,
             delete_branch=not keep_branch,
         )
