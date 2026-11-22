@@ -14,16 +14,17 @@ names. Read it before adding or reworking a rule. Rules are one of the
 - [Shape](#shape)
   - [Name the files or changes the guideline governs in its opening](#name-the-files-or-changes-the-guideline-governs-in-its-opening)
   - [Head each rule with the rule itself](#head-each-rule-with-the-rule-itself)
-  - [State the rule, then why, then the details](#state-the-rule-then-why-then-the-details)
-  - [Move a long why out of the rule](#move-a-long-why-out-of-the-rule)
   - [Write one idea per sentence](#write-one-idea-per-sentence)
-- [Content](#content)
-  - [Own each rule in one file, and cite it everywhere else](#own-each-rule-in-one-file-and-cite-it-everywhere-else)
-  - [Make an index say when to read a file, not what it says](#make-an-index-say-when-to-read-a-file-not-what-it-says)
+- [Reasons](#reasons)
+  - [State the rule, then why, then the details](#state-the-rule-then-why-then-the-details)
   - [Say how firmly a rule holds](#say-how-firmly-a-rule-holds)
+  - [Move a long why out of the rule](#move-a-long-why-out-of-the-rule)
+- [Ownership](#ownership)
+  - [Own each rule in one file, and cite it everywhere else](#own-each-rule-in-one-file-and-cite-it-everywhere-else)
   - [Let a check hold what a check can enforce](#let-a-check-hold-what-a-check-can-enforce)
-  - [Leave out what is not a rule](#leave-out-what-is-not-a-rule)
+  - [Make an index say when to read a file, not what it says](#make-an-index-say-when-to-read-a-file-not-what-it-says)
   - [Keep the always-on files to what every change needs](#keep-the-always-on-files-to-what-every-change-needs)
+  - [Leave out what is not a rule](#leave-out-what-is-not-a-rule)
 <!-- tocstop -->
 
 ## Shape
@@ -47,6 +48,15 @@ family", not "Task naming".
 **Why:** the table of contents becomes the full list of rules, readable without
 opening a section, and a link to the rule tells the reader what the rule says.
 
+### Write one idea per sentence
+
+Use bullets for parallel cases and tables for mappings.
+
+**Why:** a sentence carrying two ideas hides the second, and a list of cases in
+prose cannot be scanned.
+
+## Reasons
+
 ### State the rule, then why, then the details
 
 Each rule follows the same shape:
@@ -67,6 +77,20 @@ One who is weighing an exception reads the labelled line. Neither has to dig the
 other out of a paragraph. Why every rule carries a reason at all is in
 [A rule carries its reason](../philosophy.md#a-rule-carries-its-reason).
 
+### Say how firmly a rule holds
+
+Every shared rule is a default, departed from as
+[Documented Exceptions](../coding/general.md#documented-exceptions) describes.
+Do not repeat that in each file. The **Why:** line already calibrates the rule.
+Where breaking it is never acceptable, for instance because the failure is
+silent or a security risk, say so. Where an exception is already known, list
+it with the rule.
+
+**Why:** a reason that names a silent failure reads as firm, and one that names
+consistency reads as negotiable. A reader can only weigh an exception against a
+reason they can see, as
+[A rule carries its reason](../philosophy.md#a-rule-carries-its-reason) argues.
+
 ### Move a long why out of the rule
 
 When the reason needs more than two sentences, give it a `###` of the same name
@@ -77,14 +101,7 @@ rule's **Why:** line. Reasoning that more than one guideline rests on goes in
 **Why:** the rules stay compact enough to scan, and the argument is still one
 click away for the reader who needs it.
 
-### Write one idea per sentence
-
-Use bullets for parallel cases and tables for mappings.
-
-**Why:** a sentence carrying two ideas hides the second, and a list of cases in
-prose cannot be scanned.
-
-## Content
+## Ownership
 
 ### Own each rule in one file, and cite it everywhere else
 
@@ -100,29 +117,6 @@ copying the rule.
 
 **Why:** a summary is a copy, and copies drift without anything failing. The
 reader cannot tell which version wins.
-
-### Make an index say when to read a file, not what it says
-
-The guidelines' indexes, each directory's `README.md` and the skill's routing
-table, are [maps](types.md#say-when-to-go-there-not-what-is-inside): one line
-per file, naming the change that should send a reader there.
-
-**Why:** an index that summarizes each file is a second copy of every file, and
-the guidelines have several indexes.
-
-### Say how firmly a rule holds
-
-Every shared rule is a default, departed from as
-[Documented Exceptions](../coding/general.md#documented-exceptions) describes.
-Do not repeat that in each file. The **Why:** line already calibrates the rule.
-Where breaking it is never acceptable, for instance because the failure is
-silent or a security risk, say so. Where an exception is already known, list
-it with the rule.
-
-**Why:** a reason that names a silent failure reads as firm, and one that names
-consistency reads as negotiable. A reader can only weigh an exception against a
-reason they can see, as
-[A rule carries its reason](../philosophy.md#a-rule-carries-its-reason) argues.
 
 ### Let a check hold what a check can enforce
 
@@ -143,6 +137,24 @@ argues.
 - When a check is out of reach (it would need judgement, or cost more than the
   mistakes it catches), keep the rule in prose.
 
+### Make an index say when to read a file, not what it says
+
+The guidelines' indexes, each directory's `README.md` and the skill's routing
+table, are [maps](types.md#say-when-to-go-there-not-what-is-inside): one line
+per file, naming the change that should send a reader there.
+
+**Why:** an index that summarizes each file is a second copy of every file, and
+the guidelines have several indexes.
+
+### Keep the always-on files to what every change needs
+
+`coding/general.md`, `coding/git.md` and `coding/python.md` go into every
+session. A rule there must apply to every change in their scope. A rule about
+particular files belongs in the guideline those files trigger.
+
+**Why:** a line in an always-on file is read thousands of times, by readers who
+do not need it.
+
 ### Leave out what is not a rule
 
 - **No history.** What changed, and when, belongs in the commit or the
@@ -158,12 +170,3 @@ argues.
 
 **Why:** length hides the rule. The always-on guidelines are paid for in every
 session, and the others each time they are read.
-
-### Keep the always-on files to what every change needs
-
-`coding/general.md`, `coding/git.md` and `coding/python.md` go into every
-session. A rule there must apply to every change in their scope. A rule about
-particular files belongs in the guideline those files trigger.
-
-**Why:** a line in an always-on file is read thousands of times, by readers who
-do not need it.
