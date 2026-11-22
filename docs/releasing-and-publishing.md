@@ -14,6 +14,7 @@ the release.
 - [The shared workflows](#the-shared-workflows)
 - [The version is the pin](#the-version-is-the-pin)
 - [Releasing](#releasing)
+- [Propagating a release](#propagating-a-release)
 <!-- tocstop -->
 
 ## Changing what other repositories pin
@@ -102,3 +103,26 @@ which `claude plugin tag` creates and the plugin installs by, and a plain
 the `iglootools` command by. The plain tag exists because Renovate resolves
 ordinary version tags, not the prefixed spelling; without it no project gets an
 update pull request for the release.
+
+## Propagating a release
+
+Each project moves to the release through a pull request that
+`iglootools common adopt` opens and merges once its checks pass. It moves every
+pin on common: the reusable workflows to the release's commit, the `iglootools`
+command, the Renovate presets and `IGLOOTOOLS_VERSION`, and regenerates
+`uv.lock` where there is one. Run it from each project's checkout, with
+`-n` first to see the pins it would move:
+
+```bash
+for repo in ~/Workspace/iglootools/{nbkp,photree,network-infra,alberta-hiking-resources}; do
+  (cd "$repo" && uvx --from git+https://github.com/iglootools/common@v<version> \
+    iglootools common adopt <version>)
+done
+```
+
+uvx runs the release being adopted, in an environment of its own, so the loop
+works in projects with and without Python alike.
+
+Renovate would open the same pull requests without the release-age hold, which
+the shared preset lifts for common's own releases; the command does it at once,
+and reports what merged.

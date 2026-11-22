@@ -48,3 +48,37 @@ def local_branches(root: Path, *, run: Run = capture) -> list[str]:
         ["git", "for-each-ref", "--format=%(refname:short)", "refs/heads"], root
     )
     return [line for line in result.stdout.splitlines() if line]
+
+
+class GitStepError(RuntimeError):
+    """A git step failed; the message is git's own."""
+
+
+def git(root: Path, *args: str, run: Run = capture) -> str:
+    """Run `git <args>` in *root*, returning its output, or raise with git's message."""
+    result = run(["git", *args], root)
+    if result.returncode != 0:
+        raise GitStepError(f"git {' '.join(args)}: {result.stderr.strip()}")
+    return result.stdout
+
+
+def start_branch(root: Path, base: str, branch: str, *, run: Run = capture) -> None:
+    """Create *branch* from an up-to-date *base*, in a checkout with nothing uncommitted."""
+    if git(root, "status", "--porcelain", "--untracked-files=no", run=run).strip():
+        raise GitStepError("the checkout has uncommitted changes; commit or stash them")
+    git(root, "switch", "-q", base, run=run)
+    git(root, "pull", "-q", "--ff-only", run=run)
+    git(root, "switch", "-q", "-c", branch, run=run)
+
+
+def commit_and_push(
+    root: Path,
+    paths: list[str],
+    message: str,
+    branch: str,
+    *,
+    run: Run = capture,
+) -> None:
+    git(root, "add", "--", *paths, run=run)
+    git(root, "commit", "-q", "-m", message, run=run)
+    git(root, "push", "-q", "-u", "origin", branch, run=run)

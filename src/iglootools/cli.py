@@ -5,6 +5,7 @@ from typing import Annotated
 import typer
 
 from iglootools.cliwiring import Invocation, say
+from iglootools.common import cli as common_cli
 from iglootools.demo import cli as demo_cli
 from iglootools.docs import cli as docs_cli
 from iglootools.github import cli as github_cli
@@ -24,6 +25,7 @@ app.add_typer(demo_cli.app, name="demo")
 app.add_typer(mise_cli.app, name="mise")
 app.add_typer(shell_cli.app, name="shell")
 app.add_typer(github_cli.app, name="github")
+app.add_typer(common_cli.app, name="common")
 
 
 def _print_version(requested: bool) -> None:

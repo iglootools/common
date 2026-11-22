@@ -61,6 +61,11 @@ def _is_origin(ctx: typer.Context, repository: Repository) -> bool:
         return False
 
 
+def github_session(ctx: typer.Context, slug: str | None) -> tuple[Repository, GitHub]:
+    """The repository to work on and an authenticated client, or exit 2 saying why."""
+    return _repository(ctx, slug), _github(ctx)
+
+
 def _github(ctx: typer.Context) -> GitHub:
     try:
         return GitHub(resolve_token(invocation(ctx).root, environ=os.environ))
