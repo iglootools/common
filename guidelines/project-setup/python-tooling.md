@@ -13,6 +13,7 @@ naming in [mise.md](mise.md#name-tasks-by-family).
 - [Target only the latest stable Python](#target-only-the-latest-stable-python)
   - [Name the version in the four places that pin it](#name-the-version-in-the-four-places-that-pin-it)
   - [Move to a new Python release](#move-to-a-new-python-release)
+  - [When a dependency lags](#when-a-dependency-lags)
 - [Build and Packaging](#build-and-packaging)
   - [Build with hatchling and uv-dynamic-versioning](#build-with-hatchling-and-uv-dynamic-versioning)
   - [Pin the build backend explicitly](#pin-the-build-backend-explicitly)
@@ -60,8 +61,7 @@ can get a current interpreter in one step.
   no version matrix.
 - There is no compatibility check (`vermin`): nothing can be too new.
 - A dependency without wheels for the latest release holds the project back as
-  [python.md › When a dependency lags](../coding/python.md#when-a-dependency-lags)
-  describes.
+  [When a dependency lags](#when-a-dependency-lags) describes.
 
 ### Name the version in the four places that pin it
 
@@ -104,6 +104,18 @@ later as a failed install on a user's machine.
      rewrite the idioms the new version makes redundant.
   3. Adopt the release's new features where they remove a workaround or make
      the code simpler, not everywhere they could apply.
+
+### When a dependency lags
+
+A dependency that publishes no wheels for the latest release holds the project
+back. Stay on the newest version that dependency supports, and record it as a
+[documented exception](../applying-the-guidelines.md#documented-exceptions): a
+comment next to `requires-python` naming the dependency and the condition that
+retires it, usually "move when it publishes wheels for 3.x". Do not build the
+dependency from source to get ahead of it.
+
+**Why:** building from source trades a version number for a toolchain every
+user then needs.
 
 ## Build and Packaging
 

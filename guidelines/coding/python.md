@@ -33,8 +33,6 @@ project is [python-tooling.md](../project-setup/python-tooling.md)'s.
 - [Tests](#tests)
   - [Build serialized test data from the models](#build-serialized-test-data-from-the-models)
   - [Make a seam a keyword parameter whose default is the real function](#make-a-seam-a-keyword-parameter-whose-default-is-the-real-function)
-- [Target only the latest stable Python](#target-only-the-latest-stable-python)
-  - [When a dependency lags](#when-a-dependency-lags)
 <!-- tocstop -->
 
 ## Functional Style
@@ -299,24 +297,3 @@ without testing anything.
   library's own API.
 - Use real values, not `Mock` stand-ins: a stand-in accepts any attribute
   access, so a typo or a renamed field still passes.
-
-## Target only the latest stable Python
-
-Support one version, the latest stable CPython release, for development, CI and
-users alike. Where it is pinned and how to move to a new release is in
-[python-tooling.md › Target only the latest stable Python](../project-setup/python-tooling.md#target-only-the-latest-stable-python).
-
-**Why:** an older floor puts every newer feature off-limits and needs a second
-interpreter tested that nobody develops on.
-
-### When a dependency lags
-
-A dependency that publishes no wheels for the latest release holds the project
-back. Stay on the newest version that dependency supports, and record it as a
-[documented exception](../applying-the-guidelines.md#documented-exceptions): a
-comment next to `requires-python` naming the dependency and the condition that
-retires it, usually "move when it publishes wheels for 3.x". Do not build the
-dependency from source to get ahead of it.
-
-**Why:** building from source trades a version number for a toolchain every
-user then needs.
