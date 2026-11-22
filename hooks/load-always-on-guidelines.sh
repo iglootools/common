@@ -29,15 +29,17 @@ emit() {
 printf '# iglootools common guidelines\n\n'
 printf 'Shared across iglootools projects and delivered by the iglootools plugin. These govern\n'
 printf 'every edit. Each rule is a default: the terms for departing from one are in\n'
-printf 'coding/general.md, Documented Exceptions, below. The project'"'"'s own guidelines\n'
+printf 'applying-the-guidelines.md, Documented Exceptions, below. The project'"'"'s own guidelines\n'
 printf '(docs/guidelines.md or docs/guidelines/README.md) follow at the end when it has them.\n\n'
 # The guideline files do not repeat, one per file, that they are defaults and where the
 # reasoning lives: stating it once here reaches every session.
 printf 'The reasoning behind these rules is in %s/guidelines/philosophy.md.\n\n' "$plugin_root"
-# guidelines/, not the plugin root: these files sit one directory down, and a relative link such
-# as general.md's ../philosophy.md only resolves if you know that.
-printf 'These files live in %s/guidelines/coding/, where the relative links inside them resolve.\n\n' "$plugin_root"
+# The paths matter: a relative link such as general.md's ../philosophy.md only resolves if you
+# know which directory the file sits in.
+printf 'applying-the-guidelines.md lives in %s/guidelines/, and the coding files below it in\n' "$plugin_root"
+printf '%s/guidelines/coding/, where the relative links inside them resolve.\n\n' "$plugin_root"
 
+emit "$plugin_root/guidelines/applying-the-guidelines.md"
 emit "$plugin_root/guidelines/coding/general.md"
 emit "$plugin_root/guidelines/coding/git.md"
 

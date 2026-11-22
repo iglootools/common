@@ -41,7 +41,7 @@ a change actually reaches, and an ordinary code change reads none of them.
 It also enforces the philosophy the guidelines rest on: check the work against
 them before calling it done, and document a deviation rather than drift from a
 rule silently. See
-[Documented Exceptions](../guidelines/coding/general.md#documented-exceptions).
+[Documented Exceptions](../guidelines/applying-the-guidelines.md#documented-exceptions).
 
 ## Auditing
 

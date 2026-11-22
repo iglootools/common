@@ -94,9 +94,9 @@ An overlong function is `MAINT`, and its rule cites
 ### Check whether each documented exception's retirement condition holds
 
 Every exception names the condition that retires it
-([general.md](../coding/general.md#name-the-condition-that-retires-it)). The
-audit checks whether it now holds: the dependency published wheels, the plan was
-upgraded.
+([applying-the-guidelines.md](../applying-the-guidelines.md#name-the-condition-that-retires-it)).
+The audit checks whether it now holds: the dependency published wheels, the plan
+was upgraded.
 
 **Why:** nothing else checks.
 
@@ -222,7 +222,8 @@ Never delete a finding from a report.
 
 Never edit around the rule. Either the finding is wrong, and gets
 `won't fix: <reason>`, or the project records an exception as
-[Documented Exceptions](../coding/general.md#documented-exceptions) describes.
+[Documented Exceptions](../applying-the-guidelines.md#documented-exceptions)
+describes.
 
 **Why:** code edited around a rule hides the disagreement that the rule or the
 finding should settle.

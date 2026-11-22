@@ -80,11 +80,11 @@ other out of a paragraph. Why every rule carries a reason at all is in
 ### Say how firmly a rule holds
 
 Every shared rule is a default, departed from as
-[Documented Exceptions](../coding/general.md#documented-exceptions) describes.
-Do not repeat that in each file. The **Why:** line already calibrates the rule.
-Where breaking it is never acceptable, for instance because the failure is
-silent or a security risk, say so. Where an exception is already known, list
-it with the rule.
+[Documented Exceptions](../applying-the-guidelines.md#documented-exceptions)
+describes. Do not repeat that in each file. The **Why:** line already calibrates
+the rule. Where breaking it is never acceptable, for instance because the
+failure is silent or a security risk, say so. Where an exception is already
+known, list it with the rule.
 
 **Why:** a reason that names a silent failure reads as firm, and one that names
 consistency reads as negotiable. A reader can only weigh an exception against a

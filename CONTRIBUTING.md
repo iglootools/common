@@ -22,8 +22,8 @@ Edits here follow [guidelines/coding/general.md](guidelines/coding/general.md),
 [guidelines/coding/python.md](guidelines/coding/python.md) and
 [guidelines/coding/git.md](guidelines/coding/git.md), like any other iglootools
 project.
-[Documented Exceptions](guidelines/coding/general.md#documented-exceptions) is
-the bar a documented exception has to meet.
+[Documented Exceptions](guidelines/applying-the-guidelines.md#documented-exceptions)
+is the bar a documented exception has to meet.
 
 ## Understanding the repository
 
