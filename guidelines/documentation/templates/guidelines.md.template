@@ -1,0 +1,69 @@
+# Project-Specific Guidelines
+
+What every change to nbkp must respect beyond the shared
+[iglootools guidelines](https://github.com/iglootools/common/blob/main/guidelines/README.md): where
+the conventions for particular areas live, which shared rules do not apply, where nbkp departs
+from them, the rules it adds, the patches its tests make, and which documents each kind of change
+updates. Read it before any change; it overrides the shared guidelines as
+[applying-the-guidelines.md › Precedence](https://github.com/iglootools/common/blob/main/guidelines/applying-the-guidelines.md#precedence)
+describes.
+
+## Area conventions
+
+Read the linked document in full before changing files under these paths.
+
+| Paths | Conventions |
+|-------|-------------|
+| `nbkp/cli/`, `nbkp/*/cli/` — and adding a command or option anywhere | [cli.md](guidelines/cli.md) — the helper modules, and the exceptions to the shared CLI rules |
+| `tests/`, `nbkp/*/testkit/` | [testing.md](guidelines/testing.md) — which suite a test goes in, and the deciders, fakes and resources to test with |
+
+## Out of scope
+
+| Shared section | Why it does not apply |
+|---|---|
+| [cli-demo.md](https://github.com/iglootools/common/blob/main/guidelines/project-setup/cli-demo.md) | <the reason, such as: the project ships no CLI> |
+
+## Exceptions
+
+### Keep the SSH timeout keys in plain seconds
+
+Overrides [general.md › Name from the domain's vocabulary, then the surface's conventions](https://github.com/iglootools/common/blob/main/guidelines/coding/general.md#name-from-the-domains-vocabulary-then-the-surfaces-conventions):
+`connect-timeout` and the other SSH timeout keys are numbers of seconds, with no unit in the name.
+
+**Why:** they are configuration keys users have written, and they mirror the OpenSSH option names
+they map to.
+
+**Retires when:** a major release accepts durations with a unit (`10s`), keeping a bare number as
+seconds.
+
+## Rules
+
+### Mirror a change to `run` or the sync logic in `sh`
+
+A change to the `run` command or to `nbkp/sync/` is mirrored in the script `sh` generates, or the
+code says why `sh` drops it.
+
+**Why:** `sh` is the same backup as a standalone script, and a difference nobody wrote down reads as
+a bug in one of them.
+
+## Tests
+
+Tests patch only in the cases
+[general.md › Patch only in the three documented cases](https://github.com/iglootools/common/blob/main/guidelines/coding/general.md#patch-only-in-the-three-documented-cases-and-list-each-one)
+allows, enforced as
+[python-tooling.md › Enforce the patching rule](https://github.com/iglootools/common/blob/main/guidelines/project-setup/python-tooling.md#enforce-the-patching-rule)
+sets up. Each patch nbkp has:
+
+| File | What it replaces | Category | Why | Retires when |
+|---|---|---|---|---|
+| `tests/remote/test_docker_testkit.py` | `docker.from_env` | (a) | checks the port binding handed to the Docker SDK without a Docker daemon | the container starters take the client as a parameter |
+
+## Documentation
+
+| A change to | Updates |
+|---|---|
+| a command or option | `docs/cli-reference.md` (`mise run clidocs`), `features.md`, `usage.md` |
+| a config field | `docs/config-reference.md` (`mise run configdocs`, then the prose the generator cannot derive), `usage.md` |
+| an entity or an invariant | `domain.md` |
+| a module or the layering | `architecture.md` and the import-linter contracts; `mise run depgraph` |
+| a patch in a test | the [table above](#tests) |

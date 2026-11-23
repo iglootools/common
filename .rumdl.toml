@@ -17,3 +17,5 @@ headings = false
 # own: Claude Code shows the front matter's name and description instead.
 "skills/**/SKILL.md" = ["MD041"]
 "agents/*.md" = ["MD041"]
+".claude/skills/**/SKILL.md" = ["MD041"]
+".claude/agents/*.md" = ["MD041"]

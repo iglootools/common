@@ -24,6 +24,8 @@ claude plugin install pyright-lsp@claude-plugins-official --scope project
 grepping for names, which matters wherever the same name appears in several
 modules.
 
+- A Python project is one as
+  [python-tooling.md](python-tooling.md)'s opening defines it.
 - It provides go-to-definition, find-references, hover types, symbol search and
   call hierarchy, and pushes diagnostics into Claude's context after each edit.
 - Resolution stays per project in a multi-project session, even one rooted

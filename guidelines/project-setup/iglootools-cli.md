@@ -73,10 +73,8 @@ Python have one as well is in
   `[project]` table with only `name`, `version = "0"` and `requires-python`,
   the dependency group, `package = false` under `[tool.uv]`, and a comment
   saying why the file is there. Its `mise.toml` sets uv up as
-  [python-tooling.md › Mise and uv](python-tooling.md#mise-and-uv) describes:
-  `python` and `uv` in `[tools]`, the `UV_PYTHON` settings, `[deps.uv]`, and a
-  `lint-lock-uv` task. Commit `uv.lock`, ignore `.venv/`, and set `UV_LOCKED`
-  in CI. alberta-hiking-resources'
+  [python-tooling.md › Mise and uv](python-tooling.md#mise-and-uv) describes.
+  Commit `uv.lock`, and ignore `.venv/`. alberta-hiking-resources'
   [pyproject.toml](https://github.com/iglootools/alberta-hiking-resources/blob/main/pyproject.toml)
   is a working example.
 - `uv.lock` records the commit the tag resolved to. Move the pin, then
@@ -92,7 +90,8 @@ Python have one as well is in
 
 ## Check that every pin on common agrees
 
-Run `iglootools common check-pins` as a `lint-common-pins` task, part of `lint`.
+In every project that pins a release of common, run
+`iglootools common check-pins` as a `lint-common-pins` task, part of `lint`.
 It finds every pin on common in the tracked files, spelled any way, and fails
 when two name different releases, a SHA pin lacks its `# vX.Y.Z` comment, they
 disagree with what `uv.lock` resolved, or `iglootools common adopt` would not

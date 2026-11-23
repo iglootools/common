@@ -7,6 +7,15 @@ before changing any of them, or the Python version. The language itself is in
 [python.md](../coding/python.md), the editor in [ide.md](ide.md), and task
 naming in [mise.md](mise.md#name-tasks-by-family).
 
+A Python project is one that builds a package from Python code it tracks. A
+project whose only Python is the `pyproject.toml` that installs the `iglootools`
+command is not one. The guidelines for Python projects do not apply to it, and
+it needs no exception to leave them out: `coding/python.md`,
+`pypi-publishing.md`, everything in this file but [Mise and uv](#mise-and-uv),
+[ide.md › Pin the venv for pyright](ide.md#pin-the-venv-for-pyright-in-toolpyright)
+and
+[claude-code.md's pyright-lsp rule](claude-code.md#install-pyright-lsp-at-project-scope-in-every-python-project).
+
 <!-- toc -->
 **On this page**
 
@@ -211,7 +220,13 @@ never accepts a version twice. [Rationale](#guard-against-a-000-release-1)
 ### Tell hatchling what to package
 
 Set `[tool.hatch.build.targets.wheel] packages` and
-`[tool.hatch.build.targets.sdist] only-include` explicitly.
+`[tool.hatch.build.targets.sdist] only-include` explicitly, and exclude
+`.DS_Store` from both:
+
+```toml
+[tool.hatch.build]
+exclude = [".DS_Store"]
+```
 
 **Why:** hatchling's sdist includes every file the VCS does not ignore,
 shipping `tests/`, `docs/`, `.github/` and the lockfiles. Its wheel is inferred
@@ -221,6 +236,8 @@ is silently empty rather than an error.
 - hatchling reads only `.gitignore`, so a file ignored only locally is
   published: see
   [repository.md › the committed `.gitignore`](repository.md#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore).
+  The `.DS_Store` exclusion is a guard that keeps the published artifact
+  independent of ignore-file hygiene.
 - When changing build backend, prove parity: diff the wheel payload and the
   sdist file list against the previous toolchain's at the same tag, and install
   the wheel and exercise anything read through `importlib.resources` or
@@ -250,12 +267,16 @@ commit.
 ## Mise and uv
 
 Common's [mise.toml](../../mise.toml) is a working example of these settings,
-with each line's reason.
+each line citing the rule it follows rather than restating its reason.
 
 These apply to every iglootools project, with Python or without, since each
 installs the `iglootools` command through uv
 ([iglootools-cli.md](iglootools-cli.md#install-it-as-a-dev-dependency-pinned-to-a-release)).
-The rest of this file is for Python projects only.
+The exception is
+[Keep `install` and `reinstall` as tasks over `mise deps`](#keep-install-and-reinstall-as-tasks-over-mise-deps),
+which is for Python projects: a project without Python has an `install` task
+only if it installs something of its own, such as its pnpm dependencies. The
+rest of this file is for Python projects only.
 
 ### Pin uv to mise's interpreter by absolute path
 
@@ -309,18 +330,26 @@ re-resolve on the runner, and CI tests something nobody committed.
 
 ### Invoke tools through `uv run --no-sync <tool>` in mise tasks, not bare
 
-Write `run = "uv run --no-sync ruff check ."`, not `run = "ruff check ."`, and
-state the same rule in the project's own docs, with `mise exec -- <tool>` as the
-way to run a tool from an unactivated shell.
+Write `run = "uv run --no-sync ruff check ."`, not `run = "ruff check ."`.
+Scripts, non-interactive runs and anything an agent runs do the same:
+`uv run --no-sync <tool>` for a tool in the project's environment, and
+`mise exec -- <tool>` for a tool mise installs. The project's contributor docs
+give these commands.
 
 **Why:** mise does not remove a foreign `.venv/bin` already on `PATH`, so in a
 shell where another project's virtualenv is active a bare `ruff` silently runs
 that project's copy.
 [Rationale](#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare-1)
 
+- In an interactive shell where mise is activated, a person may call the tools
+  by name, bare (`ruff`, `dprint`), as long as no other project's virtualenv is
+  active there: mise does not remove a foreign `.venv/bin` from `PATH`. A
+  script, a mise task, a non-interactive run or an agent has no mise-activated
+  shell.
 - `uv run` resolves the environment from the project root and ignores `PATH`.
   `--no-sync` leaves installing to `[deps.uv]` alone.
-- Tools mise itself installs, such as dprint and rumdl, run bare.
+- Tools mise itself installs, such as dprint and rumdl, are on mise's `PATH`
+  and in no virtualenv, so their tasks run them bare.
 
 ### Add and remove dependencies with `uv add` and `uv remove`, then run `fmt`
 
@@ -377,7 +406,8 @@ Configure ruff in `pyproject.toml` with `target-version` as
 [ADR-003](../../docs/architecture-decision-record.md#adr-003--enable-every-ruff-rule-except-those-our-conventions-are-against)
 lists: the rules a convention is against, or that fight the formatter. Copy
 common's `[tool.ruff.lint]` block, which also bans relative imports, sets
-`max-statements = 30` and selects the preview rule `PLW1514`.
+`max-statements = 30`, combines `as` imports with the other names from their
+module (`combine-as-imports`), and selects the preview rule `PLW1514`.
 
 **Why:** a rule that is on rejects the mistake when it is made
 ([general.md](../coding/general.md#enforce-with-a-tool-what-a-tool-can-check)),
@@ -453,8 +483,9 @@ include_external_packages = true   # lets a contract name rich and typer
 - The task is `lint-boundaries`, named for the property, not `lint-imports`,
   which names the tool and is easily mistaken for its command.
 - import-linter reads every import, including those inside functions, so a rule
-  such as "the ML stack is imported lazily" is not a contract. Check it with a
-  test that imports the entry point and inspects `sys.modules`.
+  such as "the ML stack is imported lazily" is not a contract. Test it as
+  [python.md › Import at module level](../coding/python.md#import-at-module-level-and-defer-with-lazy-import)
+  describes.
 
 ### Prefer contracts whose coverage follows the code
 
@@ -583,7 +614,7 @@ and nothing reports it.
 
    @pytest.fixture
    def monkeypatch() -> Iterator[MonkeyPatch]:
-       """Patching is allowed in this file only: see docs/guidelines.md (Tests)."""
+       """Patching is allowed in this file only: see docs/guidelines.md › Tests."""
        with MonkeyPatch.context() as patch:
            yield patch
    ```
@@ -599,10 +630,11 @@ and nothing reports it.
           yield lambda path: stack.enter_context(contextlib.chdir(path))
   ```
 
-- The exceptions table in `docs/guidelines.md` stays the one list of reasons.
-  Each `noqa` comment carries a short form of its row.
-- A project adopting the rule with patches in place marks each one **pending**
-  the same way, so the checks go in before the tests are converted.
+- The patch table under `docs/guidelines.md` › Tests stays the one list of
+  reasons. Each `noqa` comment carries a short form of its row.
+- A patch already in place on adoption, listed as **pending** as general.md
+  says, gets its `noqa` like any other, so the checks go in before the tests
+  are converted.
 
 ## Rationale
 

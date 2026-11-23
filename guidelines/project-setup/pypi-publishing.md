@@ -186,12 +186,6 @@ build is a development version such as `1.4.0.post3.dev0+2a99beb`, which
 `build-verify` lets through, and only PyPI's refusal of local versions (`+…`)
 stands between it and PyPI.
 
-- A `workflow_run` with no tag skips rather than fails: nothing went wrong,
-  there was nothing to publish. A manual run with no tag fails before building.
-- The shared demo workflow resolves the tag the same way, through its `tag`
-  input, since a dry run would otherwise record a demo titled with a development
-  version.
-
 ### Check out the released commit, with its history and tags
 
 ```yaml

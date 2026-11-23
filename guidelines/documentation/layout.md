@@ -54,6 +54,16 @@ argues.
   [writing-guidelines.md](writing-guidelines.md#keep-the-always-on-guidelines-to-what-every-change-needs)
   asks. The other guidelines files are read when a change reaches what they
   govern.
+- **Start the entry file from
+  [templates/guidelines.md.template](templates/guidelines.md.template).** Its
+  sections, in this order and each only when it has content, are
+  `## Area conventions`, `## Out of scope`, `## Exceptions`, `## Rules`,
+  `## Tests` (the patch table) and `## Documentation` (the
+  [checklist](#name-which-document-each-kind-of-change-updates)). Each exception
+  is a `###` heading stating what the project does, then
+  `Overrides [<file> › <heading>](<link>): <what the project does instead>.`, a
+  `**Why:**` line and a `**Retires when:**` line, or `**Never retires:**` with
+  the reason it cannot.
 - **Anything long moves into its own file under `docs/guidelines/`**, linked
   from the entry under a heading that names the task: an implementation
   checklist (adding a CLI command, a config field, a migration), a testing
@@ -150,10 +160,16 @@ written for nbkp.
 - **Link, do not `@`-import.** An import loads the document into every session,
   needed or not. Write paths as links or in backticks: Claude Code treats a bare
   `@path` as an import.
-- **Keep it under a screen**, since it is read every session. What applies only
-  to some files belongs in the document that covers them.
-- **Do not restate** the shared guidelines, the project's documents, or
-  `docs/guidelines.md`, which agents already receive.
+- **Hold it to a map's limits**, as
+  [types.md › Say when to go there, not what is inside](types.md#say-when-to-go-there-not-what-is-inside)
+  sets them. Since it is read in every session, what applies only to some files
+  belongs in the document that covers them, and nothing agents already receive
+  is restated: the shared guidelines, the project's documents,
+  `docs/guidelines.md`.
+- **Commands may stay, rules may not**: the commands that build and check the
+  project, with when to run them, as
+  [types.md › Give each fact one home](types.md#give-each-fact-one-home-and-link-to-it)
+  allows for commands a reader follows; the rule behind each is cited.
 
 ## What to write
 
@@ -275,6 +291,16 @@ generated one with a check cannot.
 | the Module Overview in `docs/architecture.md` | the import graph | `depgraph` / `lint-depgraph` | `iglootools docs depgraph` |
 | the "On this page" list in each long document | its `##` and `###` headings | `toc` / `lint-toc` | `iglootools docs toc` |
 
+- **`reference-doc` runs every generated-reference writer** (`clidocs`,
+  `configdocs`, `depgraph`) in a project with more than one, so one command
+  regenerates them all:
+
+  ```toml
+  [tasks.reference-doc]
+  description = "Regenerate the reference documentation"
+  run = [{ task = "clidocs" }, { task = "configdocs" }, { task = "depgraph" }]
+  ```
+
 - **Every generator has a `lint-*` task, and `lint` runs it.** The tasks are
   one-line calls to the [`iglootools`](../project-setup/iglootools-cli.md)
   commands with `--check`, which exit non-zero when the output would change and
@@ -323,7 +349,7 @@ shorter document is read at a glance, so the list would only repeat it.
 
 ### Name which document each kind of change updates
 
-The `Documentation` checklist in `docs/guidelines.md` maps a kind of change to
+The `## Documentation` section of `docs/guidelines.md` maps a kind of change to
 the documents it has to touch: a new config field updates `config-reference.md`
 (regenerate, then the prose the generator cannot derive) and `usage.md`; a
 change to an entity or invariant updates `domain.md`; a new module updates the

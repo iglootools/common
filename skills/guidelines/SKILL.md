@@ -42,8 +42,8 @@ paths:
 plugin's `SessionStart` hook emits them at startup and again after a compaction,
 along with `coding/python.md` when the project has Python code, and the
 project's guidelines entry file after both when the project has one. Apply
-them at write time, not as a post-hoc review, and where the project's file
-contradicts a shared rule, follow the project's file.
+them at write time, not as a post-hoc review. Which one wins where they
+disagree is `applying-the-guidelines.md` › Precedence, also in context.
 
 If a file you need is not in context, because the project has no
 Python code, a compaction dropped it, or the hook reported that it could
@@ -97,7 +97,7 @@ looks skippable is usually the part that names the failure.
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/python-tooling.md` | Python building, packaging and dependencies, `uv.lock`, the import-linter setup, the dead-code check, the patching checks (ruff `TID251`, the failing `monkeypatch` fixture), the Python settings in `mise.toml` (`[deps.uv]`, the `python` and `uv` pins), or the Python task set. Adding a dependency counts wherever the edit lands. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/mise.md` | `mise.toml`, anything under `mise-tasks/`, `mise.lock`, or a shell script, in any project. Adding, renaming or changing a mise task — including choosing its name — counts wherever the edit lands. Read it *with* `python-tooling.md` when the edit is to a Python project's mise settings. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/workflows.md` | Anything under `.github/workflows/`. |
-| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, or the uv dependency-graph submission. Read it *with* `workflows.md`, not instead of it. |
+| `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/shared-workflows.md` | Adding or changing a workflow that calls one this plugin's repository hosts — the link checker, the `mise.lock` regenerator, the uv dependency-graph submission, or the `release.yml` and `demo.yml` stubs. Read it *with* `workflows.md`, not instead of it. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/dependency-automation.md` | `renovate.json`, `dependabot.yml`, the `lint-renovate` or `renovate-dry-run` tasks, the `npm:renovate` pin and `.mise/locks/`, or a question about why a dependency update did or did not appear. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/repository.md` | The committed `.gitignore`, setting up a new repository, its rulesets (branch or tag protection), how pull requests are merged, or the code of conduct and security policy. |
 | `${CLAUDE_PLUGIN_ROOT}/guidelines/documentation/layout.md` | Adding, renaming or restructuring project documentation: `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, or a file under `docs/` — including `docs/guidelines.md` and a new area-conventions document. |
@@ -126,10 +126,8 @@ while writing:
 2. `coding/general.md`, then `coding/python.md` for a Python change, rule by
    rule against what the diff actually does.
 3. Whichever file from the table above you read for this change.
-4. `coding/git.md` against the branch's commits, not only its diff: one concern
-   per commit, refactoring apart from behaviour, and any fix made while checking
-   folded into the commit that introduced the problem. A problem the branch only
-   carried along, through a move or a rename, gets a cleanup commit of its own.
+4. `coding/git.md`, rule by rule, against the branch's commits, not only its
+   diff.
 
 Say what you changed as a result.
 

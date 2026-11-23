@@ -7,9 +7,7 @@ from typing import Annotated
 import typer
 
 from iglootools.cliwiring import display_path, invocation, project, say, warn
-from iglootools.docs import clidocs
-from iglootools.docs import depgraph as depgraphs
-from iglootools.docs import toc as tocs
+from iglootools.docs import clidocs, depgraph as depgraphs, toc as tocs
 from iglootools.project import Project
 
 app = typer.Typer(

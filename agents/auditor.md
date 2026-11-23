@@ -38,9 +38,9 @@ yourself, in full:
    every other `guidelines.md` or `guidelines/**/*.md` that governs a path in
    your scope: `<dir>/guidelines.md` and `<dir>/guidelines/**` cover everything
    under `<dir>`, and a file under `docs/guidelines/` covers the paths the entry
-   file lists beside it. Where the project's rules contradict the shared ones,
-   the project wins, and a documented exception is not a finding unless its
-   retirement condition now holds.
+   file lists beside it. Which rule wins is
+   `${CLAUDE_PLUGIN_ROOT}/guidelines/applying-the-guidelines.md` › Precedence,
+   and how to treat a documented exception is `audit.md`'s.
 5. The shared `project-setup/` file under
    `${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/` that governs a file in your
    scope, when you audit that file — `workflows.md` for `.github/workflows/`,
@@ -57,7 +57,7 @@ The plugin version, which rule links cite, is the `version` in
   changed function can break a caller the diff does not show.
 - Prefer evidence to suspicion. Trace a suspected bug through the code, run the
   project's checks or a test when that settles the question, and say what you
-  ran. Only a finding you traced or reproduced is `confirmed`.
+  ran. Rate confidence as `audit.md` defines it.
 - For a branch range, establish the origin of every finding: check the same
   lines at the base (`git show <base>:<path>`, `git blame <base> -- <path>`).
   Present at the base is `pre-existing`. Otherwise name the branch commit that
@@ -129,8 +129,8 @@ outside-scope:
 ````
 
 `not-audited` names anything in your scope or categories you could not cover,
-and why — a file too large to read in full, a check that would not run. Never
-leave a gap unreported: a missing area must not read as a clean one.
+and why — a file too large to read in full, a check that would not run, as
+`audit.md`'s "Not audited" requires.
 
 `outside-scope` lists problems you noticed but do not own, because they are
 outside your scope, outside your categories, or both. Write one per line as

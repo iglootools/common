@@ -31,8 +31,8 @@ managers.
 - [renovate/base.json](../../renovate/base.json): extend it in every project.
   Each entry carries its reason in its `description`.
 - [renovate/python.json](../../renovate/python.json): extend it as well in a
-  Python project, one that builds a package. A project without Python, whose
-  `pyproject.toml` holds only the `iglootools` command, needs only `base`.
+  Python project, as [python-tooling.md](python-tooling.md)'s opening defines
+  it. Any other project needs only `base`.
 - iglootools' own releases skip the 14-day hold: the `base` preset exempts them,
   since the people who release them also review the update.
 
@@ -122,8 +122,9 @@ run = "renovate-config-validator --strict"
 **Why:** a mistake shows up before a push rather than on Renovate's next run.
 
 - **`renovate-dry-run` is a file task**: copy `mise-tasks/renovate-dry-run`
-  from iglootools/common. It needs `node` and `jq` in `[tools]`, and runs in a
-  project without Python.
+  from iglootools/common. It needs `node` and `jq` in `[tools]`, a GitHub token
+  (`GITHUB_COM_TOKEN`, or a `gh` that is logged in) and `column`, which macOS
+  and Linux ship, and runs in a project without Python.
 - **Pass `--strict`.** Without it, a config with a renamed or restructured
   option passes with a warning, and Renovate migrates it in memory on every run
   without telling anyone. Strict mode makes the migration land as a commit.

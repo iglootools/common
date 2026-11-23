@@ -34,7 +34,7 @@ is the bar a documented exception has to meet.
   reasoning behind the guidelines
 - [docs/internals.md](docs/internals.md): understand how the plugin delivers
   the guidelines and how the `iglootools` command is organized, before changing
-  `skills/`, `hooks/` or `agents/`
+  `skills/`, `hooks/`, `agents/` or `.claude/`
 - [docs/architecture-decision-record.md](docs/architecture-decision-record.md):
   find out which decisions were taken on this repository, and why
 
@@ -42,6 +42,8 @@ is the bar a documented exception has to meet.
 
 - [docs/installation.md](docs/installation.md): follow to install the plugin
   in a project, or update it
+- [docs/usage.md](docs/usage.md): follow to run the audits, including the
+  `audit-consistency-*` checks of the projects against common
 - [guidelines/project-setup/shared-workflows.md](guidelines/project-setup/shared-workflows.md):
   know what a caller of the reusable workflows this repository hosts must
   declare

@@ -22,6 +22,7 @@ before any code change; the plugin puts it in every session.
   - [Surface every error; never fail silently](#surface-every-error-never-fail-silently)
   - [Use UTF-8 and UTC everywhere](#use-utf-8-and-utc-everywhere)
 - [Testability](#testability)
+  - [Give every new behaviour a test](#give-every-new-behaviour-a-test)
   - [Control what a test needs with a decider, a fake or a cheap real resource](#control-what-a-test-needs-with-a-decider-a-fake-or-a-cheap-real-resource)
   - [Patch only in the three documented cases, and list each one](#patch-only-in-the-three-documented-cases-and-list-each-one)
 - [Code Comments](#code-comments)
@@ -35,6 +36,8 @@ before any code change; the plugin puts it in every session.
   - [Treat a file that exists but cannot be read as an error, never as absent](#treat-a-file-that-exists-but-cannot-be-read-as-an-error-never-as-absent)
   - [Report every failure in a batch, apart from the skips](#report-every-failure-in-a-batch-apart-from-the-skips)
   - [Expand `~` in every path a user writes](#expand--in-every-path-a-user-writes)
+  - [Select the output format with `-o/--output`, and write a file with `-f/--file`](#select-the-output-format-with--o--output-and-write-a-file-with--f--file)
+  - [Offer `--dry-run` on every command that changes data or runs long](#offer---dry-run-on-every-command-that-changes-data-or-runs-long)
   - [Exit with 0, 1 or 2](#exit-with-0-1-or-2)
 - [Version Management](#version-management)
   - [Pin or lock every dependency, and have CI assert the lock](#pin-or-lock-every-dependency-and-have-ci-assert-the-lock)
@@ -149,6 +152,13 @@ ambiguous.
 
 ## Testability
 
+### Give every new behaviour a test
+
+Put it in the suite the project's testing strategy assigns.
+
+**Why:** a behaviour no test covers can break in any later change without
+anything failing.
+
 ### Control what a test needs with a decider, a fake or a cheap real resource
 
 Use the first that fits:
@@ -176,9 +186,9 @@ developer's machine, such as a home directory.
 
 **Why:** an enforced list keeps each patch an exception, not a precedent.
 
-- The project's `docs/guidelines.md` lists each patch in a table: file, what it
-  replaces, category, why, what would retire it. A tool enforces the list, so a
-  new patch fails the build until removed or listed.
+- The project's `docs/guidelines.md` lists each patch in a table under Tests:
+  file, what it replaces, category, why, what would retire it. A tool enforces
+  the list, so a new patch fails the build until removed or listed.
 - Patches already in place on adoption are listed as **pending**: the guard
   stops new ones on day one, and the table is the work left.
 - A test never touches the developer's real environment: a user-level secret
@@ -287,6 +297,30 @@ did not already expand.
 
 **Why:** users write `~` in configuration files as they do on the command line,
 and only the shell expands it there.
+
+### Select the output format with `-o/--output`, and write a file with `-f/--file`
+
+A command that prints a result takes `-o/--output`: `human`, the default, or
+`json`. A project may add other formats, such as `csv`. `-f/--file PATH` writes
+the output to that file instead of stdout.
+
+**Why:** a script then asks every iglootools tool for JSON, or for a file, with
+the same flags, and `-o` never means a format in one tool and a file in
+another.
+
+### Offer `--dry-run` on every command that changes data or runs long
+
+`--dry-run`, or `-n`, shows what the command would do and changes nothing.
+
+**Why:** the user sees what a destructive or slow operation would do before it
+does it, and a dry run's output is never mistaken for a real run's. See
+[Correctness over convenience](../philosophy.md#correctness-over-convenience).
+
+- A line describing one action starts with `[dry-run]` and is worded
+  "Would …": `[dry-run] Would mount enc`.
+- A table, block or summary carries the label once, at the start of its title:
+  `[dry-run] Sync results:`.
+- JSON output carries `"dry_run": true`.
 
 ### Exit with 0, 1 or 2
 

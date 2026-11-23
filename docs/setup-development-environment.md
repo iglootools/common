@@ -22,9 +22,8 @@ test, which is what the `preflight` workflow runs on each pull request;
 
 This repository does not consume its own plugin: `${CLAUDE_PLUGIN_ROOT}` would
 resolve to the installed copy rather than the file being edited. Its
-[AGENTS.md](../AGENTS.md) points every agent at `coding/general.md`,
-`coding/python.md` and `coding/git.md` directly instead, which needs no plugin
-at all.
+[AGENTS.md](../AGENTS.md) points every agent at the always-on guidelines and
+the guideline indexes directly instead, which needs no plugin at all.
 
 To work on the plugin, load it from the working tree without installing it,
 which is what makes `${CLAUDE_PLUGIN_ROOT}` resolve here:

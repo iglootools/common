@@ -81,6 +81,14 @@ instead of restating it.
 **Why:** a copy drifts, and nothing fails when it does. See
 [State each fact once](../philosophy.md#state-each-fact-once).
 
+- **Commands a reader follows are the exception**: setup and how-to steps, and
+  an `AGENTS.md` command list, give them where the reader runs them, so a reader
+  mid-task does not hop between pages.
+- Link to a shared section instead only when it lists exactly the commands to
+  run. When the project's commands take its own arguments, or differ, write
+  them out in the project's document.
+- The rule behind a command, and its reason, are still cited, not restated.
+
 ### Use real examples
 
 Take each example from a working setup or command: short, copyable, and shown

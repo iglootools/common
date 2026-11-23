@@ -46,14 +46,17 @@ disagree about its format.
 
 ## Pin dprint and rumdl in mise
 
-Add both to `[tools]` with `mise use --pin dprint@<version> rumdl@<version>`,
-through `aqua:` backends, which `mise.lock` can lock
-([workflows.md](workflows.md)).
+Add both to `[tools]` with `mise use --pin dprint@<version> rumdl@<version>`.
+Pin them by the short name, which mise's registry resolves to an `aqua:`
+backend (`aqua:dprint/dprint`, `aqua:rvben/rumdl`) that `mise.lock` can lock
+([workflows.md](workflows.md#prefer-tools-whose-mise-backend-is-lockable)).
 
 **Why:** in `[tools]` rather than the dev dependency group, a project without
 Python gets them the same way, and Renovate's mise manager keeps them current.
 
-- mise puts them on `PATH`, so their tasks run them bare, not through `uv run`.
+- Their tasks run them bare, as
+  [python-tooling.md › Invoke tools through `uv run --no-sync <tool>`](python-tooling.md#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare)
+  says of tools mise installs.
 
 ## Add dprint's plugins with `dprint config add`
 
@@ -112,8 +115,7 @@ then wraps at rumdl's 80 columns.
 
 - A repository with Claude Code skills or agents adds `[per-file-ignores]`
   entries for MD041 (first line is a heading), `"skills/**/SKILL.md"` and
-  `"agents/*.md"`: they open with YAML front matter, which Claude Code shows
-  instead of a title.
+  `"agents/*.md"`, with the reason `.rumdl.toml` gives.
 
 ## Exclude Markdown with a syntax of its own from rumdl
 

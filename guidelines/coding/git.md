@@ -113,8 +113,7 @@ Land a pull request with GitHub's *Create a merge commit*, never *Squash and
 merge* or *Rebase and merge*. This is about how the pull request lands, not how
 the branch is kept: the branch is rebased onto `main` before review
 ([below](#rebase-and-clean-up-before-asking-for-review)), then merged with a
-merge commit. The repository ruleset enforces the merge method. A project that
-wants another method records why in its `docs/guidelines.md`.
+merge commit. The repository ruleset enforces the merge method.
 
 **Why:** squash and rebase merges write new commits, so the reviewed ones never
 reach `main`. A rebase merge copies each commit onto `main` with a new SHA, even
