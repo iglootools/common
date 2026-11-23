@@ -42,8 +42,8 @@ paths:
 plugin's `SessionStart` hook emits them at startup and again after a compaction,
 along with `coding/python.md` when the project has Python code, and the
 project's guidelines entry file after both when the project has one. Apply
-them at write time, not as a post-hoc review, and where the project's file
-contradicts a shared rule, follow the project's file.
+them at write time, not as a post-hoc review. Which one wins where they
+disagree is `applying-the-guidelines.md` › Precedence, also in context.
 
 If a file you need is not in context, because the project has no
 Python code, a compaction dropped it, or the hook reported that it could
@@ -126,10 +126,8 @@ while writing:
 2. `coding/general.md`, then `coding/python.md` for a Python change, rule by
    rule against what the diff actually does.
 3. Whichever file from the table above you read for this change.
-4. `coding/git.md` against the branch's commits, not only its diff: one concern
-   per commit, refactoring apart from behaviour, and any fix made while checking
-   folded into the commit that introduced the problem. A problem the branch only
-   carried along, through a move or a rename, gets a cleanup commit of its own.
+4. `coding/git.md`, rule by rule, against the branch's commits, not only its
+   diff.
 
 Say what you changed as a result.
 

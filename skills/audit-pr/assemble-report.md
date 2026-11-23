@@ -88,10 +88,9 @@ severity, then `confirmed` before `plausible`, then location, and number from 1:
 ## 7. Write the report
 
 Write it to `.iglootools/audits/<timestamp>-<scope>.md` at the repository root,
-with the timestamp from `date -u +%Y%m%dT%H%M%SZ` (ISO 8601 basic format, so
-reports sort by when they were written and the name has no `:`) and the scope
-the skill names. Add `-2`, `-3`, … when the file exists. Follow the layout in
-`audit.md` exactly:
+with the timestamp from `date -u +%Y%m%dT%H%M%SZ`, as `audit.md` names it, and
+the scope the skill names. Add `-2`, `-3`, … when the file exists. Follow the
+layout in `audit.md` exactly:
 
 - Header: what was audited (range and commit count, or the paths at a SHA), the
   categories, the number of auditors, the plugin version, and the verification
@@ -122,7 +121,8 @@ the skill names. Add `-2`, `-3`, … when the file exists. Follow the layout in
 Then check that the report is ignored by git:
 `git check-ignore -q .iglootools/audits/<file>`. If it is not, say so in your
 reply and suggest adding `.iglootools/` to the committed `.gitignore`. Do not
-edit `.gitignore` yourself: an audit reports, it does not change the project.
+edit `.gitignore` yourself, as `audit.md` › Report problems; fix them only
+when asked says.
 
 ## 8. Reply
 

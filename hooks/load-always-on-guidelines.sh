@@ -75,9 +75,9 @@ done
 
 if [[ -n "$project_guidelines" ]]; then
   printf '# Project guidelines (%s)\n\n' "$project_guidelines"
-  printf 'This project'"'"'s own rules, documented exceptions and checklists. Where they conflict with\n'
-  printf 'the shared guidelines above, these win; a divergence they do not document is drift, not an\n'
-  printf 'override. Read any document they link for an area in full before changing files there.\n\n'
+  printf 'This project'"'"'s own rules, documented exceptions and checklists. They take precedence as\n'
+  printf 'applying-the-guidelines.md, Precedence, above, describes. Read any document they link for an\n'
+  printf 'area in full before changing files there.\n\n'
   emit "$project_dir/$project_guidelines"
 fi
 
