@@ -22,7 +22,7 @@ it is in
 The guidelines split into two kinds, and the plugin delivers each by the
 mechanism that fits. `coding/general.md`, `coding/python.md` and `coding/git.md`
 govern every edit, so a `SessionStart` hook puts them in context from the start
-(`coding/python.md` only in a project with a `pyproject.toml`).
+(`coding/python.md` only in a project that tracks a `.py` file).
 The rest are triggered by a specific file, so a skill reads them only when a
 change reaches the files they govern.
 

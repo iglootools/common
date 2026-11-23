@@ -40,13 +40,13 @@ paths:
 
 `coding/general.md` and `coding/git.md` are already in this session — the
 plugin's `SessionStart` hook emits them at startup and again after a compaction,
-along with `coding/python.md` when the project has a `pyproject.toml`, and the
+along with `coding/python.md` when the project has Python code, and the
 project's guidelines entry file after both when the project has one. Apply
 them at write time, not as a post-hoc review, and where the project's file
 contradicts a shared rule, follow the project's file.
 
 If a file you need is not in context, because the project has no
-`pyproject.toml`, a compaction dropped it, or the hook reported that it could
+Python code, a compaction dropped it, or the hook reported that it could
 not read it, read `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/general.md`,
 `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md`,
 `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/python.md` or the project's
