@@ -406,7 +406,8 @@ Configure ruff in `pyproject.toml` with `target-version` as
 [ADR-003](../../docs/architecture-decision-record.md#adr-003--enable-every-ruff-rule-except-those-our-conventions-are-against)
 lists: the rules a convention is against, or that fight the formatter. Copy
 common's `[tool.ruff.lint]` block, which also bans relative imports, sets
-`max-statements = 30` and selects the preview rule `PLW1514`.
+`max-statements = 30`, combines `as` imports with the other names from their
+module (`combine-as-imports`), and selects the preview rule `PLW1514`.
 
 **Why:** a rule that is on rejects the mistake when it is made
 ([general.md](../coding/general.md#enforce-with-a-tool-what-a-tool-can-check)),

@@ -126,6 +126,11 @@ ban-relative-imports = "all"
 [tool.ruff.lint.pylint]
 max-statements = 30
 
+# Keeps aliased re-imports in the same `from x import (a, b as c)` block instead of a
+# separate import statement per alias.
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "unittest.mock".msg = "Inject a fake through a parameter instead of patching (general.md, Testability)."
 "pytest.MonkeyPatch".msg = "Inject a fake through a parameter instead of patching (general.md, Testability)."
