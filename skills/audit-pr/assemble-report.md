@@ -68,8 +68,9 @@ Findings:
 
 Drop each finding that comes back `rejected`, and count it for the report
 header. Set the confidence of each `upheld` finding to the one the verifier
-gives. A finding whose verifier failed keeps its original confidence and is
-noted in the header as unverified.
+gives. A finding whose verifier failed is set to `plausible`, as `audit.md` ›
+Mark confidence asks of a finding that was not proven, and is noted in the
+header as unverified.
 
 ## 5. Merge duplicates
 
