@@ -47,6 +47,10 @@ description = "Install dependencies"
 # one place to change if the experimental deps engine has to be abandoned.
 run = "mise deps install uv"
 
+[tasks.reinstall]
+description = "Delete .venv and reinstall dependencies from scratch"
+run = "uv run --no-sync iglootools python reinstall"
+
 # Task families (guidelines/project-setup/mise.md, "Name tasks by family"): a task that rewrites
 # files is named for what it writes (fmt, toc), anything that fails without writing is a lint-*,
 # and preflight runs every lint and test before a push.
@@ -54,8 +58,7 @@ run = "mise deps install uv"
 [tasks.preflight]
 description = "Run every lint and every test (what CI runs)"
 run = [
-  { task = "lint" },
-  { task = "test" },
+  { tasks = ["lint", "test"] },
 ]
 
 # Every test here is fast, so it differs from preflight in name only; it exists so that
@@ -63,8 +66,7 @@ run = [
 [tasks.preflight-quick]
 description = "Run every lint and the fast tests (here, every test)"
 run = [
-  { task = "lint" },
-  { task = "test" },
+  { tasks = ["lint", "test"] },
 ]
 
 [tasks.ci-preflight]
