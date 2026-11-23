@@ -21,6 +21,8 @@ The rest of the repository supports the guidelines rather than stating any:
 
 - [skills/](skills/) and [agents/](agents/): find what the `guidelines`,
   `audit-pr` and `audit-full` skills and the `auditor` agent do.
+- [.claude/](.claude/): find the `audit-consistency-*` skills, which check the
+  projects' guidelines and build against common's and each other.
 - [hooks/](hooks/): find the hook that loads the always-on guidelines, and the
   one that reminds you to audit before a pull request.
 - [src/iglootools/](src/iglootools/): find the `iglootools` command; how
@@ -39,8 +41,8 @@ clone of this repository is needed.
 
 - [docs/installation.md](docs/installation.md): follow to install the plugin in
   a project, and to move one project or all of them to a new release.
-- [docs/usage.md](docs/usage.md): follow to audit a branch or a codebase, and
-  fix the findings.
+- [docs/usage.md](docs/usage.md): follow to audit a branch or a codebase, fix
+  the findings, and check the projects against common.
 - [docs/internals.md](docs/internals.md): understand how the skill, the audits
   and the hooks decide what an agent reads, and when.
 

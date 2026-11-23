@@ -101,10 +101,11 @@ run = "dprint fmt"
 description = "Format the Markdown with rumdl"
 run = "rumdl fmt ."
 
-# The plugin's agent and skill files are prompts an agent reads whole, so they go without one.
+# The agent and skill files, the plugin's and this repository's own under .claude/, are prompts an
+# agent reads whole, so they go without one.
 [tasks.toc]
 description = "Add and regenerate the tables of contents in the Markdown files"
-run = "uv run --no-sync iglootools docs toc --exclude 'agents/*.md' --exclude 'skills/**'"
+run = "uv run --no-sync iglootools docs toc --exclude 'agents/*.md' --exclude 'skills/**' --exclude '.claude/**'"
 
 # Lints: each fails without writing anything.
 [tasks.lint]
@@ -176,7 +177,7 @@ run = "uv lock --check"
 
 [tasks.lint-toc]
 description = "Check that every Markdown document has an up-to-date table of contents (fix with `mise run toc`)"
-run = "uv run --no-sync iglootools docs toc --check --exclude 'agents/*.md' --exclude 'skills/**'"
+run = "uv run --no-sync iglootools docs toc --check --exclude 'agents/*.md' --exclude 'skills/**' --exclude '.claude/**'"
 
 # --strict fails on a config Renovate would migrate, which a plain run reports only as a
 # warning. Run with no argument it validates renovate.json as repository config; the presets

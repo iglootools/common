@@ -11,6 +11,7 @@ it is in [installation.md](installation.md), and running the audits in
 - [Two delivery mechanisms](#two-delivery-mechanisms)
 - [The `guidelines` skill](#the-guidelines-skill)
 - [Auditing](#auditing)
+- [Auditing consistency across the projects](#auditing-consistency-across-the-projects)
 - [The ones that load in every session](#the-ones-that-load-in-every-session)
 - [The `iglootools` command](#the-iglootools-command)
 - [Checking the pins on common](#checking-the-pins-on-common)
@@ -68,6 +69,29 @@ report under `.iglootools/audits/` covers the current commit: it takes the SHA
 after `..` in each report's `Scope:` line, the head an `audit-pr` report
 audited. It does not block the command, since an audit is a judgment call rather
 than a gate, and pull requests opened outside Claude get no reminder.
+
+## Auditing consistency across the projects
+
+The `audit-consistency-*` skills, run as
+[usage.md](usage.md#check-the-projects-against-common) shows, compare one area
+of common with the same area in every iglootools project checked out beside it,
+and the projects with each other.
+
+They are skills of this repository, under `.claude/`, not of the plugin: they
+run from common's checkout, read its siblings, and their fixes start in common,
+so they would mean nothing in a project that installs the plugin.
+
+Each skill names its area's files, the notes its auditors need, and how the
+work splits into passes: common against itself, each project against common,
+and the projects against each other. Everything else is shared: the
+[procedure](../.claude/audit-consistency/procedure.md) for finding the
+checkouts, running and verifying the auditors and writing the report, and the
+[`consistency-auditor` agent](../.claude/agents/consistency-auditor.md) with
+the categories and the format it returns. Another area, such as the workflows,
+is one more `audit-consistency-<area>` skill.
+
+Their reports go to `.iglootools/audits/` beside the plugin's, with no `Scope:`
+line, which the reminder hook above would read as an `audit-pr` of that commit.
 
 ## The ones that load in every session
 
