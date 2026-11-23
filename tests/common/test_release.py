@@ -5,8 +5,7 @@ from pathlib import Path
 import pytest
 
 from iglootools.common import release
-from iglootools.common.release import FULL, Plan
-from iglootools.common.release import Stage as ReleaseStage
+from iglootools.common.release import FULL, Plan, Stage as ReleaseStage
 from iglootools.github.client import GitHub, Repository
 from iglootools.github.events import Event, Stage
 

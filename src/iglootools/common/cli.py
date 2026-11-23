@@ -14,10 +14,13 @@ from rich.live import Live
 from rich.table import Table
 
 from iglootools.cliwiring import ensure, invocation, say, warn
-from iglootools.common import adopt as adoption
-from iglootools.common import adopt_all as everywhere
-from iglootools.common import pins, plugin
-from iglootools.common import release as releasing
+from iglootools.common import (
+    adopt as adoption,
+    adopt_all as everywhere,
+    pins,
+    plugin,
+    release as releasing,
+)
 from iglootools.github import pulls
 from iglootools.github.cli import REPO_OPTION, github_session
 from iglootools.github.client import GitHub, GitHubError

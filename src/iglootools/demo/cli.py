@@ -8,8 +8,7 @@ from typing import Annotated
 import typer
 
 from iglootools.cliwiring import display_path, project, say, warn
-from iglootools.demo import record as recording
-from iglootools.demo import upload as uploads
+from iglootools.demo import record as recording, upload as uploads
 from iglootools.project import DemoSettings
 
 app = typer.Typer(help="Publish the project's terminal demo.", no_args_is_help=True)
