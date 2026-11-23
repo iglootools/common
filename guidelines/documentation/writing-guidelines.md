@@ -155,11 +155,13 @@ read.
 
 ### Keep the always-on guidelines to what every change needs
 
-The shared `coding/general.md`, `coding/git.md` and `coding/python.md`, and each
-project's entry file (`docs/guidelines.md`, or `docs/guidelines/README.md`), go
-into every agent session. A rule there must apply to every change in its scope.
-A rule about particular files belongs in the guideline those files trigger, and
-anything long moves to a file of its own, linked from the entry file.
+The shared `applying-the-guidelines.md`, `coding/general.md` and
+`coding/git.md`, `coding/python.md` in a project that tracks Python files, and
+each project's entry file (`docs/guidelines.md`, or
+`docs/guidelines/README.md`), go into every agent session. A rule there must
+apply to every change in its scope. A rule about particular files belongs in the
+guideline those files trigger, and anything long moves to a file of its own,
+linked from the entry file.
 
 **Why:** a line in an always-on file is read in every session, by readers who do
 not need it.

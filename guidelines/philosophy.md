@@ -2,8 +2,10 @@
 
 The reasoning behind every iglootools guideline and practice: how work flows,
 how systems are designed, how code and documentation are written, and how people
-and agents share a codebase. The guidelines say what to do, compactly, and link
-here for why; this document argues at length, and grows as the reasoning does.
+and agents share a codebase. The guidelines say what to do, compactly, and why
+in a sentence, with a longer reason in the file's own Rationale section. This
+document holds the reasoning that more than one guideline rests on, argues it at
+length, and grows as the reasoning does.
 
 <!-- toc -->
 **On this page**
@@ -484,8 +486,9 @@ whose reason is a silent mechanical failure, such as a release that ships as
 `0.0.0`, is held rigidly. A rule whose reason is consistency or taste gives way
 to a documented reason. The reason is also what lets a rule be retired once the
 condition behind it is gone. So every guideline says why, in a sentence next to
-the rule, and the longer argument lives in this document, where it can be
-developed without burying the rules.
+the rule. A longer argument goes to the end of the guideline, and one that
+several guidelines share lives in this document, where it can be developed
+without burying the rules.
 
 ## People and AI agents
 
