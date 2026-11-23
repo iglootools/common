@@ -104,6 +104,14 @@ class Outcome:
         """Tell whether the adopt ended in anything but a refusal."""
         return self.result != Result.REFUSED
 
+    @property
+    def on_release(self) -> bool:
+        """Tell whether the project's default branch now pins the release."""
+        return self.result in (Result.MERGED, Result.UP_TO_DATE)
+
+
+PLUGIN_STEP = "Would update the Claude Code plugin installed for the project."
+
 
 def preview(
     root: Path,
@@ -112,23 +120,29 @@ def preview(
     found: Plan,
     *,
     merge_it: bool,
+    update_plugin: bool,
     run: Run = capture,
 ) -> list[str]:
-    """List what adopt would do, from the state a run starts from, one step per line."""
+    """
+    List what adopt would do, from the state a run starts from, one step per line.
+
+    *update_plugin* adds the plugin update to every path that ends on the release.
+    """
     branch = branch_name(found.version)
     state, number = prune.latest_pull(github, repository, branch)
+    plugin = [PLUGIN_STEP] if update_plugin else []
     finish = (
-        "Would merge it once every check has passed, then delete the branch."
+        ["Would merge it once every check has passed, then delete the branch.", *plugin]
         if merge_it
-        else "Would stop there (--no-merge)."
+        else ["Would stop there (--no-merge)."]
     )
     match state:
         case prune.PullState.MERGED:
-            return [f"Already merged in #{number}: nothing to do."]
+            return [f"Already merged in #{number}: nothing to do.", *plugin]
         case prune.PullState.CLOSED:
             return [f"Would refuse: #{number} was closed without merging."]
         case prune.PullState.OPEN:
-            return [f"Would resume #{number}.", finish]
+            return [f"Would resume #{number}.", *finish]
         case prune.PullState.NONE:
             pass  # no pull request yet: plan one below
     newer = newer_pin(root, found.version, run=run)
@@ -139,7 +153,7 @@ def preview(
         remote_branch=local.has_remote_branch(root, branch, run=run),
     )
     if start == Start.NEW and not found.changed:
-        return [f"Already on iglootools {found.version}: nothing to do."]
+        return [f"Already on iglootools {found.version}: nothing to do.", *plugin]
     moves = [
         f"Would move {rewritten.changed} pin(s) in {path.relative_to(root)}"
         for path, rewritten in found.files.items()
@@ -160,7 +174,7 @@ def preview(
             f"chore: move to iglootools {found.version}."
         ),
         "Would open a pull request into the default branch.",
-        finish,
+        *finish,
     ]
 
 

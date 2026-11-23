@@ -50,7 +50,7 @@ MISE = Requirement(
 )
 CLAUDE = Requirement(
     "claude",
-    "validates and tags a release of the plugin",
+    "validates and tags a release of the plugin, and updates it after an adopt",
     "install Claude Code: https://docs.claude.com/en/docs/claude-code/setup",
 )
 GITHUB_TOKEN = Requirement(
