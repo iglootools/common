@@ -33,7 +33,6 @@ NEW = "b" * 40
             '    "github>iglootools/common//renovate/python#v1.31.0"\n',
             '    "github>iglootools/common//renovate/python#v1.32.2"\n',
         ),
-        ('IGLOOTOOLS_VERSION = "v1.31.0"\n', 'IGLOOTOOLS_VERSION = "v1.32.2"\n'),
     ],
 )
 def test_each_kind_of_pin_moves(before: str, after: str) -> None:
@@ -125,7 +124,7 @@ def _refs(text: str) -> list[pins.Reference]:
 def test_each_pin_is_found_with_its_release_and_commit() -> None:
     found = _refs(
         f"    uses: iglootools/common/.github/workflows/r.yml@{OLD} # v1.33.0\n"
-        'IGLOOTOOLS_VERSION = "v1.33.0"\n'
+        '"github>iglootools/common//renovate/base#v1.33.0"\n'
         "see iglootools/common for why, and blob/main/x.md#anchor\n",
     )
     assert [(r.line, r.version, r.sha, r.movable) for r in found] == [
@@ -144,7 +143,7 @@ def test_a_spelling_adopt_would_not_move_is_flagged() -> None:
 
 def test_pins_on_different_releases_disagree() -> None:
     found = _refs(
-        'IGLOOTOOLS_VERSION = "v1.32.2"\n'
+        '"iglootools @ git+https://github.com/iglootools/common@v1.32.2",\n'
         '"github>iglootools/common//renovate/base#v1.33.0"\n',
     )
     assert (
