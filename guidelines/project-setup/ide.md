@@ -36,6 +36,8 @@ A language server spawned by an editor inherits no activated environment, so it
 reports `Import "<dep>" could not be resolved` on a file `mise run lint-types`
 passes.
 
+- It is for a Python project, as [python-tooling.md](python-tooling.md)'s
+  opening defines it.
 - The two settings serve every consumer at once: Pylance, the Claude Code
   pyright server, the CLI and CI. They restate uv's default `.venv` for the
   consumers that cannot discover it.

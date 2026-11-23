@@ -7,6 +7,15 @@ before changing any of them, or the Python version. The language itself is in
 [python.md](../coding/python.md), the editor in [ide.md](ide.md), and task
 naming in [mise.md](mise.md#name-tasks-by-family).
 
+A Python project is one that builds a package from Python code it tracks. A
+project whose only Python is the `pyproject.toml` that installs the `iglootools`
+command is not one. The guidelines for Python projects do not apply to it, and
+it needs no exception to leave them out: `coding/python.md`,
+`pypi-publishing.md`, everything in this file but [Mise and uv](#mise-and-uv),
+[ide.md › Pin the venv for pyright](ide.md#pin-the-venv-for-pyright-in-toolpyright)
+and
+[claude-code.md's pyright-lsp rule](claude-code.md#install-pyright-lsp-at-project-scope-in-every-python-project).
+
 <!-- toc -->
 **On this page**
 
@@ -255,7 +264,11 @@ with each line's reason.
 These apply to every iglootools project, with Python or without, since each
 installs the `iglootools` command through uv
 ([iglootools-cli.md](iglootools-cli.md#install-it-as-a-dev-dependency-pinned-to-a-release)).
-The rest of this file is for Python projects only.
+The exception is
+[Keep `install` and `reinstall` as tasks over `mise deps`](#keep-install-and-reinstall-as-tasks-over-mise-deps),
+which is for Python projects: a project without Python has an `install` task
+only if it installs something of its own, such as its pnpm dependencies. The
+rest of this file is for Python projects only.
 
 ### Pin uv to mise's interpreter by absolute path
 
