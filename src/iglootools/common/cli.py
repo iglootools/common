@@ -58,8 +58,8 @@ def adopt(
     """
     Move every pin on iglootools/common to a release, through a pull request.
 
-    Moves the reusable workflows (to the release's commit), the iglootools command, the
-    Renovate presets and IGLOOTOOLS_VERSION, and regenerates uv.lock where there is one.
+    Moves the reusable workflows (to the release's commit), the iglootools command and
+    the Renovate presets, and regenerates uv.lock.
     Then opens a pull request and merges it once every check has passed, as
     merge-when-green does. Safe to run again: it picks up from the pull request or
     branch an earlier run left, and does nothing once the release is in place. Needs a

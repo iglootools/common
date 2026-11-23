@@ -24,12 +24,17 @@ format is in
   - [Decision](#decision-2)
   - [Rationale](#rationale-2)
   - [Consequences](#consequences-2)
+- [ADR-004 — Install the iglootools command through uv in every project, Python or not](#adr-004--install-the-iglootools-command-through-uv-in-every-project-python-or-not)
+  - [Context](#context-3)
+  - [Decision](#decision-3)
+  - [Rationale](#rationale-3)
+  - [Consequences](#consequences-3)
 <!-- tocstop -->
 
 ## ADR-001 — Check the pins on common offline, trusting uv.lock and IGLOOTOOLS_VERSION's name
 
-**Date:** 2026-11-21
-**Status:** Accepted
+**Date:** 2026-11-21 **Status:** Accepted — superseded in part by ADR-004, which
+gives every project a `uv.lock`
 
 ### Context
 
@@ -283,3 +288,67 @@ offset.
 
 **Retire this** if ruff's default set grows to cover what `ALL` adds, or if the
 ignore list grows long enough that selecting rule families would be shorter.
+
+## ADR-004 — Install the iglootools command through uv in every project, Python or not
+
+**Date:** 2026-11-22 **Status:** Accepted — supersedes ADR-001's rejection of a
+minimal `pyproject.toml` for projects without Python
+
+### Context
+
+Python projects install the `iglootools` command as a uv dev dependency;
+projects without Python (alberta-hiking-resources, network-infra) ran it
+through uvx, with the release named in `IGLOOTOOLS_VERSION` in `mise.toml`.
+ADR-001 weighed giving those projects a minimal `pyproject.toml` instead, and
+rejected it as Python scaffolding brought in to serve one lint.
+
+Two things have changed since. The reusable workflows need to call the command
+for the logic they still copy between projects (the release-tag guard, the link
+report, the Test PyPI version), and they run in every project, so they need one
+way to call it. And uvx pins the command's release but not its dependencies:
+each runner resolves Typer, Rich and the rest again, so a project's checks can
+break with no change in the project.
+
+### Decision
+
+- **Every project installs the command as a uv dev dependency**, pinned to the
+  release tag, with `uv.lock` committed, and runs it as
+  `uv run --no-sync iglootools`.
+- **A project without Python has a `pyproject.toml` with no `[project]`
+  table**: the dependency group alone, with a comment saying why the file is
+  there. Its `mise.toml` sets up uv as a Python project's does.
+- **The uvx form goes**: `IGLOOTOOLS_VERSION`, its Renovate manager, and its
+  handling in `check-pins` and `adopt`.
+
+### Rationale
+
+- One way to call the command lets a shared workflow use it in any project,
+  so logic now copied into several workflows moves into one tested command.
+- `uv.lock` pins the whole dependency tree, with hashes, everywhere.
+- `check-pins` gets `uv.lock`'s record in every project, which retires both of
+  ADR-001's limitations: it now verifies the workflow SHAs everywhere, and no
+  variable counts as a pin by its name.
+- `adopt`, `check-pins`, the Renovate presets and the guidelines lose their
+  second branch.
+
+Alternatives not pursued:
+
+- **Keep uvx, and give each project a `mise` task that wraps either form.**
+  One name for the workflows to call, but the dependencies stay unlocked and
+  every tool keeps both branches.
+- **Install the command with mise's `pipx:` backend.** mise would pin it in
+  `mise.lock`, but only the command, not its dependencies, and a git tag is an
+  awkward version for that backend.
+
+### Consequences
+
+- alberta-hiking-resources and network-infra carry a `pyproject.toml`,
+  `uv.lock` and `.venv` that do not make them Python projects. The comment in
+  `pyproject.toml` says so.
+- Renovate opens lock updates for the command's dependencies in those projects
+  too, grouped with their other updates.
+- A workflow that calls the command sets up mise and syncs the environment
+  first, which adds tens of seconds even to a run that ends up doing nothing.
+
+**Retire this** if the command is published to PyPI with its dependencies
+pinned, or if the shared workflows stop needing it.

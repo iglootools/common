@@ -49,8 +49,8 @@ script in the project.
 
 ## Install it as a dev dependency, pinned to a release
 
-In a Python project, add it to the dev dependency group, pinned to the release
-tag:
+In every project, with Python or without, add it to the dev dependency group,
+pinned to the release tag:
 
 ```toml
 [dependency-groups]
@@ -59,28 +59,32 @@ dev = [
 ]
 ```
 
-**Why:** `docs cli` imports the project's Typer app, and `docs depgraph`
-imports the package and reads the distributions it declares, so neither works
-from an isolated tool environment.
+**Why:** `uv.lock` then pins the command and everything it depends on, and
+every project runs it the same way, as `uv run --no-sync iglootools`, so a
+shared workflow can call it in any project. `docs cli` and `docs depgraph`
+need it there too: they import the project's own package. Why projects without
+Python have one as well is in
+[ADR-004](../../docs/architecture-decision-record.md#adr-004--install-the-iglootools-command-through-uv-in-every-project-python-or-not).
 
+- A project without Python has a `pyproject.toml` with no `[project]` table,
+  only the dependency group and a comment saying why the file is there, and
+  its `mise.toml` sets uv up as
+  [python-tooling.md › Mise and uv](python-tooling.md#mise-and-uv) describes:
+  `python` and `uv` in `[tools]`, the `UV_PYTHON` settings, `[deps.uv]`, and a
+  `lint-lock-uv` task. Commit `uv.lock`, and ignore `.venv/`.
+  network-infra's
+  [pyproject.toml](https://github.com/iglootools/network-infra/blob/main/pyproject.toml)
+  is a working example.
 - `uv.lock` records the commit the tag resolved to. Move the pin, then
   `uv lock`, as for any dependency. The version is the plugin's: the tag that
   releases the plugin releases the tools.
 - Renovate moves the pin along with the workflows and presets, through a custom
-  manager in the shared `python` preset, since no built-in one moves a git
+  manager in the shared `base` preset, since no built-in one moves a git
   reference; the shared lock regenerator then updates `uv.lock` on its branch.
   `iglootools common adopt-all` does the same at once.
-- A project without Python runs the commands that do not need its environment
-  (`shell lint`, `mise lock-check`) through uvx, with uv in `[tools]` and the
-  release named once, in `[env]`, under a `# renovate:` comment, which the
-  shared `base` preset reads. Without the comment, nothing updates the version.
-
-  alberta-hiking-resources'
-  [mise.toml](https://github.com/iglootools/alberta-hiking-resources/blob/main/mise.toml)
-  is a working example: `IGLOOTOOLS` in `[env]`, and its `lint-shell` task.
-
-  uv caches the build, so only the first run after the version moves builds
-  anything.
+- Never run it through uvx. uvx pins the release but resolves its dependencies
+  again on each machine, so a project's checks can break with no change in the
+  project.
 
 ## Check that every pin on common agrees
 
@@ -90,11 +94,10 @@ when two name different releases, a SHA pin lacks its `# vX.Y.Z` comment, they
 disagree with what `uv.lock` resolved, or `iglootools common adopt` would not
 move one.
 
-**Why:** the reusable workflows, the command, the Renovate presets and
-`IGLOOTOOLS_VERSION` pin the same release in several files, and a pin written a
-new way would be left behind by `adopt` without anything failing. Why the check
-runs offline, what that leaves unverified in projects without Python, and the
-alternatives not pursued are in
+**Why:** the reusable workflows, the command and the Renovate presets pin the
+same release in several files, and a pin written a new way would be left behind
+by `adopt` without anything failing. Why the check runs offline, and the
+alternatives not pursued, are in
 [ADR-001](../../docs/architecture-decision-record.md#adr-001--check-the-pins-on-common-offline-trusting-uvlock-and-iglootools_versions-name).
 
 ## Call it from one-line mise tasks

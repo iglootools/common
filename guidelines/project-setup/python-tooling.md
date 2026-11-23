@@ -252,6 +252,11 @@ commit.
 Common's [mise.toml](../../mise.toml) is a working example of these settings,
 with each line's reason.
 
+These apply to every iglootools project, with Python or without, since each
+installs the `iglootools` command through uv
+([iglootools-cli.md](iglootools-cli.md#install-it-as-a-dev-dependency-pinned-to-a-release)).
+The rest of this file is for Python projects only.
+
 ### Pin uv to mise's interpreter by absolute path
 
 Set `UV_PYTHON` to `{{ tools.python.path }}`, with

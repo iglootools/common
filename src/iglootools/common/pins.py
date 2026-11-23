@@ -1,10 +1,9 @@
 """
 Where a project pins iglootools/common, and how to move every pin to a release.
 
-A project pins common in four ways, each matched below: a reusable workflow by commit
-SHA with the tag in a trailing comment, the `iglootools` command by tag (`git+…@vX.Y.Z`,
-as a dev dependency or through uvx), a Renovate preset by tag, and IGLOOTOOLS_VERSION in
-mise.toml for the projects that run the command through uvx.
+A project pins common in three ways, each matched below: a reusable workflow by commit
+SHA with the tag in a trailing comment, the `iglootools` command by tag as a dev
+dependency (`git+…@vX.Y.Z`), and a Renovate preset by tag.
 """
 
 import re
@@ -26,14 +25,12 @@ _WORKFLOW = re.compile(
 )
 _GIT_URL = re.compile(rf"(git\+https://github\.com/iglootools/common(?:\.git)?@){_TAG}")
 _PRESET = re.compile(rf"(github>iglootools/common//renovate/[\w-]+#){_TAG}")
-_ENV = re.compile(rf'(IGLOOTOOLS_VERSION\s*=\s*"){_TAG}(")')
 
 _REFERENCE = re.compile(
     r"iglootools/common(?:\.git)?(?:/[\w./-]*)?[@#](?P<ref>v\d+\.\d+\.\d+\b|[0-9a-f]{40}\b)",
 )
 """Any pin on common, spelled any way: broader than the rewrite on purpose, so a pin the
 rewrite does not recognise is found rather than silently left behind."""
-_ENV_REFERENCE = re.compile(r'IGLOOTOOLS_VERSION\s*=\s*"(?P<ref>v\d+\.\d+\.\d+)"')
 _TAG_COMMENT = re.compile(r"#\s*v(?P<version>\d+\.\d+\.\d+)\b")
 _LOCKED = re.compile(
     r"iglootools/common\?rev=v(?P<version>\d+\.\d+\.\d+)#(?P<sha>[0-9a-f]{40})",
@@ -59,7 +56,6 @@ def rewrite(text: str, version: str, sha: str) -> Rewrite:
         (_WORKFLOW, rf"\g<1>{sha}\g<2>{tag}"),
         (_GIT_URL, rf"\g<1>{tag}"),
         (_PRESET, rf"\g<1>{tag}"),
-        (_ENV, rf"\g<1>{tag}\g<2>"),
     ]
     changed = 0
     for pattern, replacement in substitutions:
@@ -101,7 +97,7 @@ def _mentions_common(path: Path) -> bool:
         text = path.read_text(encoding="utf-8")
     except UnicodeDecodeError, OSError:
         return False
-    return "iglootools/common" in text or "IGLOOTOOLS_VERSION" in text
+    return "iglootools/common" in text
 
 
 @dataclass(frozen=True)
@@ -120,9 +116,7 @@ def references(path: Path, text: str) -> list[Reference]:
     """Every pin on common in *text*, found by the broad patterns."""
     found: list[Reference] = []
     for number, line in enumerate(text.splitlines(), start=1):
-        refs = [m["ref"] for m in _REFERENCE.finditer(line)] + [
-            m["ref"] for m in _ENV_REFERENCE.finditer(line)
-        ]
+        refs = [m["ref"] for m in _REFERENCE.finditer(line)]
         movable = rewrite(line, "0.0.0", "0" * 40).changed >= len(refs)
         for ref in refs:
             if ref.startswith("v"):
