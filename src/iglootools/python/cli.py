@@ -1,13 +1,14 @@
-"""The `iglootools python` commands: build, clean, reinstall, verify the version."""
+"""The `iglootools python` commands: build, clean, reinstall, versions."""
 
+from datetime import UTC, datetime
 from pathlib import Path
 from textwrap import indent
 from typing import Annotated
 
 import typer
 
-from iglootools.cliwiring import display_path, project, say, warn
-from iglootools.python import environment, verifyversion
+from iglootools.cliwiring import display_path, invocation, project, say, warn
+from iglootools.python import devversion, environment, verifyversion
 
 app = typer.Typer(
     help="Build and check a Python project managed with uv.",
@@ -123,3 +124,20 @@ def reinstall(ctx: typer.Context) -> None:
     except environment.EnvironmentCommandError as error:
         raise _failed(error) from None
     say("Reinstalled .venv from uv.lock.")
+
+
+@app.command("dev-version")
+def dev_version_cmd(ctx: typer.Context) -> None:
+    """
+    Print a throwaway version for a Test PyPI rehearsal: <last release>.dev<UTC time>.
+
+    The last release is the nearest v* tag reachable from HEAD, 0.0.0 without one.
+    publish-test.yml passes it to the build as UV_DYNAMIC_VERSIONING_BYPASS.
+    """
+    root = invocation(ctx).root
+    say(
+        devversion.compute_dev_version(
+            devversion.latest_release_tag(root),
+            datetime.now(UTC),
+        ),
+    )

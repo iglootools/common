@@ -30,6 +30,7 @@ script in the project.
 | `iglootools docs depgraph` | the Module Overview in `docs/architecture.md`, from pydeps |
 | `iglootools python build` / `clean` | building the sdist and wheel into an emptied `dist/` / deleting build artifacts |
 | `iglootools python verify-version` | failing on a wheel that carries the `0.0.0` fallback version |
+| `iglootools python dev-version` | the throwaway version a Test PyPI rehearsal publishes |
 | `iglootools python reinstall` | rebuilding `.venv` from the lock |
 | `iglootools demo record` / `upload` | recording the demo / publishing the newest CI recording |
 | `iglootools mise lock-check` | failing when the staged `mise.lock` is stale |
