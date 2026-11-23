@@ -1,9 +1,10 @@
 name: reusable-check-links
 
 # The shared link checker for iglootools projects. A consuming repository keeps only its
-# triggers, its concurrency group, the `issues: write` grant and a pinned `uses:` ref; the
-# lychee invocation, the report classification and the issue filing all live here, so a fix
-# reaches every project through one version bump instead of a copy-paste per repository.
+# triggers, its concurrency group, the `issues: write` grant, the mise version and a pinned
+# `uses:` ref; the lychee invocation lives here, and the report classification and the issue
+# filing in `iglootools github link-report`, so a fix reaches every project through one
+# version bump instead of a copy-paste per repository.
 #
 # Two things resolve to the *caller*, which is what makes this work:
 #
@@ -22,6 +23,14 @@ name: reusable-check-links
 on:
   workflow_call:
     inputs:
+      version:
+        description: >-
+          mise version for jdx/mise-action, pinned by the caller to the version its mise.lock
+          was generated with. Named `version` so the caller's Renovate custom manager, which
+          matches a `# renovate:` marker followed by a literal `version:` line, keeps it
+          current.
+        type: string
+        required: true
       paths:
         description: File glob to check, passed to lychee as its input argument.
         type: string
@@ -46,7 +55,11 @@ jobs:
       # keeps working because checkout falls back to an anonymous clone. That asymmetry means
       # the mistake cannot be caught by a public caller.
       contents: read
-      issues: write # required for peter-evans/create-issue-from-file
+      issues: write # iglootools github link-report files, updates and closes the report
+    env:
+      MISE_EXPERIMENTAL: true
+      # Fail on a stale uv.lock instead of silently re-resolving on the runner.
+      UV_LOCKED: 1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -71,69 +84,22 @@ jobs:
             --timeout 30 --max-retries 3 '${{ inputs.paths }}'
           fail: false
 
-      # Decide from the report body, not the exit code. lychee exits 2 both for genuine link
-      # failures and for a usage error (clap's convention), so exit code alone cannot tell
-      # "links are broken" from "lychee never ran" — which is how an argument error ended up
-      # being filed as an empty issue every week.
-      #
-      # lychee writes "# Summary" whenever it completes a run, and a "## Errors per input"
-      # section only when at least one link actually failed. Timeouts get their own section
-      # and deliberately do not raise an issue on their own — they are usually transient, and
-      # a weekly issue for a slow host is the noise this workflow is meant to avoid.
-      - name: Classify link checker result
-        id: report
-        run: |
-          if [ -f ./lychee/out.md ] && grep -q '^# Summary' ./lychee/out.md; then
-            echo "ran=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ran=false" >> "$GITHUB_OUTPUT"
-          fi
-          if [ -f ./lychee/out.md ] && grep -q '^## Errors per input' ./lychee/out.md; then
-            echo "broken_links=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "broken_links=false" >> "$GITHUB_OUTPUT"
-          fi
+      # Only what the iglootools command needs (guidelines/project-setup/iglootools-cli.md):
+      # the project's other tools would add minutes for nothing.
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5
+        with:
+          version: ${{ inputs.version }}
+          install_args: python uv
 
-      # Surface a malfunctioning link checker as a red workflow instead of a silent stream of
-      # empty issues. Without this, a broken invocation looks the same as "nothing to report".
-      - name: Fail if the link checker never ran
-        if: steps.report.outputs.ran != 'true'
-        run: |
-          echo "::error::lychee exited ${{ steps.lychee.outputs.exit_code }} without producing a report — check the arguments in reusable-check-links.yml."
-          echo "--- ./lychee/out.md ---"
-          cat ./lychee/out.md 2>/dev/null || echo "(no output file)"
-          exit 1
-
-      # One open report at a time: a run that finds broken links updates the open report
-      # rather than filing another, and a run that finds none closes it. Filing a new issue
-      # every week left a stack of identical reports, of which only the newest was current.
-      - name: Find the open report
-        id: existing
-        if: steps.report.outputs.ran == 'true'
+      # Classifies the report from its body, not lychee's exit code, fails the run when lychee
+      # never completed, and keeps one report issue open while links are broken. The reasons
+      # are in the command's module, iglootools.github.linkreport. `uv run` rather than
+      # `--no-sync`: nothing synced the environment before this step.
+      - name: Report broken links
         env:
           GH_TOKEN: ${{ github.token }}
           TITLE: ${{ inputs.issue-title }}
-        run: |
-          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
-            --search "\"$TITLE\" in:title" --json number,title \
-            --jq "[.[] | select(.title == env.TITLE)] | sort_by(.number) | last | .number // empty")
-          echo "number=$number" >> "$GITHUB_OUTPUT"
-
-      - name: Create or update the report
-        if: steps.report.outputs.broken_links == 'true'
-        uses: peter-evans/create-issue-from-file@fca9117c27cdc29c6c4db3b86c48e4115a786710 # v6
-        with:
-          title: ${{ inputs.issue-title }}
-          content-filepath: ./lychee/out.md
-          labels: ${{ inputs.issue-labels }}
-          issue-number: ${{ steps.existing.outputs.number }}
-
-      - name: Close the report once the links are fixed
-        if: steps.report.outputs.broken_links == 'false' && steps.existing.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          NUMBER: ${{ steps.existing.outputs.number }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh issue close "$NUMBER" --repo "$GITHUB_REPOSITORY" \
-            --comment "No broken links in the latest check ($RUN_URL)."
+          LABELS: ${{ inputs.issue-labels }}
+        run: >-
+          uv run iglootools github link-report --report ./lychee/out.md
+          --title "$TITLE" --labels "$LABELS"

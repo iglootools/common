@@ -29,3 +29,8 @@ jobs:
     # rather than as last released. Consuming projects pin — see
     # guidelines/project-setup/shared-workflows.md.
     uses: ./.github/workflows/reusable-check-links.yml
+    with:
+      # Pinned here, matching the version mise.lock was generated with; the custom manager in
+      # the renovate/base preset keeps it current.
+      # renovate: datasource=github-releases depName=jdx/mise
+      version: 2026.11.12
