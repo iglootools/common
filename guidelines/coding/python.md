@@ -236,13 +236,16 @@ module-boundary contracts keep applying.
 
 Print through [Rich](https://github.com/textualize/rich), which
 [Typer](https://typer.tiangolo.com/) bundles. Escape user text with
-`rich.markup.escape` where it meets intentional markup, or print with
-`markup=False` when the line has none. A formatter that escapes what it embeds
-is printed with markup on, not escaped again.
+`rich.markup.escape` where it meets intentional markup, print with
+`markup=False` when the line has none, or wrap the text in `rich.text.Text` or
+`Text.assemble`, which keeps it apart from markup. A formatter that escapes what
+it embeds is printed with markup on, not escaped again.
 
 **Why:** Rich silently drops square-bracket tags it does not recognize, so
 `Hiking [private]` prints as `Hiking `; escaping twice prints the backslashes.
 
+- Prefer `Text` when the same value also feeds a non-Rich output, such as JSON:
+  the value stays unescaped, and only its styling is Rich's.
 - Indent at the call site with `textwrap.indent`, or a small helper built on it
   ([general.md](general.md#return-data-from-the-core-and-render-it-at-the-edge)).
 
