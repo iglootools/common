@@ -189,7 +189,7 @@ single-folder windows, and repeat `"mise.enable": true` in the
 |---|---|---|
 | pyright: CLI, CI, Claude Code's LSP | `[tool.pyright] venvPath`/`venv` in each `pyproject.toml` | per project, with no VSCode involvement |
 | Pylance, test discovery, debugger | `python.defaultInterpreterPath` in the folder's own `.vscode/settings.json` | `machine-overridable`, so a folder value overrides the workspace one |
-| terminals and tasks | `uv run --no-sync <tool>`, which resolves from the project root and ignores `PATH` | per invocation |
+| terminals and tasks | `uv run --no-sync <tool>` for a tool in the project's environment, which resolves from the project root and ignores `PATH`; `mise exec -- <tool>` for one mise installs; a bare name only in an interactive, mise-activated terminal with no other virtualenv active | per invocation |
 
 **Why:** every `mise.*` setting is window-scoped, so a folder's value is ignored
 in a multi-root window, and the extension writes one folder's tools into the

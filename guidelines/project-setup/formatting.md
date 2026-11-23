@@ -53,7 +53,9 @@ through `aqua:` backends, which `mise.lock` can lock
 **Why:** in `[tools]` rather than the dev dependency group, a project without
 Python gets them the same way, and Renovate's mise manager keeps them current.
 
-- mise puts them on `PATH`, so their tasks run them bare, not through `uv run`.
+- Their tasks run them bare, as
+  [python-tooling.md › Invoke tools through `uv run --no-sync <tool>`](python-tooling.md#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare)
+  says of tools mise installs.
 
 ## Add dprint's plugins with `dprint config add`
 

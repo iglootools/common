@@ -309,18 +309,26 @@ re-resolve on the runner, and CI tests something nobody committed.
 
 ### Invoke tools through `uv run --no-sync <tool>` in mise tasks, not bare
 
-Write `run = "uv run --no-sync ruff check ."`, not `run = "ruff check ."`, and
-state the same rule in the project's own docs, with `mise exec -- <tool>` as the
-way to run a tool from an unactivated shell.
+Write `run = "uv run --no-sync ruff check ."`, not `run = "ruff check ."`.
+Scripts, non-interactive runs and anything an agent runs do the same:
+`uv run --no-sync <tool>` for a tool in the project's environment, and
+`mise exec -- <tool>` for a tool mise installs. The project's contributor docs
+give these commands.
 
 **Why:** mise does not remove a foreign `.venv/bin` already on `PATH`, so in a
 shell where another project's virtualenv is active a bare `ruff` silently runs
 that project's copy.
 [Rationale](#invoke-tools-through-uv-run---no-sync-tool-in-mise-tasks-not-bare-1)
 
+- In an interactive shell where mise is activated, a person may call the tools
+  by name, bare (`ruff`, `dprint`), as long as no other project's virtualenv is
+  active there: mise does not remove a foreign `.venv/bin` from `PATH`. A
+  script, a mise task, a non-interactive run or an agent has no mise-activated
+  shell.
 - `uv run` resolves the environment from the project root and ignores `PATH`.
   `--no-sync` leaves installing to `[deps.uv]` alone.
-- Tools mise itself installs, such as dprint and rumdl, run bare.
+- Tools mise itself installs, such as dprint and rumdl, are on mise's `PATH`
+  and in no virtualenv, so their tasks run them bare.
 
 ### Add and remove dependencies with `uv add` and `uv remove`, then run `fmt`
 

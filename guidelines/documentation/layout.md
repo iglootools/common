@@ -150,10 +150,16 @@ written for nbkp.
 - **Link, do not `@`-import.** An import loads the document into every session,
   needed or not. Write paths as links or in backticks: Claude Code treats a bare
   `@path` as an import.
-- **Keep it under a screen**, since it is read every session. What applies only
-  to some files belongs in the document that covers them.
-- **Do not restate** the shared guidelines, the project's documents, or
-  `docs/guidelines.md`, which agents already receive.
+- **Hold it to a map's limits**, as
+  [types.md › Say when to go there, not what is inside](types.md#say-when-to-go-there-not-what-is-inside)
+  sets them. Since it is read in every session, what applies only to some files
+  belongs in the document that covers them, and nothing agents already receive
+  is restated: the shared guidelines, the project's documents,
+  `docs/guidelines.md`.
+- **Commands may stay, rules may not**: the commands that build and check the
+  project, with when to run them, as
+  [types.md › Give each fact one home](types.md#give-each-fact-one-home-and-link-to-it)
+  allows for commands a reader follows; the rule behind each is cited.
 
 ## What to write
 
