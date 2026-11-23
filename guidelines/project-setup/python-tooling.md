@@ -267,7 +267,7 @@ commit.
 ## Mise and uv
 
 Common's [mise.toml](../../mise.toml) is a working example of these settings,
-with each line's reason.
+each line citing the rule it follows rather than restating its reason.
 
 These apply to every iglootools project, with Python or without, since each
 installs the `iglootools` command through uv

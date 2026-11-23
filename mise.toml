@@ -10,50 +10,40 @@ rumdl = "0.3.4"
 # CI-published predecessors carry. Reviewed 2026-11-21: its tarball matches Yarn's source (three
 # lines adding parentPath, TypeScript 5.9 typings) and its compiled libzip is byte-identical to
 # the attested 3.2.1. Drop the exclusion once Renovate no longer resolves to 3.2.2.
-# allow_builds lets re2 alone run its build script: without its native module Renovate falls
-# back to JavaScript's regex engine, and lint-renovate would accept custom-manager patterns
-# that Renovate itself, which runs RE2, rejects.
+# allow_builds: guidelines/project-setup/dependency-automation.md › Validate and preview the
+# config with Renovate itself.
 "npm:renovate" = { version = "44.239.1", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"], allow_builds = ["re2"] }
 node = "26.13.0"
 jq = "1.8.2"
 
 [env]
-# Pin uv to the interpreter mise installed, by absolute path: a bare version number does not
-# guarantee uv uses it, and may fall back to a system or uv-managed Python of the same
-# version. This is also what makes a raised [tools] python pin recreate .venv. See
-# guidelines/project-setup/python-tooling.md "Configuration".
+# guidelines/project-setup/python-tooling.md › Pin uv to mise's interpreter by absolute path.
 UV_PYTHON = { value = "{{ tools.python.path }}", tools = true }
 UV_PYTHON_DOWNLOADS = "never"
 UV_PYTHON_PREFERENCE = "only-system"
 
 [settings]
+# guidelines/project-setup/mise.md › Check mise.lock in a scratch copy.
 lockfile = true
-# `mise deps` is experimental. Set here rather than in each developer's shell, so a fresh
-# clone behaves the same everywhere.
+# experimental, uv_venv_auto and [deps.uv]: guidelines/project-setup/python-tooling.md › Let
+# [deps.uv] install the environment, and mise only source it.
 experimental = true
-# "source", not "create|source": with [deps.uv] enabled, creating the venv is the deps
-# provider's job, and the two collide when both try.
 python.uv_venv_auto = "source"
 
-# Runs `uv sync` before every `mise run`, only when uv.lock or pyproject.toml changed or
-# .venv is missing. Tasks invoke tools through `uv run --no-sync`, which ignores any other
-# project's venv on PATH and leaves installing to this provider.
 [deps.uv]
 auto = true
 
 [tasks.install]
 description = "Install dependencies"
-# Delegates to [deps.uv] so there is one definition of how dependencies get installed, and
-# one place to change if the experimental deps engine has to be abandoned.
+# install and reinstall: guidelines/project-setup/python-tooling.md › Keep install and reinstall
+# as tasks over mise deps.
 run = "mise deps install uv"
 
 [tasks.reinstall]
 description = "Delete .venv and reinstall dependencies from scratch"
 run = "uv run --no-sync iglootools python reinstall"
 
-# Task families (guidelines/project-setup/mise.md, "Name tasks by family"): a task that rewrites
-# files is named for what it writes (fmt, toc), anything that fails without writing is a lint-*,
-# and preflight runs every lint and test before a push.
+# Task names: guidelines/project-setup/mise.md › Name tasks by family.
 
 [tasks.preflight]
 description = "Run every lint and every test (what CI runs)"
@@ -126,9 +116,7 @@ run = [
   { task = "lint-renovate" },
 ]
 
-# The formatters exit 0 whether or not they changed anything, so they cannot be the gate. rumdl
-# has no lint-fmt-* of its own: lint-markdown reports what `rumdl fmt` would change along with
-# what it cannot fix.
+# guidelines/project-setup/formatting.md › Gate formatting with lint-fmt and lint-markdown.
 [tasks.lint-fmt]
 description = "Check that every file is formatted (fix with `mise run fmt`)"
 run = [
@@ -172,7 +160,8 @@ run = "uv run --no-sync deadcode src tests"
 description = "Check that mise.lock is up to date with mise.toml"
 run = "uv run --no-sync iglootools mise lock-check"
 
-# Asserts uv.lock is consistent with pyproject.toml. --check does not write.
+# guidelines/project-setup/python-tooling.md › Assert the lock in CI with UV_LOCKED=1 and in lint
+# with uv lock --check.
 [tasks.lint-lock-uv]
 description = "Check that uv.lock is up to date with pyproject.toml"
 run = "uv lock --check"
@@ -181,9 +170,9 @@ run = "uv lock --check"
 description = "Check that every Markdown document has an up-to-date table of contents (fix with `mise run toc`)"
 run = "uv run --no-sync iglootools docs toc --check --exclude 'agents/*.md' --exclude 'skills/**' --exclude '.claude/**'"
 
-# --strict fails on a config Renovate would migrate, which a plain run reports only as a
-# warning. Run with no argument it validates renovate.json as repository config; the presets
-# every project extends are validated as files.
+# --strict: guidelines/project-setup/dependency-automation.md › Validate and preview the config
+# with Renovate itself. Run with no argument it validates renovate.json as repository config; the
+# presets every project extends are validated as files.
 [tasks.lint-renovate]
 description = "Validate the Renovate config and presets with Renovate's validator, strictly"
 run = [

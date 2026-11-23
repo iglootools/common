@@ -49,8 +49,7 @@ build-backend = "hatchling.build"
 path = ".claude-plugin/plugin.json"
 pattern = '"version": "(?P<version>[^"]+)"'
 
-# Explicit rather than hatchling's <NAME>/__init__.py heuristic, which misses a src layout
-# silently and builds an empty wheel.
+# guidelines/project-setup/python-tooling.md › Tell hatchling what to package.
 [tool.hatch.build.targets.wheel]
 packages = ["src/iglootools"]
 
@@ -65,10 +64,8 @@ only-include = ["src/iglootools", ".claude-plugin/plugin.json"]
 # without it a version bump leaves the editable install reporting the old one.
 cache-keys = [{ file = "pyproject.toml" }, { file = ".claude-plugin/plugin.json" }]
 
-# uv.lock does not resolve PEP 517 build dependencies, so these constraints are the only pin
-# on the build backend. Regenerate with:
+# guidelines/project-setup/python-tooling.md › Pin the build backend explicitly. Regenerate with:
 #   printf '%s\n' hatchling | uv pip compile - --no-annotate --no-header --quiet
-# [build-system].requires is left unpinned so the two can never contradict each other.
 build-constraint-dependencies = [
   "hatchling==1.33.0",
   "packaging==26.3",
@@ -141,8 +138,7 @@ pythonVersion = "3.14"
 include = ["src", "tests"]
 typeCheckingMode = "strict"
 reportUnnecessaryTypeIgnoreComment = "error"
-# uv creates the project venv at .venv; restating it here is what lets editors and
-# language servers resolve imports against it, since they inherit no shell activation.
+# guidelines/project-setup/ide.md › Pin the venv for pyright in [tool.pyright].
 venvPath = "."
 venv = ".venv"
 
