@@ -2,8 +2,8 @@
 
 How the plugin delivers the guidelines to Claude Code: the `guidelines` skill,
 the audit skills, and the hook that loads the always-on guidelines. Installing
-it is in
-[installation.md](installation.md).
+it is in [installation.md](installation.md), and running the audits in
+[usage.md](usage.md).
 
 <!-- toc -->
 **On this page**
@@ -45,15 +45,14 @@ rule silently. See
 
 ## Auditing
 
-`/iglootools:audit-pr` audits the current branch against its base, and
-`/iglootools:audit-full` audits the whole codebase or the paths given. Both run
-only when you type them, because an audit starts several agents and costs
-accordingly. Each splits the categories in
-[guidelines/review/audit.md](../guidelines/review/audit.md) across parallel
-`auditor` agents, sends the `critical` and `high` findings to a second auditor
-that tries to disprove them, and writes a Markdown report to
-`.iglootools/audits/`. Every finding gets an ID such as `SEC-1`, so you can ask
-for exactly the fixes you want: "fix SEC-1 and ERR-2", "fix all ARCH".
+`audit-pr` and `audit-full`, run as [usage.md](usage.md) shows, each split the
+categories in [guidelines/review/audit.md](../guidelines/review/audit.md)
+across parallel `auditor` agents, send the `critical` and `high` findings to a
+second auditor that tries to disprove them, and write a Markdown report to
+`.iglootools/audits/`. Both set `disable-model-invocation`, so they run only
+when typed, because an audit starts several agents and costs accordingly. The
+report-writing steps they share are in
+[skills/audit-pr/assemble-report.md](../skills/audit-pr/assemble-report.md).
 
 The skills run in the main conversation rather than in a subagent of their own,
 for two reasons. The findings have to be in the conversation that will fix them.
@@ -65,9 +64,10 @@ does not receive it, so the `auditor` agent reads the guidelines itself.
 
 When Claude is about to open a pull request, mark it ready or merge it,
 [hooks/remind-audit-pr.sh](../hooks/remind-audit-pr.sh) reminds the user if no
-report under `.iglootools/audits/` covers the current commit. It does not block
-the command, since an audit is a judgment call rather than a gate, and pull
-requests opened outside Claude get no reminder.
+report under `.iglootools/audits/` covers the current commit: it takes the SHA
+after `..` in each report's `Scope:` line, the head an `audit-pr` report
+audited. It does not block the command, since an audit is a judgment call rather
+than a gate, and pull requests opened outside Claude get no reminder.
 
 ## The ones that load in every session
 

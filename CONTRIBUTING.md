@@ -42,6 +42,8 @@ is the bar a documented exception has to meet.
 
 - [docs/installation.md](docs/installation.md): follow to install the plugin
   in a project, or update it
+- [docs/usage.md](docs/usage.md): follow to run the audits and fix their
+  findings
 - [guidelines/project-setup/shared-workflows.md](guidelines/project-setup/shared-workflows.md):
   know what a caller of the reusable workflows this repository hosts must
   declare
