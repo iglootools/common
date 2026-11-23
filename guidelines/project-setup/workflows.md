@@ -270,9 +270,21 @@ version number. [Rationale](#queue-runs-whose-partial-state-cannot-be-redone-1)
 
 A job that a release starts (publish, demo, a site deploy) resolves the
 release's `v*` tag and checks it out, right after `actions/checkout`: the tag a
-dispatch names, otherwise the `v*` tag on the commit the run started on. nbkp's
+dispatch names, otherwise the `v*` tag on the commit the run started on.
+`iglootools github checkout-release` does both, after a `jdx/mise-action` step
+that installs only `python uv`:
+
+```yaml
+- name: Check out the release tag
+  id: release
+  env:
+    REQUESTED: ${{ inputs.tag || github.event.client_payload.tag }}
+  run: uv run iglootools github checkout-release --tag "$REQUESTED"
+```
+
+Later steps carry `if: steps.release.outputs.skip != 'true'`. nbkp's
 [publish.yml](https://github.com/iglootools/nbkp/blob/main/.github/workflows/publish.yml)
-shows the step.
+is a working example.
 
 **Why:** a run dispatched on a branch otherwise builds that branch's head, which
 moves on with every merge, so a re-run publishes whatever `main` has become
@@ -289,10 +301,12 @@ Pages deployment usually does, refuses that run.
 - **When there is no tag.** A `workflow_run` skips the rest of the job: the
   release run released nothing, as a dry run does. A manual publish or deploy
   fails, saying how to pass the tag. A manual demo records the branch head,
-  which is how a change to the demo is tried out.
-- **Refuse a tag the repository does not have**, or one not shaped `v<digit>…`,
-  before checking it out. Pass the input to the script through `env:`; never
-  interpolate `${{ }}` into `run:`, where a crafted value becomes shell.
+  which is how a change to the demo is tried out: pass `--allow-untagged`.
+- **It refuses a tag the repository does not have**, or one not shaped
+  `v<digit>…`. Pass the input through `env:`; never interpolate `${{ }}` into
+  `run:`, where a crafted value becomes shell.
+- **Install the rest after it**, under the same `if:`: a run with nothing to
+  build stops before installing tools it would not use.
 
 ### Set `timeout-minutes` on every job
 
