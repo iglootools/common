@@ -37,6 +37,8 @@ script in the project.
 | `iglootools shell lint` | running shellcheck on every tracked shell script |
 | `iglootools github merge-when-green <pr>` | merging a pull request once every check has passed, then deleting its branch, on GitHub and locally |
 | `iglootools github prune-branches` | deleting every branch whose latest pull request merged, on GitHub and locally; `-n` shows what it would delete |
+| `iglootools github checkout-release` | checking out the release a workflow run builds, or skipping a run that has none (shared workflows, publish) |
+| `iglootools github link-report` | keeping one issue open for a lychee report's broken links (the shared link checker) |
 | `iglootools common adopt <version>` | moving every pin on iglootools/common to a release, through a pull request merged once green |
 | `iglootools common adopt-all <version>` | adopting a release in every iglootools project checked out beside common, in parallel, after checking all of them (from common) |
 | `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
