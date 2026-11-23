@@ -186,9 +186,9 @@ developer's machine, such as a home directory.
 
 **Why:** an enforced list keeps each patch an exception, not a precedent.
 
-- The project's `docs/guidelines.md` lists each patch in a table: file, what it
-  replaces, category, why, what would retire it. A tool enforces the list, so a
-  new patch fails the build until removed or listed.
+- The project's `docs/guidelines.md` lists each patch in a table under Tests:
+  file, what it replaces, category, why, what would retire it. A tool enforces
+  the list, so a new patch fails the build until removed or listed.
 - Patches already in place on adoption are listed as **pending**: the guard
   stops new ones on day one, and the table is the work left.
 - A test never touches the developer's real environment: a user-level secret

@@ -591,7 +591,7 @@ and nothing reports it.
 
    @pytest.fixture
    def monkeypatch() -> Iterator[MonkeyPatch]:
-       """Patching is allowed in this file only: see docs/guidelines.md (Tests)."""
+       """Patching is allowed in this file only: see docs/guidelines.md › Tests."""
        with MonkeyPatch.context() as patch:
            yield patch
    ```
@@ -607,8 +607,8 @@ and nothing reports it.
           yield lambda path: stack.enter_context(contextlib.chdir(path))
   ```
 
-- The exceptions table in `docs/guidelines.md` stays the one list of reasons.
-  Each `noqa` comment carries a short form of its row.
+- The patch table under `docs/guidelines.md` › Tests stays the one list of
+  reasons. Each `noqa` comment carries a short form of its row.
 - A project adopting the rule with patches in place marks each one **pending**
   the same way, so the checks go in before the tests are converted.
 
