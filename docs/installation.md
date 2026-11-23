@@ -70,6 +70,12 @@ guideline change land deliberately rather than mid-task.
 
 ## Updating one project
 
+Adopting a release with `iglootools common adopt` or `adopt-all` already does
+this for each project that enables the plugin, once the project is on the
+release, as
+[releasing-and-publishing.md](releasing-and-publishing.md#releasing)
+describes. Run it by hand to update without adopting:
+
 ```bash
 claude plugin marketplace update iglootools-plugins
 claude plugin update iglootools@iglootools-plugins --scope project

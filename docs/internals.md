@@ -122,7 +122,7 @@ adopts.
 | Where the tag's commit is recorded | `uv.lock`: `common?rev=v<version>#<commit>`, written when `uv lock` resolved the tag |
 | Other pins | the reusable workflows (by SHA, with `# v<version>`), the `base` Renovate preset, and the `python` one in a Python project |
 | What keeps the release current | Renovate, through the `base` preset's manager for the dependency, and its own for the workflows and presets; adopt |
-| What `adopt` does | moves the pins, then regenerates `uv.lock`, which records the new commit |
+| What `adopt` does | moves the pins, then regenerates `uv.lock`, which records the new commit; once merged, updates the Claude Code plugin installed for the project |
 | What `check-pins` verifies | every pin names one release, adopt would move each, every SHA pin has its tag comment, and the release and every workflow SHA match `uv.lock`'s record |
 
 Why the check runs offline, trusting `uv.lock`'s record, is in
@@ -154,6 +154,19 @@ picking up from the pull request or branch an earlier run left, so rerunning
 adopt-all after an interruption or a failure resumes each project where it
 stopped. Progress is a live table in a terminal and lines prefixed with the
 project's name elsewhere, from the same events.
+
+Once every project has finished, each one on the release that enables the
+plugin has its Claude Code install updated: the marketplace is refreshed once,
+then `claude plugin update --scope project` runs in each project, one after the
+other, since Claude Code keeps a single list of installs for every project.
+Which version a project loads is recorded only on the machine, so without this
+step a merged adopt left every session on the old guidelines. The version is
+then read back from `claude plugin list --json` rather than trusted from the
+update, for two reasons: `claude plugin update` reports success in a project
+that has no install of its own, and the marketplace serves the newest release on
+common's default branch, which is not the adopted one when a later release
+exists. The first fails the run, naming the install command; the second is a
+warning.
 
 **No project depends on another**, so the projects run in any order and at once.
 If one ever did, for instance a project consuming another's package, adopt-all

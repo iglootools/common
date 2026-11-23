@@ -2,7 +2,7 @@
 
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,7 +16,7 @@ from rich.table import Table
 from iglootools.cliwiring import ensure, invocation, say, warn
 from iglootools.common import adopt as adoption
 from iglootools.common import adopt_all as everywhere
-from iglootools.common import pins
+from iglootools.common import pins, plugin
 from iglootools.common import release as releasing
 from iglootools.github import pulls
 from iglootools.github.cli import REPO_OPTION, github_session
@@ -31,6 +31,10 @@ app = typer.Typer(
 )
 
 VERSION_ARGUMENT = typer.Argument(help="The release, as X.Y.Z.")
+SKIP_PLUGIN_OPTION = typer.Option(
+    "--skip-plugin",
+    help="Leave the Claude Code plugin installed for the project as it is.",
+)
 
 
 def _version(version: str) -> str:
@@ -54,6 +58,7 @@ def adopt(
         bool,
         typer.Option("--dry-run", "-n", help="Show the pins that would move."),
     ] = False,
+    skip_plugin: Annotated[bool, SKIP_PLUGIN_OPTION] = False,
 ) -> None:
     """
     Move every pin on iglootools/common to a release, through a pull request.
@@ -61,9 +66,11 @@ def adopt(
     Moves the reusable workflows (to the release's commit), the iglootools command and
     the Renovate presets, and regenerates uv.lock.
     Then opens a pull request and merges it once every check has passed, as
-    merge-when-green does. Safe to run again: it picks up from the pull request or
-    branch an earlier run left, and does nothing once the release is in place. Needs a
-    checkout with no changes and no untracked files.
+    merge-when-green does. Once the project is on the release, updates the Claude Code
+    plugin installed for it, when its .claude/settings.json enables the plugin. Safe to
+    run again: it picks up from the pull request or branch an earlier run left, and
+    does nothing once the release is in place. Needs a checkout with no changes and no
+    untracked files.
     """
     ensure(ctx, requirements.COMMON)
     version = _version(version)
@@ -79,6 +86,7 @@ def adopt(
                 repository,
                 found,
                 merge_it=not no_merge,
+                update_plugin=not skip_plugin and plugin.is_enabled(root),
             ):
                 say(f"[dry-run] {line}")
             return
@@ -93,15 +101,17 @@ def adopt(
             sleep=time.sleep,
             now=time.monotonic,
         )
-    except (GitHubError, GitStepError) as error:
+    except (GitHubError, GitStepError, plugin.PluginError) as error:
         warn(f"{repository.slug}: {getattr(error, 'detail', error)}")
         raise typer.Exit(1) from None
     where = f"#{outcome.pull_number}" if outcome.pull_number else ""
-    if outcome.succeeded:
-        say(f"{repository.slug}{where}: {outcome.reason}.")
-        return
-    warn(f"{repository.slug}{where}: not merged, {outcome.reason}.")
-    raise typer.Exit(1)
+    if not outcome.succeeded:
+        warn(f"{repository.slug}{where}: not merged, {outcome.reason}.")
+        raise typer.Exit(1)
+    say(f"{repository.slug}{where}: {outcome.reason}.")
+    on_release = [(repository.name, root)] if outcome.on_release else []
+    if not skip_plugin and not _update_plugins(on_release, version):
+        raise typer.Exit(1)
 
 
 @app.command("release")
@@ -262,6 +272,7 @@ def adopt_all(
         bool,
         typer.Option("--dry-run", "-n", help="Check and plan, change nothing."),
     ] = False,
+    skip_plugin: Annotated[bool, SKIP_PLUGIN_OPTION] = False,
 ) -> None:
     """
     Move every iglootools project in the workspace to a release of common, in parallel.
@@ -271,8 +282,9 @@ def adopt_all(
     fails when a repository of the organization pins common but has no checkout here,
     and checks every project (no changes or untracked files, origin reachable without a
     prompt, a default branch GitHub has every commit of) before changing any. Then
-    adopts them all at once, as `common adopt` does, and summarises what merged. Safe to
-    run again: each project picks up where it stopped.
+    adopts them all at once, as `common adopt` does, summarises what merged, and updates
+    the Claude Code plugin in each project on the release that enables it. Safe to run
+    again: each project picks up where it stopped.
     """
     ensure(ctx, requirements.COMMON)
     version = _version(version)
@@ -306,11 +318,17 @@ def adopt_all(
         say("No project to adopt.")
         return
     if dry_run:
-        _preview_all(github, selected, version, sha, merge_it=not no_merge)
+        _preview_all(
+            github,
+            selected,
+            version,
+            sha,
+            merge_it=not no_merge,
+            skip_plugin=skip_plugin,
+        )
         return
     outcomes = _run_everywhere(github, selected, version, sha, merge_it=not no_merge)
-    _summarise(selected, outcomes)
-    if not all(outcome.succeeded for outcome in outcomes.values()):
+    if not _report_all(selected, outcomes, version, skip_plugin=skip_plugin):
         raise typer.Exit(1)
 
 
@@ -356,15 +374,22 @@ def _preview_all(
     sha: str,
     *,
     merge_it: bool,
+    skip_plugin: bool,
 ) -> None:
     for p in selected:
         found = adoption.plan(p.root, version, sha)
+        try:
+            update_plugin = not skip_plugin and plugin.is_enabled(p.root)
+        except plugin.PluginError as error:
+            warn(f"[{p.name}] {error.detail}")
+            update_plugin = False
         for line in adoption.preview(
             p.root,
             github,
             p.repository,
             found,
             merge_it=merge_it,
+            update_plugin=update_plugin,
         ):
             say(f"[dry-run] [{p.name}] {line}")
 
@@ -418,3 +443,77 @@ def _run_everywhere(
         return everywhere.run_all(projects, adopt_one, report=board.report, stop=stop)
     with Live(get_renderable=board.table, console=console, refresh_per_second=2):
         return everywhere.run_all(projects, adopt_one, report=board.report, stop=stop)
+
+
+def _report_all(
+    selected: list[everywhere.Project],
+    outcomes: dict[str, adoption.Outcome],
+    version: str,
+    *,
+    skip_plugin: bool,
+) -> bool:
+    """
+    Summarise each outcome, then update the plugin in each project on the release.
+
+    Tell whether every project adopted and every plugin update worked.
+    """
+    _summarise(selected, outcomes)
+    on_release = [(p.name, p.root) for p in selected if outcomes[p.name].on_release]
+    plugins_ok = skip_plugin or _update_plugins(on_release, version)
+    return plugins_ok and all(outcome.succeeded for outcome in outcomes.values())
+
+
+def _update_plugins(projects: Sequence[tuple[str, Path]], version: str) -> bool:
+    """
+    Update the plugin in each project that enables it; tell whether nothing failed.
+
+    Refreshes the marketplace once first, since every project reads the same clone.
+    Updates one project at a time: Claude Code keeps one list of installs for all.
+    """
+    enabled = {name: _plugin_enabled(name, root) for name, root in projects}
+    targets = [(name, root) for name, root in projects if enabled[name]]
+    if not targets:
+        return None not in enabled.values()
+    try:
+        plugin.refresh_marketplace(targets[0][1])
+    except plugin.PluginError as error:
+        warn(f"Claude Code plugin not updated anywhere: {error.detail}")
+        return False
+    updated = [_update_plugin(name, root, version) for name, root in targets]
+    return None not in enabled.values() and all(updated)
+
+
+def _plugin_enabled(name: str, root: Path) -> bool | None:
+    """Tell whether *root* enables the plugin; warn and return None if unreadable."""
+    try:
+        return plugin.is_enabled(root)
+    except plugin.PluginError as error:
+        warn(f"{name}: Claude Code plugin not updated: {error.detail}")
+        return None
+
+
+def _update_plugin(name: str, root: Path, version: str) -> bool:
+    try:
+        result = plugin.update(root, version)
+    except plugin.PluginError as error:
+        warn(f"{name}: Claude Code plugin not updated: {error.detail}")
+        return False
+    match result.sync:
+        case plugin.Sync.CURRENT:
+            say(
+                f"{name}: Claude Code plugin at {result.installed}; restart Claude Code"
+                " there, or run /reload-plugins, to load it.",
+            )
+            return True
+        case plugin.Sync.OTHER_VERSION:
+            warn(
+                f"{name}: Claude Code plugin at {result.installed}, not {version}: the"
+                " marketplace serves the newest release on common's default branch.",
+            )
+            return True
+        case plugin.Sync.NOT_INSTALLED:
+            warn(
+                f"{name}: .claude/settings.json enables the Claude Code plugin, but it"
+                f" is not installed for {root}; run `{plugin.INSTALL_COMMAND}` there.",
+            )
+            return False
