@@ -122,8 +122,9 @@ run = "renovate-config-validator --strict"
 **Why:** a mistake shows up before a push rather than on Renovate's next run.
 
 - **`renovate-dry-run` is a file task**: copy `mise-tasks/renovate-dry-run`
-  from iglootools/common. It needs `node` and `jq` in `[tools]`, and runs in a
-  project without Python.
+  from iglootools/common. It needs `node` and `jq` in `[tools]`, a GitHub token
+  (`GITHUB_COM_TOKEN`, or a `gh` that is logged in) and `column`, which macOS
+  and Linux ship, and runs in a project without Python.
 - **Pass `--strict`.** Without it, a config with a renamed or restructured
   option passes with a warning, and Renovate migrates it in memory on every run
   without telling anyone. Strict mode makes the migration land as a commit.

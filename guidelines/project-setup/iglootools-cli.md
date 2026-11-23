@@ -90,7 +90,8 @@ Python have one as well is in
 
 ## Check that every pin on common agrees
 
-Run `iglootools common check-pins` as a `lint-common-pins` task, part of `lint`.
+In every project that pins a release of common, run
+`iglootools common check-pins` as a `lint-common-pins` task, part of `lint`.
 It finds every pin on common in the tracked files, spelled any way, and fails
 when two name different releases, a SHA pin lacks its `# vX.Y.Z` comment, they
 disagree with what `uv.lock` resolved, or `iglootools common adopt` would not

@@ -46,9 +46,10 @@ disagree about its format.
 
 ## Pin dprint and rumdl in mise
 
-Add both to `[tools]` with `mise use --pin dprint@<version> rumdl@<version>`,
-through `aqua:` backends, which `mise.lock` can lock
-([workflows.md](workflows.md)).
+Add both to `[tools]` with `mise use --pin dprint@<version> rumdl@<version>`.
+Pin them by the short name, which mise's registry resolves to an `aqua:`
+backend (`aqua:dprint/dprint`, `aqua:rvben/rumdl`) that `mise.lock` can lock
+([workflows.md](workflows.md#prefer-tools-whose-mise-backend-is-lockable)).
 
 **Why:** in `[tools]` rather than the dev dependency group, a project without
 Python gets them the same way, and Renovate's mise manager keeps them current.
