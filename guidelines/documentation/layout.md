@@ -291,6 +291,16 @@ generated one with a check cannot.
 | the Module Overview in `docs/architecture.md` | the import graph | `depgraph` / `lint-depgraph` | `iglootools docs depgraph` |
 | the "On this page" list in each long document | its `##` and `###` headings | `toc` / `lint-toc` | `iglootools docs toc` |
 
+- **`reference-doc` runs every generated-reference writer** (`clidocs`,
+  `configdocs`, `depgraph`) in a project with more than one, so one command
+  regenerates them all:
+
+  ```toml
+  [tasks.reference-doc]
+  description = "Regenerate the reference documentation"
+  run = [{ task = "clidocs" }, { task = "configdocs" }, { task = "depgraph" }]
+  ```
+
 - **Every generator has a `lint-*` task, and `lint` runs it.** The tasks are
   one-line calls to the [`iglootools`](../project-setup/iglootools-cli.md)
   commands with `--check`, which exit non-zero when the output would change and

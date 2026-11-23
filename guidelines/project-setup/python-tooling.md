@@ -220,7 +220,13 @@ never accepts a version twice. [Rationale](#guard-against-a-000-release-1)
 ### Tell hatchling what to package
 
 Set `[tool.hatch.build.targets.wheel] packages` and
-`[tool.hatch.build.targets.sdist] only-include` explicitly.
+`[tool.hatch.build.targets.sdist] only-include` explicitly, and exclude
+`.DS_Store` from both:
+
+```toml
+[tool.hatch.build]
+exclude = [".DS_Store"]
+```
 
 **Why:** hatchling's sdist includes every file the VCS does not ignore,
 shipping `tests/`, `docs/`, `.github/` and the lockfiles. Its wheel is inferred
@@ -230,6 +236,8 @@ is silently empty rather than an error.
 - hatchling reads only `.gitignore`, so a file ignored only locally is
   published: see
   [repository.md › the committed `.gitignore`](repository.md#ignore-os-and-editor-cruft-and-generated-iglootools-output-in-the-committed-gitignore).
+  The `.DS_Store` exclusion is a guard that keeps the published artifact
+  independent of ignore-file hygiene.
 - When changing build backend, prove parity: diff the wheel payload and the
   sdist file list against the previous toolchain's at the same tag, and install
   the wheel and exercise anything read through `importlib.resources` or
