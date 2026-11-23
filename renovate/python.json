@@ -16,17 +16,6 @@
       ],
       "matchStringsStrategy": "recursive",
       "datasourceTemplate": "pypi"
-    },
-    {
-      "description": "The iglootools command, a dev dependency pinned by tag as a PEP 508 direct reference (iglootools @ git+https://github.com/iglootools/common@vX.Y.Z). No built-in manager moves a git reference there, so without this a bump of common moved the workflows and presets but not the command, leaving the pins disagreeing, which lint-common-pins fails. The shared renovate-mise-lock workflow then runs uv lock on the branch, re-resolving the tag in uv.lock.",
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/pyproject.toml/"
-      ],
-      "matchStrings": [
-        "git\\+https://github\\.com/(?<depName>iglootools/common)(?:\\.git)?@(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
-      ],
-      "datasourceTemplate": "github-tags"
     }
   ]
 }
