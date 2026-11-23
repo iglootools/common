@@ -16,28 +16,18 @@ calls, and the `iglootools` command.
 
 ## Guidelines
 
-Read [guidelines/coding/general.md](guidelines/coding/general.md),
+Read
+[guidelines/applying-the-guidelines.md](guidelines/applying-the-guidelines.md),
+[guidelines/coding/general.md](guidelines/coding/general.md),
 [guidelines/coding/python.md](guidelines/coding/python.md) and
 [guidelines/coding/git.md](guidelines/coding/git.md) before any change,
 including changes to the guidelines themselves. This repository does not consume
 its own plugin, so nothing else loads them.
 
-The project-setup guidelines apply by file; read the whole file before editing
-what it governs:
-
-- `.github/workflows/`: [workflows.md](guidelines/project-setup/workflows.md)
-  and [shared-workflows.md](guidelines/project-setup/shared-workflows.md).
-- `pyproject.toml`, `mise.toml`, `src/`, `tests/`:
-  [python-tooling.md](guidelines/project-setup/python-tooling.md) and
-  [mise.md](guidelines/project-setup/mise.md).
-- `renovate.json`, `renovate/`:
-  [dependency-automation.md](guidelines/project-setup/dependency-automation.md).
-- `dprint.json`, `.rumdl.toml`, `.git-blame-ignore-revs`, the format and
-  Markdown lint tasks: [formatting.md](guidelines/project-setup/formatting.md).
-- Any document: [documentation/layout.md](guidelines/documentation/layout.md)
-  and [documentation/types.md](guidelines/documentation/types.md).
-- `guidelines/`:
-  [documentation/writing-guidelines.md](guidelines/documentation/writing-guidelines.md).
+The other guidelines apply by file, here as in any project: find the one whose
+trigger matches what you are changing through
+[guidelines/README.md](guidelines/README.md) and the `README.md` of the
+directory it points to, and read it in full before editing.
 
 ## Where things are
 
