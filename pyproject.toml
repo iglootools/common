@@ -59,6 +59,10 @@ packages = ["src/iglootools"]
 [tool.hatch.build.targets.sdist]
 only-include = ["src/iglootools", ".claude-plugin/plugin.json"]
 
+# guidelines/project-setup/python-tooling.md › Tell hatchling what to package.
+[tool.hatch.build]
+exclude = [".DS_Store"]
+
 [tool.uv]
 # Replaces the default [{ file = "pyproject.toml" }]: the version lives in plugin.json, so
 # without it a version bump leaves the editable install reporting the old one.
