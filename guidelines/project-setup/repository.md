@@ -39,7 +39,7 @@ so a `.DS_Store` ignored only locally gets published inside the wheel.
 
 The default-branch ruleset allows only merge commits
 (`allowed_merge_methods: ["merge"]`). The reasons are in
-[git.md › Merge with a merge commit, not a squash or a rebase](../coding/git.md#merge-with-a-merge-commit-not-a-squash-or-a-rebase).
+[git.md › Merge with a merge commit, not a squash merge or a rebase merge](../coding/git.md#merge-with-a-merge-commit-not-a-squash-merge-or-a-rebase-merge).
 
 **Why:** set on the ruleset, the choice is made once per repository rather than
 by whoever merges each pull request.

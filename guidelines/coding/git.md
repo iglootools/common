@@ -12,7 +12,7 @@ author got there.
 - [Give a pull request one intent, and a commit one step](#give-a-pull-request-one-intent-and-a-commit-one-step)
 - [Keep refactoring apart from behaviour changes](#keep-refactoring-apart-from-behaviour-changes)
 - [Fold rework into the commit it corrects](#fold-rework-into-the-commit-it-corrects)
-- [Merge with a merge commit, not a squash or a rebase](#merge-with-a-merge-commit-not-a-squash-or-a-rebase)
+- [Merge with a merge commit, not a squash merge or a rebase merge](#merge-with-a-merge-commit-not-a-squash-merge-or-a-rebase-merge)
 - [Write the subject as a Conventional Commit, and the body as the why](#write-the-subject-as-a-conventional-commit-and-the-body-as-the-why)
 - [Rebase and clean up before asking for review](#rebase-and-clean-up-before-asking-for-review)
 - [Work in the mode the person names](#work-in-the-mode-the-person-names)
@@ -107,13 +107,18 @@ history is a draft.
   before pushing (GitHub links each force-push to a comparison too), and after
   pushing in answer to a review, say on the pull request what changed.
 
-## Merge with a merge commit, not a squash or a rebase
+## Merge with a merge commit, not a squash merge or a rebase merge
 
-The repository ruleset enforces it. A project that wants another merge method
-records why in its `docs/guidelines.md`.
+Land a pull request with GitHub's *Create a merge commit*, never *Squash and
+merge* or *Rebase and merge*. This is about how the pull request lands, not how
+the branch is kept: the branch is rebased onto `main` before review
+([below](#rebase-and-clean-up-before-asking-for-review)), then merged with a
+merge commit. The repository ruleset enforces the merge method. A project that
+wants another method records why in its `docs/guidelines.md`.
 
 **Why:** squash and rebase merges write new commits, so the reviewed ones never
-reach `main`. See
+reach `main`. A rebase merge copies each commit onto `main` with a new SHA, even
+when the branch is already up to date. See
 [Event-driven, append-only, replayable](../philosophy.md#event-driven-append-only-replayable).
 
 - **History.** A merge keeps every reviewed commit for `blame` and `bisect`, and
