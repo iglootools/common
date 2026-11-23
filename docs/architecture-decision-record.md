@@ -314,9 +314,10 @@ break with no change in the project.
 - **Every project installs the command as a uv dev dependency**, pinned to the
   release tag, with `uv.lock` committed, and runs it as
   `uv run --no-sync iglootools`.
-- **A project without Python has a `pyproject.toml` with no `[project]`
-  table**: the dependency group alone, with a comment saying why the file is
-  there. Its `mise.toml` sets up uv as a Python project's does.
+- **A project without Python has a `pyproject.toml` for the command alone**:
+  a virtual project (`package = false`) whose `[project]` table names only
+  `name`, `version` and `requires-python`, with a comment saying why the file
+  is there. Its `mise.toml` sets up uv as a Python project's does.
 - **The uvx form goes**: `IGLOOTOOLS_VERSION`, its Renovate manager, and its
   handling in `check-pins` and `adopt`.
 

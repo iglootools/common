@@ -66,13 +66,14 @@ need it there too: they import the project's own package. Why projects without
 Python have one as well is in
 [ADR-004](../../docs/architecture-decision-record.md#adr-004--install-the-iglootools-command-through-uv-in-every-project-python-or-not).
 
-- A project without Python has a `pyproject.toml` with no `[project]` table,
-  only the dependency group and a comment saying why the file is there, and
-  its `mise.toml` sets uv up as
+- A project without Python has a `pyproject.toml` for the command alone: a
+  `[project]` table with only `name`, `version = "0"` and `requires-python`,
+  the dependency group, `package = false` under `[tool.uv]`, and a comment
+  saying why the file is there. Its `mise.toml` sets uv up as
   [python-tooling.md › Mise and uv](python-tooling.md#mise-and-uv) describes:
   `python` and `uv` in `[tools]`, the `UV_PYTHON` settings, `[deps.uv]`, and a
-  `lint-lock-uv` task. Commit `uv.lock`, and ignore `.venv/`.
-  network-infra's
+  `lint-lock-uv` task. Commit `uv.lock`, ignore `.venv/`, and set `UV_LOCKED`
+  in CI. network-infra's
   [pyproject.toml](https://github.com/iglootools/network-infra/blob/main/pyproject.toml)
   is a working example.
 - `uv.lock` records the commit the tag resolved to. Move the pin, then
