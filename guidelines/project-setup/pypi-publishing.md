@@ -294,9 +294,8 @@ synthesizes its version:
 ```yaml
 - name: Resolve PyPI-compatible version
   run: |
-    base=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null | sed 's/^v//' || echo 0.0.0)
-    ts=$(date -u +%Y%m%d%H%M%S)
-    echo "UV_DYNAMIC_VERSIONING_BYPASS=${base}.dev${ts}" >> "$GITHUB_ENV"
+    version=$(uv run iglootools python dev-version)
+    echo "UV_DYNAMIC_VERSIONING_BYPASS=$version" >> "$GITHUB_ENV"
 ```
 
 **Why:** Test PyPI enforces the same no-reuse rule as PyPI, and a rehearsal must
@@ -306,10 +305,12 @@ release.
 - Rehearse after changing anything on the publish path: the workflows, the
   build backend, the `build-constraint-dependencies`, the trusted-publisher
   settings.
-- Derive the version from the **base release** in the tag, not the full VCS
-  version: appending `.dev<ts>` to one that carries `.post5.dev0` gives two dev
-  segments, invalid PEP 440, which stays hidden while the workflow is only
-  dispatched from a tag.
+- `iglootools python dev-version` prints the **base release** in the nearest
+  tag with `.dev<UTC timestamp>`, not the full VCS version: appending to one
+  that carries `.post5.dev0` gives two dev segments, invalid PEP 440, which
+  stays hidden while the workflow is only dispatched from a tag.
+- Assign it to a variable first: a failing command inside `echo "…$(…)"` does
+  not fail the step.
 - `UV_DYNAMIC_VERSIONING_BYPASS` is read before any VCS lookup, so it replaces
   the computed version unconditionally.
 - This inline step is one of the CI-only steps

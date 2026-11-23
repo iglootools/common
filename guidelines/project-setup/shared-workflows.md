@@ -117,6 +117,8 @@ or the report reaches every project through one version bump.
   open issue titled with the caller's `issue-title`, or files one, and a run
   that finds none closes it. An open report is always current, and closing one
   by hand is safe.
+- It needs the caller's mise version, as `version`: it installs python and uv
+  to run `iglootools github link-report`, which reads the report.
 - Without `issues: write` the run fails with a 403 only when it finds a broken
   link, which is the moment the report was wanted.
 - `.lycheeignore` stays in the caller, and is the per-repository knob: the

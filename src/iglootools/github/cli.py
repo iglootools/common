@@ -1,13 +1,15 @@
-"""The `iglootools github` commands: merge a pull request once green, prune branches."""
+"""The `iglootools github` commands: merging, pruning, and shared workflow steps."""
 
 import os
 import time
+from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from iglootools.cliwiring import ensure, invocation, say, warn
-from iglootools.github import local, merge, prune
+from iglootools.cliwiring import display_path, ensure, invocation, say, warn
+from iglootools.github import linkreport, local, merge, prune, releasetag
+from iglootools.github.actions import AnnotationLevel, append_outputs, format_annotation
 from iglootools.github.client import (
     GitHub,
     GitHubError,
@@ -200,3 +202,220 @@ def prune_branches(
     except GitHubError as error:
         warn(f"{repository.slug}: {error.detail}")
         raise typer.Exit(1) from None
+
+
+GITHUB_OUTPUT_OPTION = typer.Option(
+    "--github-output",
+    envvar="GITHUB_OUTPUT",
+    help="Step output file to append to; default: $GITHUB_OUTPUT.",
+)
+
+
+def _annotate(level: AnnotationLevel, message: str) -> None:
+    say(format_annotation(level, message))
+
+
+def _outputs(path: Path | None, values: dict[str, str]) -> None:
+    if path is not None:
+        append_outputs(path, values)
+
+
+@app.command("checkout-release")
+def checkout_release_cmd(
+    ctx: typer.Context,
+    tag: Annotated[
+        str,
+        typer.Option(
+            help="Release tag to check out, such as v1.2.0; empty: the v* tag on HEAD.",
+        ),
+    ] = "",
+    event: Annotated[
+        str,
+        typer.Option(
+            envvar="GITHUB_EVENT_NAME",
+            help="Event that started the run; default: $GITHUB_EVENT_NAME.",
+        ),
+    ] = "",
+    github_output: Annotated[Path | None, GITHUB_OUTPUT_OPTION] = None,
+    *,
+    allow_untagged: Annotated[
+        bool,
+        typer.Option(
+            "--allow-untagged",
+            help="Build HEAD when there is no tag, rather than failing.",
+        ),
+    ] = False,
+) -> None:
+    """
+    Check out the release a workflow run builds: the tag asked for, or the one on HEAD.
+
+    For the jobs a release starts (publish, demo, a site deploy), right after
+    actions/checkout. With no tag anywhere, a workflow_run sets the `skip` output, since
+    the release run released nothing; any other run fails, unless --allow-untagged.
+    Refuses a tag not shaped v<digit>… or that the repository does not have. Sets the
+    `skip` and `tag` step outputs.
+    """
+    ensure(ctx, (requirements.GIT,))
+    root = invocation(ctx).root
+    plan = releasetag.plan_checkout(
+        requested=tag,
+        head_tag=releasetag.head_release_tag(root),
+        event=event,
+        allow_untagged=allow_untagged,
+    )
+    head = releasetag.short_head(root)
+    match plan.action:
+        case releasetag.CheckoutAction.SKIP:
+            _annotate(
+                AnnotationLevel.NOTICE,
+                f"{head} carries no v* tag, so the release run did not release. "
+                "Nothing to do.",
+            )
+            _outputs(github_output, {"skip": "true", "tag": ""})
+        case releasetag.CheckoutAction.USE_HEAD:
+            _annotate(
+                AnnotationLevel.NOTICE,
+                f"{head} carries no v* tag; building the branch head as dispatched.",
+            )
+            _outputs(github_output, {"skip": "false", "tag": ""})
+        case releasetag.CheckoutAction.REFUSE:
+            _annotate(
+                AnnotationLevel.ERROR,
+                f"{head} carries no v* tag. "
+                "Dispatch with -f tag=vX.Y.Z, or --ref vX.Y.Z.",
+            )
+            raise typer.Exit(1)
+        case releasetag.CheckoutAction.CHECKOUT:
+            _checkout_release(root, plan.tag)
+            _outputs(github_output, {"skip": "false", "tag": plan.tag})
+
+
+def _checkout_release(root: Path, tag: str) -> None:
+    if not releasetag.is_release_tag(root, tag):
+        _annotate(
+            AnnotationLevel.ERROR,
+            f"{tag} is not a release tag of this repository.",
+        )
+        raise typer.Exit(1)
+    try:
+        releasetag.checkout_tag(root, tag)
+    except releasetag.CheckoutError as error:
+        _annotate(AnnotationLevel.ERROR, f"Could not check out {tag}: {error.detail}")
+        raise typer.Exit(1) from None
+    say(f"Checked out {tag} ({releasetag.short_head(root)}).")
+
+
+def _run_url(environ: dict[str, str]) -> str:
+    """Return the run's page, from the variables every Actions run sets, or empty."""
+    parts = [environ.get(name, "") for name in _RUN_VARIABLES]
+    return "{}/{}/actions/runs/{}".format(*parts) if all(parts) else ""
+
+
+_RUN_VARIABLES = ("GITHUB_SERVER_URL", "GITHUB_REPOSITORY", "GITHUB_RUN_ID")
+
+
+def _read_report(path: Path, root: Path) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+    except (OSError, UnicodeDecodeError) as error:
+        warn(f"{display_path(path, root)} exists but cannot be read: {error}")
+        raise typer.Exit(1) from None
+
+
+@app.command("link-report")
+def link_report_cmd(
+    ctx: typer.Context,
+    *,
+    report: Annotated[
+        Path,
+        typer.Option(help="lychee's Markdown report."),
+    ] = Path("lychee/out.md"),
+    title: Annotated[
+        str,
+        typer.Option(help="Title of the issue that reports broken links."),
+    ] = "Link Checker Report",
+    labels: Annotated[
+        str,
+        typer.Option(help="Comma-separated labels for that issue."),
+    ] = "report, automated issue",
+    repo: Annotated[
+        str | None,
+        typer.Option(
+            "--repo",
+            envvar="GITHUB_REPOSITORY",
+            help="owner/name of the repository; default: $GITHUB_REPOSITORY, "
+            "else the origin remote.",
+        ),
+    ] = None,
+    run_url: Annotated[
+        str | None,
+        typer.Option(help="The run to link to; default: the current Actions run."),
+    ] = None,
+) -> None:
+    """
+    Keep one issue reporting broken links, from a lychee report.
+
+    Files the issue when links are broken, or updates the open one, and closes it once
+    none are. Fails, showing the report, when lychee did not complete a run, rather than
+    filing an empty issue. Run by the shared link checker, reusable-check-links.yml.
+    """
+    root = invocation(ctx).root
+    path = report if report.is_absolute() else root / report
+    text = _read_report(path, root)
+    outcome = linkreport.classify_report(text)
+    if outcome == linkreport.LinkCheckOutcome.NOT_RAN:
+        _annotate(
+            AnnotationLevel.ERROR,
+            f"lychee did not complete a run: {display_path(path, root)} has no "
+            "summary. Check the arguments in reusable-check-links.yml.",
+        )
+        say(text if text is not None else "(no report)")
+        raise typer.Exit(1)
+    ensure(ctx, requirements.GITHUB)
+    repository, github = github_session(ctx, repo)
+    url = run_url if run_url is not None else _run_url(dict(os.environ))
+    issue = linkreport.ReportIssue(
+        repository,
+        title,
+        [label.strip() for label in labels.split(",") if label.strip()],
+    )
+    try:
+        _act_on_report(
+            github,
+            issue,
+            outcome,
+            linkreport.fit_body(text or "", url),
+            url,
+        )
+    except GitHubError as error:
+        warn(f"{repository.slug}: {error.detail}")
+        raise typer.Exit(1) from None
+
+
+def _act_on_report(
+    github: GitHub,
+    issue: linkreport.ReportIssue,
+    outcome: linkreport.LinkCheckOutcome,
+    body: str,
+    run_url: str,
+) -> None:
+    open_report = linkreport.find_open_report(github, issue)
+    action = linkreport.plan_report(
+        broken=outcome == linkreport.LinkCheckOutcome.BROKEN,
+        open_report=open_report,
+    )
+    slug = issue.repository.slug
+    match (action, open_report):
+        case (linkreport.ReportAction.CREATE, _):
+            number = linkreport.file_report(github, issue, body)
+            say(f"Broken links: filed {slug}#{number}.")
+        case (linkreport.ReportAction.UPDATE, int() as number):
+            linkreport.update_report(github, issue, number, body)
+            say(f"Broken links: updated {slug}#{number}.")
+        case (linkreport.ReportAction.CLOSE, int() as number):
+            linkreport.close_report(github, issue, number, run_url)
+            say(f"No broken links: closed {slug}#{number}.")
+        case _:
+            say("No broken links, and no open report.")

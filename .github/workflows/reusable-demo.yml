@@ -67,41 +67,27 @@ jobs:
           # For workflow_run, github.sha is the default branch's head, not the commit the
           # release ran on.
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      # Only what the iglootools command needs, so a run with nothing to record stops before
+      # installing the rest.
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5
+        with:
+          version: ${{ inputs.version }}
+          install_args: python uv
       # Record the release tag, never whatever the branch head has become: a dispatch on main
       # after a newer merge would otherwise record that commit under the release's name. A
       # `release` run also completes successfully when it released nothing (a dry run, a run
-      # dispatched on another branch), and only a commit carrying a v* tag was released; a
-      # demo recorded anyway would be titled with a development version, which
-      # `iglootools demo upload` would take as the newest recording. A dispatch with no tag
-      # on an untagged branch head records that head, which is how a demo change is tested.
-      # See "Build what a release triggers from its tag" in guidelines/project-setup/workflows.md.
+      # dispatched on another branch), and then this skips; a dispatch with no tag on an
+      # untagged branch head records that head, which is how a demo change is tested. See
+      # "Build what a release triggers from its tag" in guidelines/project-setup/workflows.md.
+      # `uv run` rather than `--no-sync`: nothing synced the environment before this step.
       - name: Check out the release tag
         id: release
         env:
-          EVENT: ${{ github.event_name }}
           REQUESTED: ${{ inputs.tag }}
-        run: |
-          if [ -n "$REQUESTED" ]; then
-            tag=$REQUESTED
-          elif ! tag=$(git describe --exact-match --tags --match 'v*' HEAD 2>/dev/null); then
-            if [ "$EVENT" = workflow_run ]; then
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              echo "::notice::$(git rev-parse --short HEAD) carries no v* tag, so the release run did not release. Nothing to record."
-            else
-              echo "::notice::$(git rev-parse --short HEAD) carries no v* tag; recording the branch head as dispatched."
-            fi
-            exit 0
-          fi
-          if [[ ! $tag =~ ^v[0-9] ]] || ! git rev-parse -q --verify "refs/tags/$tag^{commit}" >/dev/null; then
-            echo "::error::$tag is not a release tag of this repository."
-            exit 1
-          fi
-          git checkout -q --detach "refs/tags/$tag"
-          echo "Recording the demo for $tag ($(git rev-parse --short HEAD))"
-      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5
+        run: uv run iglootools github checkout-release --tag "$REQUESTED" --allow-untagged
+      - name: Install the project's tools
         if: steps.release.outputs.skip != 'true'
-        with:
-          version: ${{ inputs.version }}
+        run: mise install --locked
       - name: Install system packages
         if: steps.release.outputs.skip != 'true'
         env:

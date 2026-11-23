@@ -30,12 +30,15 @@ script in the project.
 | `iglootools docs depgraph` | the Module Overview in `docs/architecture.md`, from pydeps |
 | `iglootools python build` / `clean` | building the sdist and wheel into an emptied `dist/` / deleting build artifacts |
 | `iglootools python verify-version` | failing on a wheel that carries the `0.0.0` fallback version |
+| `iglootools python dev-version` | the throwaway version a Test PyPI rehearsal publishes |
 | `iglootools python reinstall` | rebuilding `.venv` from the lock |
 | `iglootools demo record` / `upload` | recording the demo / publishing the newest CI recording |
 | `iglootools mise lock-check` | failing when the staged `mise.lock` is stale |
 | `iglootools shell lint` | running shellcheck on every tracked shell script |
 | `iglootools github merge-when-green <pr>` | merging a pull request once every check has passed, then deleting its branch, on GitHub and locally |
 | `iglootools github prune-branches` | deleting every branch whose latest pull request merged, on GitHub and locally; `-n` shows what it would delete |
+| `iglootools github checkout-release` | checking out the release a workflow run builds, or skipping a run that has none (shared workflows, publish) |
+| `iglootools github link-report` | keeping one issue open for a lychee report's broken links (the shared link checker) |
 | `iglootools common adopt <version>` | moving every pin on iglootools/common to a release, through a pull request merged once green |
 | `iglootools common adopt-all <version>` | adopting a release in every iglootools project checked out beside common, in parallel, after checking all of them (from common) |
 | `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
@@ -73,8 +76,8 @@ Python have one as well is in
   [python-tooling.md › Mise and uv](python-tooling.md#mise-and-uv) describes:
   `python` and `uv` in `[tools]`, the `UV_PYTHON` settings, `[deps.uv]`, and a
   `lint-lock-uv` task. Commit `uv.lock`, ignore `.venv/`, and set `UV_LOCKED`
-  in CI. network-infra's
-  [pyproject.toml](https://github.com/iglootools/network-infra/blob/main/pyproject.toml)
+  in CI. alberta-hiking-resources'
+  [pyproject.toml](https://github.com/iglootools/alberta-hiking-resources/blob/main/pyproject.toml)
   is a working example.
 - `uv.lock` records the commit the tag resolved to. Move the pin, then
   `uv lock`, as for any dependency. The version is the plugin's: the tag that
