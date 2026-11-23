@@ -31,7 +31,8 @@ managers.
 - [renovate/base.json](../../renovate/base.json): extend it in every project.
   Each entry carries its reason in its `description`.
 - [renovate/python.json](../../renovate/python.json): extend it as well in a
-  Python project.
+  Python project, one that builds a package. A project without Python, whose
+  `pyproject.toml` holds only the `iglootools` command, needs only `base`.
 - iglootools' own releases skip the 14-day hold: the `base` preset exempts them,
   since the people who release them also review the update.
 

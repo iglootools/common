@@ -111,7 +111,7 @@ uv run --no-sync iglootools common adopt-all "$VERSION"
   without a checkout there. It checks every project before changing any, then
   adopts them in parallel: each moves every pin on common (the reusable
   workflows to the release's commit, the `iglootools` command, the Renovate
-  presets, `IGLOOTOOLS_VERSION`), regenerates `uv.lock` where there is one, and
+  presets), regenerates `uv.lock`, and
   merges its pull request once green, deleting the branch. It runs from common's
   own environment, so the release being adopted needs no install in the
   projects. Rerunning it picks up each project where it stopped; `--only` and
