@@ -43,10 +43,16 @@ emit "$plugin_root/guidelines/applying-the-guidelines.md"
 emit "$plugin_root/guidelines/coding/general.md"
 emit "$plugin_root/guidelines/coding/git.md"
 
-# python.md is dead weight in a project with no Python, and two of the iglootools projects
-# have none. The presence of pyproject.toml is a check the session can make before it has
-# understood anything about the task.
-if [[ -f "$project_dir/pyproject.toml" ]]; then
+# python.md is dead weight in a project with no Python code, and two of the iglootools
+# projects have none. pyproject.toml no longer tells them apart: every project has one, to
+# install the iglootools command (ADR-004). A tracked .py file does, and git answers before the
+# session has understood anything about the task. Outside a git repository, pyproject.toml is
+# the best guess left.
+if python_files=$(git -C "$project_dir" ls-files -- '*.py' 2>/dev/null); then
+  if [[ -n "$python_files" ]]; then
+    emit "$plugin_root/guidelines/coding/python.md"
+  fi
+elif [[ -f "$project_dir/pyproject.toml" ]]; then
   emit "$plugin_root/guidelines/coding/python.md"
 fi
 
