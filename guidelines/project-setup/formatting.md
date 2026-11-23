@@ -115,8 +115,7 @@ then wraps at rumdl's 80 columns.
 
 - A repository with Claude Code skills or agents adds `[per-file-ignores]`
   entries for MD041 (first line is a heading), `"skills/**/SKILL.md"` and
-  `"agents/*.md"`: they open with YAML front matter, which Claude Code shows
-  instead of a title.
+  `"agents/*.md"`, with the reason `.rumdl.toml` gives.
 
 ## Exclude Markdown with a syntax of its own from rumdl
 

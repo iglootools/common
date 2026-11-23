@@ -97,10 +97,10 @@ with:
 ```
 
 **Why:** the version has to match the one the project's `mise.lock` was
-generated with, which is a per-project fact. The custom manager in
-[renovate/base.json](../../renovate/base.json), which every project extends,
-matches the marker followed by a literal `version:` line, so any other name,
-such as `mise-version`, silently freezes the pin.
+generated with, which is a per-project fact. The preset's custom manager reads
+the pin only from a literal `version:` line under the marker
+([workflows.md › Pin the mise version](workflows.md#pin-the-mise-version-in-every-jdxmise-action-step-under-a--renovate-marker)),
+so any other name, such as `mise-version`, silently freezes the pin.
 
 ## The shared workflows
 

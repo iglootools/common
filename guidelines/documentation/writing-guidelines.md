@@ -123,9 +123,10 @@ reader cannot tell which version wins.
 When a tool, a test or a `lint-*` task enforces a rule, the guideline states the
 rule, names the check and the task that fixes it, and stops. The check's
 configuration is the specification. When nothing enforces it yet, look for a way
-to add a check before settling for prose: a linter rule or its configuration, an
-import contract, a test, a `lint-*` task, or a small `iglootools` command such
-as `common check-pins`.
+to add a check before settling for prose: one of the tools
+[general.md › Enforce with a tool what a tool can check](../coding/general.md#enforce-with-a-tool-what-a-tool-can-check)
+names, a `lint-*` task, or a small `iglootools` command such as
+`common check-pins`.
 
 **Why:** prose that spells out what a check enforces is a second copy of the
 check. When the check changes, the prose quietly goes wrong. A rule held only in

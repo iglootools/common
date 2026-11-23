@@ -298,5 +298,6 @@ without testing anything.
 - Patching means `unittest.mock` and pytest's `monkeypatch` fixture. Changing
   directory is not (use `contextlib.chdir`), nor is choosing a backend through a
   library's own API.
-- Use real values, not `Mock` stand-ins: a stand-in accepts any attribute
-  access, so a typo or a renamed field still passes.
+- [Real values, not stand-ins](general.md#control-what-a-test-needs-with-a-decider-a-fake-or-a-cheap-real-resource)
+  matter more in Python: a `Mock` accepts any attribute access, so a typo or a
+  renamed field still passes.

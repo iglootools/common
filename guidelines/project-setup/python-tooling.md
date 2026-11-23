@@ -482,8 +482,9 @@ include_external_packages = true   # lets a contract name rich and typer
 - The task is `lint-boundaries`, named for the property, not `lint-imports`,
   which names the tool and is easily mistaken for its command.
 - import-linter reads every import, including those inside functions, so a rule
-  such as "the ML stack is imported lazily" is not a contract. Check it with a
-  test that imports the entry point and inspects `sys.modules`.
+  such as "the ML stack is imported lazily" is not a contract. Test it as
+  [python.md › Import at module level](../coding/python.md#import-at-module-level-and-defer-with-lazy-import)
+  describes.
 
 ### Prefer contracts whose coverage follows the code
 
@@ -630,8 +631,9 @@ and nothing reports it.
 
 - The patch table under `docs/guidelines.md` › Tests stays the one list of
   reasons. Each `noqa` comment carries a short form of its row.
-- A project adopting the rule with patches in place marks each one **pending**
-  the same way, so the checks go in before the tests are converted.
+- A patch already in place on adoption, listed as **pending** as general.md
+  says, gets its `noqa` like any other, so the checks go in before the tests
+  are converted.
 
 ## Rationale
 
