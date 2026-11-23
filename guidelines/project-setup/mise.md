@@ -51,11 +51,17 @@ family name can run the whole family.
   be run and fixed alone: `lint-fmt-dprint` fails, `fmt-dprint` fixes it.
 - **A lint's description names its fix** when a writer has one:
   ``"… (fix with `mise run toc`)"``.
+- **`test` runs every test suite**, and each `test-*` runs one suite or a group
+  of them (`test-integration`). There is no `test-all`.
 - **`preflight` runs every lint and every test**, and is what CI runs.
   `preflight-quick` runs every lint and only the fast tests, leaving out suites
   that need Docker, a real filesystem or the network. Where every test is fast,
   the two run the same thing, and `preflight-quick` still exists, so the command
   works in every project.
+- **Both run `lint` and the tests in parallel**,
+  `run = [{ tasks = ["lint", "test"] }]`: the tests do not depend on the lints,
+  so their time hides behind the lints' instead of adding to it. mise prefixes
+  each line with its task, so the interleaved output stays attributable.
 - **There is no `check`, `check-all` or `format` task**: a task under an old
   name is one nobody finds by the convention.
 
@@ -69,6 +75,14 @@ tasks and adds no logic of its own: `ci-preflight` (`install`, `preflight`),
 **Why:** a workflow job is then a single `mise run`, and CI runs exactly what a
 developer can run.
 
+- **`ci-preflight` does not build**: the build and `build-verify`, which reads
+  what it wrote, are `ci-build`'s. A project that builds a package also runs
+  `ci-build` on every pull request, as a `build` job in `preflight.yml`
+  ([workflows.md](workflows.md#name-each-job-after-the-task-it-runs-without-ci-)),
+  so each one proves the package builds and passes `build-verify`.
+- **A project whose build is itself a check**, such as a static site that fails
+  to build on a broken page, runs the build in `preflight`, and says so in a
+  comment.
 - The workflow side is in [workflows.md](workflows.md).
 
 ## Put a multi-line task body in a file task under `mise-tasks/`
@@ -191,6 +205,10 @@ and compares, in a scratch copy, never in place. Each of its guards was earned
 by a failure, and none is guessable.
 [Rationale](#check-miselock-in-a-scratch-copy-1)
 
+- **Set `lockfile = true` in `[settings]`** in every project that commits
+  `mise.lock`, so mise records per-platform checksums and URLs for every tool,
+  and a fresh clone or runner installs the exact artifacts the project was
+  verified against rather than whatever the version resolves to that day.
 - It compares the staged files: stage `mise.toml` and `mise.lock` before
   running it.
 
