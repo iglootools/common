@@ -94,7 +94,9 @@ reproduces it: `mise run preflight`.
 - The workflow that runs on every pull request is `preflight.yml`, with
   `name: preflight`, holding the `preflight` job. A project that builds a
   package adds a `build` job there, running `ci-build`, so every pull request
-  proves the package builds and passes `build-verify`. Its checkout fetches what
+  proves the package builds and passes `build-verify`; the merge waits on it, as
+  [repository.md › Protect the default branch and release tags](repository.md#protect-the-default-branch-and-release-tags)
+  says. Its checkout fetches what
   the version scheme needs, as the publish job's does
   ([pypi-publishing.md](pypi-publishing.md#check-out-the-released-commit-with-its-history-and-tags)).
   Nothing is called `test`, `ci` or `check` that runs more than tests, CI
