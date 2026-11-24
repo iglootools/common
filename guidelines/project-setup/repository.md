@@ -60,7 +60,8 @@ and package versions are derived from tags. Rulesets cover tags as well as
 branches and are readable through the API.
 
 **The default branch**: no deletion, no force-push, changes only through a pull
-request merged with a merge commit, and the `preflight` job green first.
+request merged with a merge commit, and the `preflight` job green first, with
+the `build` job too in a project that builds a package.
 Common's [GitHub Config](../../docs/building-and-testing.md#github-config)
 applies it, and shows how to verify it.
 
@@ -74,6 +75,11 @@ applies it, and shows how to verify it.
   ([workflows.md](workflows.md#name-each-job-after-the-task-it-runs-without-ci-)).
   It must run on every pull request: a workflow with `paths` filters never
   reports on a docs-only change, and the required check then blocks it forever.
+- `build` is required beside `preflight`, unless `preflight` is a job that
+  waits on the others and lists `build` among them: either way, a package that
+  no longer builds blocks the merge. Require it only once the job runs on the
+  default branch, or every open pull request waits on a check that never
+  reports.
   A repository with no such job omits the `required_status_checks` rule and says
   so in its docs.
 - `integration_id: 15368` is GitHub Actions, so a status of the same name from
