@@ -2,6 +2,8 @@ import subprocess
 from collections.abc import Sequence
 from pathlib import Path
 
+import pytest
+
 from iglootools.github import local
 
 
@@ -86,3 +88,22 @@ def test_the_base_is_updated_from_its_remote_tracking_ref_not_fetch_head() -> No
     commands = local.update_commands("main")
     assert ["git", "merge", "-q", "--ff-only", "origin/main"] in commands
     assert not [command for command in commands if "pull" in command]
+
+
+def test_a_commit_on_the_expected_branch_is_pushed(tmp_path: Path) -> None:
+    git = FakeGit(current="chore/release-1.0.0")
+    local.commit_and_push(tmp_path, ["a"], "msg", "chore/release-1.0.0", run=git)
+    assert ["git", "push", "-q", "-u", "origin", "chore/release-1.0.0"] in git.commands
+
+
+@pytest.mark.parametrize("current", ["chore/nuxt", ""])
+def test_a_checkout_on_another_branch_is_neither_committed_nor_pushed(
+    tmp_path: Path,
+    current: str,
+) -> None:
+    git = FakeGit(current=current)
+    with pytest.raises(local.GitStepError) as raised:
+        local.commit_and_push(tmp_path, ["a"], "msg", "chore/release-1.0.0", run=git)
+    assert raised.value.kind == local.GitStepFailureKind.SWITCHED_BRANCH
+    assert raised.value.current == current
+    assert git.commands == [["git", "branch", "--show-current"]]

@@ -80,22 +80,36 @@ def local_branches(root: Path, *, run: Run = capture) -> list[str]:
 
 
 class GitStepFailureKind(StrEnum):
-    """How a git step failed: a command exited non-zero, or the checkout was unclean."""
+    """
+    How a git step failed.
+
+    A command exited non-zero, the checkout was unclean, or something else switched
+    the checkout to another branch while the step was working on its own.
+    """
 
     COMMAND_FAILED = "command-failed"
     UNCLEAN_CHECKOUT = "unclean-checkout"
+    SWITCHED_BRANCH = "switched-branch"
 
 
 class GitStepError(RuntimeError):
-    """A failed command, with its own message as *output*, or an unclean checkout."""
+    """
+    A failed command with its own message as *output*, an unclean checkout, or a switch.
+
+    For a switch, *branch* is the branch the step works on and *current* the one the
+    checkout is on instead, empty for a detached HEAD.
+    """
 
     def __init__(
         self,
         kind: GitStepFailureKind,
         command: Sequence[str] = (),
         output: str = "",
+        *,
+        branch: str = "",
+        current: str = "",
     ) -> None:
-        """Build the error from its kind and, for a failed command, its output."""
+        """Build the error from its kind and the fields that kind uses."""
         match kind:
             case GitStepFailureKind.COMMAND_FAILED:
                 message = f"{' '.join(command)}: {output}"
@@ -104,10 +118,18 @@ class GitStepError(RuntimeError):
                     "the checkout has changes or untracked files; "
                     "commit, stash or remove them"
                 )
+            case GitStepFailureKind.SWITCHED_BRANCH:
+                message = (
+                    f"the checkout left {branch} for {current or 'a detached HEAD'}"
+                    " before the commit, so nothing was committed or pushed; the"
+                    f" changes meant for {branch} are uncommitted there"
+                )
         super().__init__(message)
         self.kind = kind
         self.command = tuple(command)
         self.output = output
+        self.branch = branch
+        self.current = current
 
 
 def git(root: Path, *args: str, run: Run = capture) -> str:
@@ -166,10 +188,20 @@ def commit_and_push(
     run: Run = capture,
 ) -> None:
     """
-    Commit *paths* with *message*, if they changed, and push *branch* to origin.
+    Commit *paths* with *message* on *branch*, if they changed, and push it to origin.
 
-    Raises GitStepError with git's message when a step fails.
+    Refuses when the checkout is no longer on *branch*: another process sharing the
+    checkout, such as an editor or an agent working there, can switch it while a long
+    step runs, and the commit would then land on that other branch while *branch* is
+    pushed without it. Raises GitStepError with git's message when a step fails.
     """
+    current = git(root, "branch", "--show-current", run=run).strip()
+    if current != branch:
+        raise GitStepError(
+            GitStepFailureKind.SWITCHED_BRANCH,
+            branch=branch,
+            current=current,
+        )
     git(root, "add", "--", *paths, run=run)
     if run(["git", "diff", "--cached", "--quiet"], root).returncode != 0:
         git(root, "commit", "-q", "-m", message, run=run)
