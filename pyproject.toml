@@ -141,6 +141,9 @@ combine-as-imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# pytest's defaults without "build", which would skip tests/build/, the tests of
+# iglootools.build. testpaths already keeps pytest out of the build output.
+norecursedirs = ["*.egg", ".*", "_darcs", "CVS", "dist", "node_modules", "venv", "{arch}"]
 
 [tool.pyright]
 pythonVersion = "3.14"
