@@ -72,10 +72,13 @@ class FakeTools:
         status: str = "",
         local_branch: bool = False,
         remote_branch: bool = False,
+        hijacked: str | None = None,
     ) -> None:
         self.status = status
         self.local_branch = local_branch
         self.remote_branch = remote_branch
+        self.hijacked = hijacked
+        self.current = "main"
         self.commands: list[list[str]] = []
 
     def __call__(
@@ -87,6 +90,12 @@ class FakeTools:
         match list(command):
             case ["git", "status", "--porcelain"]:
                 return subprocess.CompletedProcess(command, 0, self.status, "")
+            case ["git", "switch", *_, branch] | ["git", "switch", *_, branch, _]:
+                self.current = branch.removeprefix("origin/")
+                return subprocess.CompletedProcess(command, 0, "", "")
+            case ["git", "branch", "--show-current"]:
+                current = self.hijacked if self.hijacked is not None else self.current
+                return subprocess.CompletedProcess(command, 0, f"{current}\n", "")
             case ["git", "show-ref", *_]:
                 return subprocess.CompletedProcess(
                     command,
@@ -207,3 +216,19 @@ def test_untracked_files_stop_it_before_anything_changes(tmp_path: Path) -> None
     with pytest.raises(GitStepError) as raised:
         _adopt(_project(tmp_path), FakeGitHub(), FakeTools(status="?? notes.txt\n"), [])
     assert raised.value.kind == GitStepFailureKind.UNCLEAN_CHECKOUT
+
+
+def test_a_checkout_switched_away_mid_run_is_neither_committed_nor_pushed(
+    tmp_path: Path,
+) -> None:
+    tools = FakeTools(hijacked="chore/nuxt")
+    with pytest.raises(GitStepError) as raised:
+        _adopt(_project(tmp_path), FakeGitHub(), tools, [])
+    assert (raised.value.kind, raised.value.branch, raised.value.current) == (
+        GitStepFailureKind.SWITCHED_BRANCH,
+        BRANCH,
+        "chore/nuxt",
+    )
+    assert not [
+        c for c in tools.commands if c[:2] in (["git", "commit"], ["git", "push"])
+    ]
