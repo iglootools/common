@@ -29,7 +29,7 @@ Try a change by loading the plugin from the working tree, as
 [setup-development-environment.md](setup-development-environment.md#loading-the-plugin-from-the-working-tree)
 describes. Keep it in step with the guidelines. Renaming or moving a guideline
 file, changing which files trigger it, or adding a new one leaves
-`skills/guidelines/SKILL.md`, `hooks/load-always-on-guidelines.sh`,
+`skills/guidelines/SKILL.md`, `hooks/load-guideline-indexes.sh`,
 `agents/auditor.md` or the audit skills pointing at something that is no longer
 there — and a dispatch table that fails to fire fails silently, which is the
 failure mode this repository exists to prevent. All of them spell the paths out
@@ -38,7 +38,7 @@ from the plugin root (`${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md`,
 picked up for you. The hook is runnable, which is the cheapest check:
 
 ```bash
-CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PROJECT_DIR="$PWD" bash hooks/load-always-on-guidelines.sh
+CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PROJECT_DIR="$PWD" bash hooks/load-guideline-indexes.sh
 ```
 
 It prints a loud `ERROR:` line per file it cannot read rather than falling

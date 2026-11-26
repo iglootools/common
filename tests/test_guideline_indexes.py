@@ -12,7 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 GUIDELINES = ROOT / "guidelines"
 SKILL = ROOT / "skills" / "guidelines" / "SKILL.md"
-HOOK = ROOT / "hooks" / "load-always-on-guidelines.sh"
+HOOK = ROOT / "hooks" / "load-guideline-indexes.sh"
 AUDITOR = ROOT / "agents" / "auditor.md"
 
 ROUTED_BY = {

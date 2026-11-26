@@ -104,7 +104,7 @@ committing, which is exactly when an agent fixing a lint failure would not stop
 to look for a skill. Those are not skills: a skill is model-invoked, which is
 right for a guideline triggered by a file and wrong for one that applies to
 everything. They are delivered instead by
-[hooks/load-always-on-guidelines.sh](../hooks/load-always-on-guidelines.sh),
+[hooks/load-guideline-indexes.sh](../hooks/load-guideline-indexes.sh),
 which runs on `SessionStart` and whose stdout becomes context the agent sees.
 Another such guideline is added to that script, and to common's `AGENTS.md`
 ([below](#how-common-applies-its-own-guidelines)).
@@ -161,7 +161,7 @@ here is the next release:
 
 Reading the files directly avoids all four. The price is that `AGENTS.md`
 repeats the list of always-on files the hook emits. A guideline added to
-[hooks/load-always-on-guidelines.sh](../hooks/load-always-on-guidelines.sh)
+[hooks/load-guideline-indexes.sh](../hooks/load-guideline-indexes.sh)
 is added to `AGENTS.md` in the same change.
 
 ## The `iglootools` command
