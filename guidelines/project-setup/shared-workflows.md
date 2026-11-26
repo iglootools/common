@@ -19,6 +19,7 @@ Publishing to PyPI stays in each project:
 - [The shared workflows](#the-shared-workflows)
   - [Call the shared link checker instead of copying it](#call-the-shared-link-checker-instead-of-copying-it)
   - [Call the shared lock regenerator on Renovate branches](#call-the-shared-lock-regenerator-on-renovate-branches)
+  - [Push the regenerated lock as the iglootools GitHub App](#push-the-regenerated-lock-as-the-iglootools-github-app)
   - [Submit a uv project's dependency graph through the shared workflow](#submit-a-uv-projects-dependency-graph-through-the-shared-workflow)
   - [Re-inspect the submission action on every version bump](#re-inspect-the-submission-action-on-every-version-bump)
   - [Call the shared release workflow](#call-the-shared-release-workflow)
@@ -150,23 +151,51 @@ it by hand.
   its `mise.toml`.
 - It sets up mise with `install: false` and `env: false`, the one legitimate use
   ([workflows.md](workflows.md#pair-install-false-with-env-false)).
-- Pass the iglootools GitHub App's credentials, from the organization secrets,
-  by name rather than with `secrets: inherit`:
-
-  ```yaml
+- It pushes as the iglootools GitHub App, which the caller passes as two
   secrets:
-    app-client-id: ${{ secrets.RENOVATE_LOCK_APP_CLIENT_ID }}
-    app-private-key: ${{ secrets.RENOVATE_LOCK_APP_PRIVATE_KEY }}
-  ```
-
-  GitHub holds a pull_request run that a `GITHUB_TOKEN` push triggers until
-  someone approves it, so without the app the project's preflight on the
-  regenerated lock waits by hand on every Renovate pull request. The workflow
-  falls back to `GITHUB_TOKEN` with a warning when the secrets are missing. The
-  app needs Contents read and write, and to be installed on the repository.
+  [Push the regenerated lock as the iglootools GitHub App](#push-the-regenerated-lock-as-the-iglootools-github-app).
 - Renovate keeps rebasing a branch the workflow has committed to because the
   base preset lists the commit's author, `github-actions[bot]`, in
-  `gitIgnoredAuthors`; any other author freezes the branch.
+  `gitIgnoredAuthors`. Committing as any other author freezes the branch: a
+  stale update stays open and later updates queue behind it.
+
+### Push the regenerated lock as the iglootools GitHub App
+
+The caller passes the app's credentials from the organization secrets, by name
+rather than with `secrets: inherit`:
+
+```yaml
+uses: iglootools/common/.github/workflows/reusable-renovate-mise-lock.yml@<sha> # v<version>
+secrets:
+  app-client-id: ${{ secrets.RENOVATE_LOCK_APP_CLIENT_ID }}
+  app-private-key: ${{ secrets.RENOVATE_LOCK_APP_PRIVATE_KEY }}
+```
+
+**Why:** GitHub holds every pull_request run that a `GITHUB_TOKEN` push
+triggers until someone approves it. Pushed with `GITHUB_TOKEN`, the regenerated
+lock leaves the project's preflight in "action_required" on every Renovate pull
+request. A push with an app's token starts it as usual.
+
+- `secrets: inherit` would hand the called workflow every secret the repository
+  can read. Naming the two keeps it to what it uses.
+- Without the secrets, the workflow falls back to `GITHUB_TOKEN` and warns in
+  its run. The lock is still pushed, and preflight waits for approval.
+- The organization sets this up once:
+  1. Create a GitHub App owned by the iglootools organization (Settings ›
+     Developer settings › GitHub Apps), with its webhook off and one
+     repository permission, Contents: read and write.
+  2. Install it on all repositories, so a new one is covered without another
+     step. Installed on selected repositories instead, add each new one.
+  3. Add two organization Actions secrets, available to every repository:
+     `RENOVATE_LOCK_APP_CLIENT_ID`, the app's client ID, and
+     `RENOVATE_LOCK_APP_PRIVATE_KEY`, a private key generated on the app's
+     page, the whole `.pem`.
+- Check it on the next Renovate pull request whose lock the workflow
+  regenerated: the lock commit's preflight starts on its own, and the
+  workflow's run shows no warning. A preflight in "action_required" means the
+  app is not installed on the repository, or a secret is missing.
+- Rotating the key is a new private key on the app's page, then updating
+  `RENOVATE_LOCK_APP_PRIVATE_KEY`. Nothing in the projects changes.
 
 ### Submit a uv project's dependency graph through the shared workflow
 
