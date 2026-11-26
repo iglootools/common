@@ -20,6 +20,13 @@ jobs:
     # A local path rather than a pinned SHA, as in check-links.yml: this repository exercises
     # the shared workflow as changed rather than as last released. Consuming projects pin it.
     uses: ./.github/workflows/reusable-renovate-mise-lock.yml
+    # The iglootools GitHub App the lock is pushed as, so the preflight it triggers starts
+    # without waiting for approval (guidelines/project-setup/shared-workflows.md). Named
+    # explicitly rather than `secrets: inherit`, which would hand the called workflow every
+    # secret the repository can read.
+    secrets:
+      app-client-id: ${{ secrets.RENOVATE_LOCK_APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.RENOVATE_LOCK_APP_PRIVATE_KEY }}
     with:
       # The version mise.lock was generated with (guidelines/project-setup/workflows.md).
       # renovate: datasource=github-releases depName=jdx/mise

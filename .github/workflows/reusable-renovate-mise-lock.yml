@@ -20,6 +20,14 @@ name: reusable-renovate-mise-lock
 # `contents: write` grant and the mise version. `permissions` in a called workflow is a ceiling
 # on what the caller granted rather than a grant of its own, so a caller that omits
 # `contents: write` gets a job that regenerates the lock and then cannot push it.
+#
+# It pushes with a token of the iglootools GitHub App the caller passes as `app-client-id` and
+# `app-private-key`, not with GITHUB_TOKEN. GitHub holds every pull_request run that a
+# GITHUB_TOKEN push to a pull request's branch triggers until someone approves it, so the
+# project's preflight on the regenerated lock waited by hand on every Renovate pull request. A
+# push with an app's token triggers runs as usual. Without the secrets, it falls back to
+# GITHUB_TOKEN with a warning: the lock is still pushed, and preflight waits for approval as
+# before.
 
 on:
   workflow_call:
@@ -33,6 +41,16 @@ on:
           literal `version:` line, so any other name yields a pin nothing updates.
         type: string
         required: true
+    secrets:
+      app-client-id:
+        description: >-
+          Client ID of the GitHub App the regenerated lock is pushed as, installed on the caller's
+          repository with Contents read and write. Optional: without it the push uses
+          GITHUB_TOKEN, and the preflight it triggers waits for approval.
+        required: false
+      app-private-key:
+        description: The private key of that GitHub App.
+        required: false
 
 jobs:
   mise-lock:
@@ -40,9 +58,33 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write # committing the regenerated lock files back to the Renovate branch
+    # Secrets cannot appear in a step's `if:`, so whether the app is configured is read here.
+    env:
+      HAS_APP: ${{ secrets.app-client-id != '' && secrets.app-private-key != '' }}
     steps:
+      # Scoped to the calling repository (the default) and to the one permission the push needs.
+      # The token is revoked when the job ends.
+      - name: Create GitHub App token
+        id: app-token
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          permission-contents: write
+
+      - name: Warn that the push will wait for approval
+        if: env.HAS_APP != 'true'
+        run: >-
+          echo "::warning::No app-client-id and app-private-key: pushing with GITHUB_TOKEN, so
+          the preflight run it triggers waits for approval.
+          See guidelines/project-setup/shared-workflows.md in iglootools/common."
+
+      # Checkout persists the token in the git config, which is what `git push` below uses.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          token: ${{ steps.app-token.outputs.token || github.token }}
 
       # Install the mise binary only. We must NOT let mise-action run its default
       # `mise install`: when a mise.lock is present it auto-adds `--locked`, which *fails* on a
