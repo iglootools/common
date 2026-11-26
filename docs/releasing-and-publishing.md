@@ -27,22 +27,22 @@ change to an interface.
 
 Try a change by loading the plugin from the working tree, as
 [setup-development-environment.md](setup-development-environment.md#loading-the-plugin-from-the-working-tree)
-describes. Keep it in step with the guidelines. Renaming or moving a guideline
-file, changing which files trigger it, or adding a new one leaves
-`skills/guidelines/SKILL.md`, `hooks/load-always-on-guidelines.sh`,
+describes. Keep it in step with the guidelines. The hook emits every
+directory's index on its own, and `mise run test` fails on a guideline missing
+from its index, but renaming or moving a guideline file still leaves
 `agents/auditor.md` or the audit skills pointing at something that is no longer
-there — and a dispatch table that fails to fire fails silently, which is the
-failure mode this repository exists to prevent. All of them spell the paths out
-from the plugin root (`${CLAUDE_PLUGIN_ROOT}/guidelines/project-setup/ide.md`,
-`$plugin_root/guidelines/coding/general.md`), so no amount of moving files is
-picked up for you. The hook is runnable, which is the cheapest check:
+there, and a reference that fails to resolve fails silently, which is the
+failure mode this repository exists to prevent. They spell the paths out from
+the plugin root (`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md`), so search
+them for the old path. The hook is runnable, which is the cheapest check of
+what a session starts with:
 
 ```bash
-CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PROJECT_DIR="$PWD" bash hooks/load-always-on-guidelines.sh
+CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PROJECT_DIR="$PWD" bash hooks/load-guideline-indexes.sh
 ```
 
 It prints a loud `ERROR:` line per file it cannot read rather than falling
-silent, so an empty error count means every always-on path still resolves.
+silent.
 
 ## The `iglootools` command
 

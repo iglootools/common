@@ -1,7 +1,7 @@
 # Coding Guidelines
 
 The rules for writing code in any language in an iglootools project. Read it
-before any code change; the plugin puts it in every session.
+before any code change.
 [python.md](python.md) gives the Python form of these rules, and
 [git.md](git.md) how the change is committed.
 

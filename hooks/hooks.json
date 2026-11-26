@@ -1,5 +1,5 @@
 {
-  "description": "Loads the always-on iglootools guidelines into every session, and reminds the user to run /iglootools:audit-pr before a pull request is opened, marked ready or merged.",
+  "description": "Loads the iglootools guideline indexes into every session, and reminds the user to run /iglootools:audit-pr before a pull request is opened, marked ready or merged.",
   "hooks": {
     "SessionStart": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/load-always-on-guidelines.sh\""
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/load-guideline-indexes.sh\""
           }
         ]
       }

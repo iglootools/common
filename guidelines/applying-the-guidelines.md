@@ -1,15 +1,17 @@
 # Applying the Guidelines
 
-How the shared guidelines apply to an iglootools project, which rule wins when a
-project has its own, and how a project departs from one. It covers every
-guideline and [philosophy.md](philosophy.md), not only the coding rules; the
-plugin puts it in every session.
+How the shared guidelines apply to an iglootools project: which rule wins when a
+project has its own, how a project departs from one, and how a change is checked
+against them before it is called done. It covers every guideline and
+[philosophy.md](philosophy.md), not only the coding rules.
 
 <!-- toc -->
 **On this page**
 
 - [Precedence](#precedence)
   - [The most specific documented rule wins](#the-most-specific-documented-rule-wins)
+- [Checking the Change](#checking-the-change)
+  - [Walk the diff against every guideline it reached before calling it done](#walk-the-diff-against-every-guideline-it-reached-before-calling-it-done)
 - [Documented Exceptions](#documented-exceptions)
   - [Write each departure, and its reason, where a reader will hit it](#write-each-departure-and-its-reason-where-a-reader-will-hit-it)
   - [Name the condition that retires it](#name-the-condition-that-retires-it)
@@ -30,11 +32,33 @@ shared one stands. Where the guidelines live and what goes in them is
 beats a general one; written down, it can be reviewed, where a divergence only
 in the code cannot be told from a mistake.
 
-- **Check before departing:** the project's guidelines entry file, already in
-  context; any guidelines file that governs what you are editing; and any
-  comment at the point of departure in the file itself.
+- **Check before departing:** the project's guidelines entry file; any
+  guidelines file that governs what you are editing; and any comment at the
+  point of departure in the file itself.
 - **Undocumented divergence is drift, not an override:** do not carry it into
   the change. Follow the shared rule, and say what you found.
+
+## Checking the Change
+
+### Walk the diff against every guideline it reached before calling it done
+
+Check the change against the text of each guideline it reached, rule by rule,
+rather than trusting that they were applied while writing, and say what the
+check changed.
+
+**Why:** a rule applied from memory is the one that slips, and most of these
+rules guard against failures nothing reports, so a reviewer is the next chance
+to catch it.
+
+1. The checklists in the project's guidelines that cover this kind of change,
+   including any its entry file links to.
+2. [coding/general.md](coding/general.md), then
+   [coding/python.md](coding/python.md) for a Python change, against what the
+   diff actually does.
+3. Every other guideline the change reached, as the
+   [indexes](README.md) route it.
+4. [coding/git.md](coding/git.md), against the branch's commits, not only its
+   diff.
 
 ## Documented Exceptions
 

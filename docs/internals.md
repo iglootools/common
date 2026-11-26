@@ -1,18 +1,17 @@
 # Internals
 
-How the plugin delivers the guidelines to Claude Code: the `guidelines` skill,
-the audit skills, and the hook that loads the always-on guidelines. Installing
+How the plugin delivers the guidelines to Claude Code: the hook that loads the
+guideline indexes, and the audit skills. Installing
 it is in [installation.md](installation.md), and running the audits in
 [usage.md](usage.md).
 
 <!-- toc -->
 **On this page**
 
-- [Two delivery mechanisms](#two-delivery-mechanisms)
-- [The `guidelines` skill](#the-guidelines-skill)
+- [Indexes always, guidelines on demand](#indexes-always-guidelines-on-demand)
 - [Auditing](#auditing)
 - [Auditing consistency across the projects](#auditing-consistency-across-the-projects)
-- [The ones that load in every session](#the-ones-that-load-in-every-session)
+- [The hook that loads the indexes](#the-hook-that-loads-the-indexes)
 - [How common applies its own guidelines](#how-common-applies-its-own-guidelines)
   - [Why common does not install its own plugin](#why-common-does-not-install-its-own-plugin)
 - [The `iglootools` command](#the-iglootools-command)
@@ -20,31 +19,27 @@ it is in [installation.md](installation.md), and running the audits in
 - [Adopting a release everywhere](#adopting-a-release-everywhere)
 <!-- tocstop -->
 
-## Two delivery mechanisms
+## Indexes always, guidelines on demand
 
-The guidelines split into two kinds, and the plugin delivers each by the
-mechanism that fits. `coding/general.md`, `coding/python.md` and `coding/git.md`
-govern every edit, so a `SessionStart` hook puts them in context from the start
-(`coding/python.md` only in a project that tracks a `.py` file).
-The rest are triggered by a specific file, so a skill reads them only when a
-change reaches the files they govern.
+Every session starts with the guidelines' indexes in context, and none of the
+guidelines themselves: `guidelines/README.md` and each directory's `README.md`,
+each a table of which file to read for which change. The agent reads a
+guideline when a change matches its row, `coding/general.md` for any code
+change and `coding/git.md` before committing among them, and it reads the whole
+file. A session pays for the map and for the files its work reaches, not for
+every rule.
 
-## The `guidelines` skill
+The indexes are the only route, for people and agents alike: no skill or table
+in the plugin repeats them, so a trigger is written once, in the row that
+carries it. That is why a row names the files or the change precisely enough to
+recognize it, and why `tests/test_guideline_indexes.py` fails on a file missing
+from its directory's index. Why the plugin went this way, rather than loading
+the coding guidelines in full or routing through a skill, is
+[ADR-005](architecture-decision-record.md#adr-005--load-only-the-guideline-indexes-into-every-session).
 
-This repository is also a Claude Code plugin. Its main skill, `guidelines`,
-restates no guideline: its body says which file to read and when, so the
-guidelines stay in one place, readable by humans and agents alike. It does three
-things — dispatches to the guideline file a change reaches, carries the pass to
-make before calling the change done, and walks the procedure for recording a
-documented exception where a rule does not fit.
-
-Guideline files are read on demand where possible: the skill reads only the one
-a change actually reaches, and an ordinary code change reads none of them.
-
-It also enforces the philosophy the guidelines rest on: check the work against
-them before calling it done, and document a deviation rather than drift from a
-rule silently. See
-[Documented Exceptions](../guidelines/applying-the-guidelines.md#documented-exceptions).
+Guidance that is not a rule, such as when to read which file, goes in the
+hook's own header rather than in a guideline, since a guideline is written for
+a person.
 
 ## Auditing
 
@@ -95,37 +90,29 @@ is one more `audit-consistency-<area>` skill.
 Their reports go to `.iglootools/audits/` beside the plugin's, with no `Scope:`
 line, which the reminder hook above would read as an `audit-pr` of that commit.
 
-## The ones that load in every session
+## The hook that loads the indexes
 
-Some guidelines govern every edit rather than one kind of file —
-`coding/general.md`, `coding/python.md` and `coding/git.md` today.
-`coding/git.md` has no file to trigger it at all: it applies at the moment of
-committing, which is exactly when an agent fixing a lint failure would not stop
-to look for a skill. Those are not skills: a skill is model-invoked, which is
-right for a guideline triggered by a file and wrong for one that applies to
-everything. They are delivered instead by
-[hooks/load-always-on-guidelines.sh](../hooks/load-always-on-guidelines.sh),
-which runs on `SessionStart` and whose stdout becomes context the agent sees.
-Another such guideline is added to that script, and to common's `AGENTS.md`
-([below](#how-common-applies-its-own-guidelines)).
+[hooks/load-guideline-indexes.sh](../hooks/load-guideline-indexes.sh) runs on
+`SessionStart`, and its stdout becomes context the agent sees. It prints a short
+header saying how to use the indexes, then `guidelines/README.md` and every
+directory's `README.md`, each under its absolute path so that the relative links
+inside it resolve. A new directory under `guidelines/` is picked up without
+touching the hook.
 
 The hook fires on `startup`, `clear` and `compact`, and deliberately not on
 `resume` or `fork`: a resumed or forked session still carries the earlier
 injection in its transcript, while a compacted one may have had it summarized
 away.
 
-Emission can be conditional: `coding/python.md` goes out only when the project
-has a `pyproject.toml`, so a project with no Python does not pay for it. The
-project's guidelines entry file goes out last, when it exists
+The project's guidelines entry file goes out last, when it exists
 (`docs/guidelines.md`, or `docs/guidelines/README.md` when the guidelines are
-split), under a heading that says it overrides the shared rules above it: an
-override the agent only reads on demand is one it does not have in front of it
-while writing the code it overrides. Every other `guidelines.md` and
-`guidelines/**/*.md` the project tracks is listed after it by path, with what it
-governs, and read when a change reaches that: loading them all would make every
-session pay for every area's conventions. If a file cannot be read, the hook
-says so in the injected text rather than emitting nothing, because a guideline
-that failed to load must not be indistinguishable from one that does not apply.
+split), under a heading that says it overrides the shared rules: an override the
+agent only reads on demand is one it does not have in front of it while writing
+the code it overrides. Every other `guidelines.md` and `guidelines/**/*.md` the
+project tracks is listed after it by path, with what it governs, and read when a
+change reaches that. If a file cannot be read, the hook says so in the injected
+text rather than emitting nothing, because an index that failed to load must not
+be indistinguishable from guidelines that do not apply.
 
 ## How common applies its own guidelines
 
@@ -136,8 +123,8 @@ enables in its committed `.claude/settings.json` (see
 
 | | Another project | Common |
 |---|---|---|
-| Always-on guidelines | the `SessionStart` hook injects them from the installed plugin | `AGENTS.md` names them, and the agent reads them from the working tree |
-| Guidelines that apply by file | the `guidelines` skill sends the agent to the file a change reaches | `AGENTS.md` sends the agent through [guidelines/README.md](../guidelines/README.md) and each directory's `README.md` |
+| The indexes | the `SessionStart` hook injects them from the installed plugin | `AGENTS.md` names them, and the agent reads them from the working tree |
+| The guidelines a change reaches | the agent reads them from the installed plugin, as the indexes route it | the same, from the working tree |
 | Audit skills and the reminder before a pull request | from the installed plugin | from the working tree, with `claude --plugin-dir .`, as [setup-development-environment.md](setup-development-environment.md#loading-the-plugin-from-the-working-tree) shows |
 
 ### Why common does not install its own plugin
@@ -160,9 +147,8 @@ here is the next release:
   which copy's hooks and skills ran.
 
 Reading the files directly avoids all four. The price is that `AGENTS.md`
-repeats the list of always-on files the hook emits. A guideline added to
-[hooks/load-always-on-guidelines.sh](../hooks/load-always-on-guidelines.sh)
-is added to `AGENTS.md` in the same change.
+repeats what the hook emits: the indexes, named by where they are rather than
+one by one, so a new directory needs no change to either.
 
 ## The `iglootools` command
 

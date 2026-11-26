@@ -9,4 +9,4 @@ The rules for writing code and committing it, in every iglootools project.
 | [git.md](git.md) | committing, rewriting a branch, or opening a pull request |
 
 How a project is built and configured is in
-[../project-setup/](../project-setup/).
+[../project-setup/](../project-setup/README.md).

@@ -1,8 +1,9 @@
 # Claude Code Guidelines
 
 Claude Code's own configuration: `.claude/settings.json` and the plugins a
-project enables. Read it before changing either. The editor half is in
-[ide.md](ide.md): VSCode runs Pylance for its diagnostics, while the plugin
+project enables, and how Claude finds code with them. Read it before changing
+either, and before searching a project's code for a symbol. The editor half is
+in [ide.md](ide.md): VSCode runs Pylance for its diagnostics, while the plugin
 runs its own pyright for Claude, so a stale diagnostic on one side says nothing
 about the other.
 
@@ -10,6 +11,7 @@ about the other.
 **On this page**
 
 - [Install pyright-lsp at project scope in every Python project](#install-pyright-lsp-at-project-scope-in-every-python-project)
+- [Find a symbol with the language server, and text with grep](#find-a-symbol-with-the-language-server-and-text-with-grep)
 - [Commit `.claude/settings.json` so the team gets the plugins](#commit-claudesettingsjson-so-the-team-gets-the-plugins)
 - [Restart the session after changing `[tool.pyright]`, and never kill the server](#restart-the-session-after-changing-toolpyright-and-never-kill-the-server)
 <!-- tocstop -->
@@ -34,6 +36,20 @@ modules.
   may cover several projects, but each file is checked against its own
   project's venv, and `goToDefinition` follows the import graph rather than the
   name.
+
+## Find a symbol with the language server, and text with grep
+
+Answer symbol questions through the project's language server: where something
+is defined, what references or calls it, what type it returns, what a module
+contains. Use `grep` or a glob for what is not a resolvable symbol: string
+literals, configuration keys, YAML and TOML, comments, filenames, or a name that
+may not resolve at all.
+
+**Why:** these projects reuse short names across modules, so only the import
+graph tells which one a reference means; a text match finds them all.
+
+- The server does not descend into installed dependencies (`site-packages`,
+  `node_modules`), so a third-party definition is read from the file directly.
 
 ## Commit `.claude/settings.json` so the team gets the plugins
 
