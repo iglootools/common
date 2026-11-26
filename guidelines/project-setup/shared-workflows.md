@@ -180,16 +180,44 @@ request. A push with an app's token starts it as usual.
   can read. Naming the two keeps it to what it uses.
 - Without the secrets, the workflow falls back to `GITHUB_TOKEN` and warns in
   its run. The lock is still pushed, and preflight waits for approval.
-- The organization sets this up once:
-  1. Create a GitHub App owned by the iglootools organization (Settings ›
-     Developer settings › GitHub Apps), with its webhook off and one
-     repository permission, Contents: read and write.
-  2. Install it on all repositories, so a new one is covered without another
-     step. Installed on selected repositories instead, add each new one.
-  3. Add two organization Actions secrets, available to every repository:
-     `RENOVATE_LOCK_APP_CLIENT_ID`, the app's client ID, and
-     `RENOVATE_LOCK_APP_PRIVATE_KEY`, a private key generated on the app's
-     page, the whole `.pem`.
+- The organization sets this up once, as an organization owner:
+  1. Create the app from the organization's Settings › Developer settings ›
+     GitHub Apps › New GitHub App, with:
+
+     | Field                                       | Value                                                     |
+     | ------------------------------------------- | --------------------------------------------------------- |
+     | GitHub App name                             | `iglootools-renovate-lock`                                |
+     | Description                                 | Pushes the locks reusable-renovate-mise-lock.yml regenerates on Renovate branches. |
+     | Homepage URL                                | `https://github.com/iglootools/common`                    |
+     | Callback URL, Setup URL                     | empty                                                     |
+     | Expire user authorization tokens            | left as it is: the app acts on no user's behalf           |
+     | Request user authorization during installation | unchecked                                              |
+     | Enable Device Flow                          | unchecked                                                 |
+     | Webhook › Active                            | unchecked                                                 |
+     | Repository permissions                      | Contents: Read and write. Metadata: Read-only is added by GitHub. Nothing else. |
+     | Organization and account permissions        | none                                                      |
+     | Subscribe to events                         | none                                                      |
+     | Where can this GitHub App be installed?     | Only on this account                                      |
+
+     The commits it pushes keep the `github-actions[bot]` author the workflow
+     sets, so the app's name appears nowhere in a project.
+  2. On the app's page, generate a private key, and note the client ID.
+  3. Install it on the organization, for all repositories, so a new one is
+     covered without another step. Installed on selected repositories
+     instead, add each new one.
+  4. Add two organization Actions secrets (Settings › Secrets and variables ›
+     Actions), with repository access set to all repositories:
+     `RENOVATE_LOCK_APP_CLIENT_ID`, the client ID, and
+     `RENOVATE_LOCK_APP_PRIVATE_KEY`, the whole `.pem` file the key
+     generated.
+  5. Add the same two secrets to each private repository, network-infra
+     today, as repository secrets. On GitHub's Free plan, which iglootools is
+     on, organization secrets reach public repositories only.
+- Contents alone cannot push a commit that changes a file under
+  `.github/workflows/`, which needs Workflows: read and write. The workflow's
+  commit holds only what Renovate did not write in the final form (the locks and
+  dprint's formatting), so it has not needed it; a push rejected with "refusing
+  to allow a GitHub App to create or update workflow" means it now does.
 - Check it on the next Renovate pull request whose lock the workflow
   regenerated: the lock commit's preflight starts on its own, and the
   workflow's run shows no warning. A preflight in "action_required" means the
