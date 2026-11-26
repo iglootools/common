@@ -22,8 +22,8 @@ names. Read it before adding or reworking a rule. Rules are one of the
 - [Ownership](#ownership)
   - [Own each rule in one file, and cite it everywhere else](#own-each-rule-in-one-file-and-cite-it-everywhere-else)
   - [Let a check hold what a check can enforce](#let-a-check-hold-what-a-check-can-enforce)
-  - [Register a new or renamed guideline in every index that routes to it](#register-a-new-or-renamed-guideline-in-every-index-that-routes-to-it)
-  - [Keep the always-on guidelines to what every change needs](#keep-the-always-on-guidelines-to-what-every-change-needs)
+  - [Register a new or renamed guideline in its directory's index](#register-a-new-or-renamed-guideline-in-its-directorys-index)
+  - [Keep the always-on files to what every change needs](#keep-the-always-on-files-to-what-every-change-needs)
   - [Leave out what is not a rule](#leave-out-what-is-not-a-rule)
 <!-- tocstop -->
 
@@ -36,9 +36,9 @@ For a guideline,
 means that the first paragraph names the files or changes it governs and the
 moment to read it. The table of contents follows.
 
-**Why:** a person deciding whether the guideline applies to their change, and
-the `guidelines` skill deciding when to load it, both read that paragraph first.
-A vague one sends them past a guideline they needed, or into one they did not.
+**Why:** a person or an agent deciding whether the guideline applies to their
+change reads that paragraph first, after the index row that sent them there. A
+vague one sends them past a guideline they needed, or into one they did not.
 
 ### Head each rule with the rule itself
 
@@ -112,7 +112,7 @@ other guideline that touches the subject cites it in one line, linking to the
 section: "Name the task as
 [mise.md › Name tasks by family](../project-setup/mise.md#name-tasks-by-family)
 describes." Do not summarize it. If the other file's readers need the rule in
-front of them, route them to both files from the `guidelines` skill rather than
+front of them, route them to both files from the directory's index rather than
 copying the rule.
 
 **Why:** a summary is a copy, and copies drift without anything failing. The
@@ -138,31 +138,31 @@ argues.
 - When a check is out of reach (it would need judgement, or cost more than the
   mistakes it catches), keep the rule in prose.
 
-### Register a new or renamed guideline in every index that routes to it
+### Register a new or renamed guideline in its directory's index
 
-Give it one line in its directory's `README.md`, written as
-[maps](types.md#say-when-to-go-there-not-what-is-inside) are: the change that
-should send a reader there. Then register it where agents are routed to it: the
-`guidelines` skill's routing table for a file under `project-setup/` or
-`documentation/`, the `SessionStart` hook for a file under `coding/`, the
-auditor agent for one under `review/`. A new directory, or a file at the top of
-`guidelines/`, also gets a line in `guidelines/README.md`. Update every one when
-the file is renamed or its trigger changes. `mise run test` fails on a guideline
-missing from any of them (`tests/test_guideline_indexes.py`).
+Give every file under `guidelines/`, templates included, one line in its
+directory's `README.md`, written as
+[maps](types.md#say-when-to-go-there-not-what-is-inside) are: every change that
+should send a reader there, precisely enough to recognize the change by the
+files it touches. A new directory, or a file at the top of `guidelines/`, also
+gets a line in `guidelines/README.md`. Update the line when the file is renamed
+or its trigger changes. `mise run test` fails on a file missing from its index
+(`tests/test_guideline_indexes.py`).
 
-**Why:** the skill reads only the files its table lists, and readers find the
-rest through the indexes, so an unregistered guideline exists without ever being
-read.
+**Why:** the indexes are the only route to a guideline: people find the files
+through them, and the plugin puts them, and nothing else of the shared
+guidelines, in every agent session. A file left out exists without ever being
+read, and a vague trigger is one nobody recognizes.
 
-### Keep the always-on guidelines to what every change needs
+### Keep the always-on files to what every change needs
 
-The shared `applying-the-guidelines.md`, `coding/general.md` and
-`coding/git.md`, `coding/python.md` in a project that tracks Python files, and
-each project's entry file (`docs/guidelines.md`, or
-`docs/guidelines/README.md`), go into every agent session. A rule there must
-apply to every change in its scope. A rule about particular files belongs in the
-guideline those files trigger, and anything long moves to a file of its own,
-linked from the entry file.
+The shared indexes (`guidelines/README.md` and every directory's `README.md`)
+and each project's guidelines entry file (`docs/guidelines.md`, or
+`docs/guidelines/README.md`) go into every agent session. An index holds a line
+per file and nothing else. A rule in the entry file must apply to every change
+in its scope: a rule about particular files belongs in the guideline those files
+trigger, and anything long moves to a file of its own, linked from the entry
+file.
 
 **Why:** a line in an always-on file is read in every session, by readers who do
 not need it.
@@ -178,8 +178,8 @@ not need it.
   as the reason.
 - **No hedging, and no addressing an agent.** Write the rule for a person
   ([Documentation for people first](../philosophy.md#documentation-for-people-first-agent-configuration-for-the-gaps)).
-  Which file an agent reads, and when, is for the skill and the hooks to
-  decide.
+  Which file an agent reads, and when, is for the indexes and the hooks
+  to decide.
 - **Move what is not a rule to where it belongs**: an argument to the
   `## Rationale` section or `philosophy.md`, a procedure or a reference to the
   project's `docs/`, and a description of how a tool works to its code.

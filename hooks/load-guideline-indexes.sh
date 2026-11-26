@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 #
 # SessionStart hook. Its stdout is added to the session as context Claude can see, which is
-# how the always-on guidelines reach a project without a clone of this repository: the
-# `@../common/guidelines/coding/general.md` import this replaces resolved through a sibling
-# directory, and ${CLAUDE_PLUGIN_ROOT} does not.
+# how the guidelines reach a project without a clone of this repository: ${CLAUDE_PLUGIN_ROOT}
+# resolves only here, not in a project's CLAUDE.md or AGENTS.md.
+#
+# Only the indexes go out: guidelines/README.md and every directory's README.md, each a table
+# of which file to read for which change. The guidelines themselves are read when a change
+# reaches them, so a session pays for the map and for the files its work needs, not for every
+# rule (ADR-005 in docs/architecture-decision-record.md).
 #
 # Matched on startup|clear|compact, not resume or fork. A resumed or forked session still
 # carries the earlier injection in its transcript, so re-emitting would only duplicate it; a
@@ -12,6 +16,7 @@ set -euo pipefail
 
 plugin_root="${CLAUDE_PLUGIN_ROOT:?this script only runs as a Claude Code plugin hook}"
 project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
+guidelines="$plugin_root/guidelines"
 
 emit() {
   local path="$1"
@@ -19,47 +24,42 @@ emit() {
     cat -- "$path"
     printf '\n'
   else
-    # Loud, not silent. A guideline that failed to load must not be indistinguishable from a
-    # guideline that does not apply.
+    # Loud, not silent. An index that failed to load must not be indistinguishable from
+    # guidelines that do not apply.
     printf 'ERROR: the iglootools plugin could not read %s.\n' "$path"
-    printf 'Tell the user this guideline is missing rather than proceeding as though it does not apply.\n\n'
+    printf 'Tell the user this index is missing rather than proceeding as though it does not apply.\n\n'
   fi
 }
 
+# Each index's links are relative to its own directory, so it goes out under that directory's
+# absolute path: otherwise a link such as general.md resolves against nothing.
+emit_index() {
+  local dir="$1"
+  printf '## Index of %s/\n\n' "$dir"
+  emit "$dir/README.md"
+}
+
 printf '# iglootools common guidelines\n\n'
-printf 'Shared across iglootools projects and delivered by the iglootools plugin. These govern\n'
-printf 'every edit. Each rule is a default: the terms for departing from one are in\n'
-printf 'applying-the-guidelines.md, Documented Exceptions, below. The project'"'"'s own guidelines\n'
-printf '(docs/guidelines.md or docs/guidelines/README.md) follow at the end when it has them.\n\n'
-# The guideline files do not repeat, one per file, that they are defaults and where the
-# reasoning lives: stating it once here reaches every session.
-printf 'The reasoning behind these rules is in %s/guidelines/philosophy.md.\n\n' "$plugin_root"
-# The paths matter: a relative link such as general.md's ../philosophy.md only resolves if you
-# know which directory the file sits in.
-printf 'applying-the-guidelines.md lives in %s/guidelines/, and the coding files below it in\n' "$plugin_root"
-printf '%s/guidelines/coding/, where the relative links inside them resolve.\n\n' "$plugin_root"
+printf 'Shared across iglootools projects and delivered by the iglootools plugin. Below are\n'
+printf 'their indexes, not the rules: each row names the file to read for a kind of change.\n'
+printf 'Before making a change, read in full every file its rows send you to, such as\n'
+printf 'coding/general.md for any code change and coding/git.md before committing. Read the\n'
+printf 'whole file, not the section that looks relevant: the guidelines are largely about\n'
+printf 'silent failures, and the part that looks skippable is usually the one that names one.\n\n'
+printf 'Each rule is a default. The project'"'"'s own guidelines, when it has them, follow at the\n'
+printf 'end and override the shared ones, as applying-the-guidelines.md, Precedence, describes;\n'
+printf 'departing from a rule is its Documented Exceptions section. The project'"'"'s own\n'
+printf 'documents, from setup to its architecture, are indexed in its CONTRIBUTING.md.\n\n'
 
-emit "$plugin_root/guidelines/applying-the-guidelines.md"
-emit "$plugin_root/guidelines/coding/general.md"
-emit "$plugin_root/guidelines/coding/git.md"
-
-# python.md is dead weight in a project with no Python code, and two of the iglootools
-# projects have none. pyproject.toml no longer tells them apart: every project has one, to
-# install the iglootools command (ADR-004). A tracked .py file does, and git answers before the
-# session has understood anything about the task. Outside a git repository, pyproject.toml is
-# the best guess left.
-if python_files=$(git -C "$project_dir" ls-files -- '*.py' 2>/dev/null); then
-  if [[ -n "$python_files" ]]; then
-    emit "$plugin_root/guidelines/coding/python.md"
-  fi
-elif [[ -f "$project_dir/pyproject.toml" ]]; then
-  emit "$plugin_root/guidelines/coding/python.md"
-fi
+emit_index "$guidelines"
+for dir in "$guidelines"/*/; do
+  emit_index "${dir%/}"
+done
 
 # The project's own rules come last, because they override everything above. Naming the file
-# was not enough: the shared rules were in context while code was being written and the
-# override was not, so a project deviation was only noticed if the agent happened to go and
-# read it. A missing file is not an error — it means the project documents no deviations.
+# was not enough: an override the agent only reads on demand is one it does not have in front
+# of it while writing the code it overrides. A missing file is not an error — it means the
+# project documents no deviations.
 #
 # Only the entry file goes out in full: docs/guidelines.md, or docs/guidelines/README.md when
 # the project splits its guidelines into a directory. Every line of it is paid for in every
@@ -75,9 +75,9 @@ done
 
 if [[ -n "$project_guidelines" ]]; then
   printf '# Project guidelines (%s)\n\n' "$project_guidelines"
-  printf 'This project'"'"'s own rules, documented exceptions and checklists. They take precedence as\n'
-  printf 'applying-the-guidelines.md, Precedence, above, describes. Read any document they link for an\n'
-  printf 'area in full before changing files there.\n\n'
+  printf 'This project'"'"'s own rules, documented exceptions and checklists. They take precedence\n'
+  printf 'over the shared guidelines above. Read any document they link for an area in full before\n'
+  printf 'changing files there.\n\n'
   emit "$project_dir/$project_guidelines"
 fi
 

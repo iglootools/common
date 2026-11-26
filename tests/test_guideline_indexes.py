@@ -1,68 +1,69 @@
 """
-Every guideline is registered where readers and agents are routed to it.
+Every guideline is registered in the indexes agents are routed through.
 
-guidelines/documentation/writing-guidelines.md › Register a new or renamed guideline in
-every index that routes to it. A guideline missing from these is a file nobody reads.
+guidelines/documentation/writing-guidelines.md › Register a new or renamed guideline
+in its directory's index. The plugin's SessionStart hook puts the indexes, not the
+guidelines, in every session, so a guideline missing from them is a file nobody reads.
 """
 
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDELINES = ROOT / "guidelines"
-SKILL = ROOT / "skills" / "guidelines" / "SKILL.md"
 HOOK = ROOT / "hooks" / "load-guideline-indexes.sh"
-AUDITOR = ROOT / "agents" / "auditor.md"
-
-ROUTED_BY = {
-    "project-setup": SKILL,
-    "documentation": SKILL,
-    "coding": HOOK,
-    "review": AUDITOR,
-}
-"""Which file routes agents to the guidelines of each directory."""
+DIRECTORIES = sorted(path.name for path in GUIDELINES.iterdir() if path.is_dir())
 
 
-def _guidelines(directory: str) -> list[str]:
+def _files(directory: str) -> list[str]:
+    """Every file under the directory, as a path relative to it, except its index."""
+    base = GUIDELINES / directory
     return sorted(
-        path.name
-        for path in (GUIDELINES / directory).glob("*.md")
-        if path.name != "README.md"
+        path.relative_to(base).as_posix()
+        for path in base.rglob("*")
+        if path.is_file() and path.relative_to(base).as_posix() != "README.md"
     )
 
 
-def test_every_guideline_directory_is_known() -> None:
-    directories = sorted(path.name for path in GUIDELINES.iterdir() if path.is_dir())
-    assert directories == sorted(ROUTED_BY), (
-        "a new directory under guidelines/: say which file routes agents to it in "
-        "ROUTED_BY, and give it a line in guidelines/README.md"
-    )
-
-
-@pytest.mark.parametrize("directory", sorted(ROUTED_BY))
-def test_every_guideline_is_listed_in_its_directory_index(directory: str) -> None:
+@pytest.mark.parametrize("directory", DIRECTORIES)
+def test_every_file_is_listed_in_its_directory_index(directory: str) -> None:
     index = (GUIDELINES / directory / "README.md").read_text(encoding="utf-8")
-    missing = [name for name in _guidelines(directory) if f"]({name})" not in index]
+    missing = [name for name in _files(directory) if f"]({name})" not in index]
     assert not missing, f"guidelines/{directory}/README.md does not list {missing}"
-
-
-@pytest.mark.parametrize("directory", sorted(ROUTED_BY))
-def test_every_guideline_is_routed_to_agents(directory: str) -> None:
-    router = ROUTED_BY[directory]
-    text = router.read_text(encoding="utf-8")
-    missing = [
-        name
-        for name in _guidelines(directory)
-        if f"guidelines/{directory}/{name}" not in text
-    ]
-    assert not missing, f"{router.relative_to(ROOT)} does not route to {missing}"
 
 
 def test_every_directory_and_top_level_guideline_is_in_the_map() -> None:
     index = (GUIDELINES / "README.md").read_text(encoding="utf-8")
-    entries = [f"{name}/" for name in sorted(ROUTED_BY)] + sorted(
+    entries = [f"{name}/README.md" for name in DIRECTORIES] + sorted(
         path.name for path in GUIDELINES.glob("*.md") if path.name != "README.md"
     )
     missing = [entry for entry in entries if f"]({entry})" not in index]
     assert not missing, f"guidelines/README.md does not list {missing}"
+
+
+def test_the_hook_emits_every_index(tmp_path: Path) -> None:
+    result = subprocess.run(
+        ["bash", str(HOOK)],
+        env={
+            **os.environ,
+            "CLAUDE_PLUGIN_ROOT": str(ROOT),
+            "CLAUDE_PROJECT_DIR": str(tmp_path),
+        },
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    indexes = [GUIDELINES / "README.md"] + [
+        GUIDELINES / name / "README.md" for name in DIRECTORIES
+    ]
+    missing = [
+        index.relative_to(ROOT).as_posix()
+        for index in indexes
+        if index.read_text(encoding="utf-8") not in result.stdout
+    ]
+    assert not missing, f"the hook does not emit {missing}"
+    assert "ERROR:" not in result.stdout

@@ -16,18 +16,15 @@ calls, and the `iglootools` command.
 
 ## Guidelines
 
-Read
-[guidelines/applying-the-guidelines.md](guidelines/applying-the-guidelines.md),
-[guidelines/coding/general.md](guidelines/coding/general.md),
-[guidelines/coding/python.md](guidelines/coding/python.md) and
-[guidelines/coding/git.md](guidelines/coding/git.md) before any change,
-including changes to the guidelines themselves. This repository does not consume
-its own plugin, so nothing else loads them.
-
-The other guidelines apply by file, here as in any project: find the one whose
-trigger matches what you are changing through
-[guidelines/README.md](guidelines/README.md) and the `README.md` of the
-directory it points to, and read it in full before editing.
+Read [guidelines/README.md](guidelines/README.md) and the `README.md` of each
+directory under [guidelines/](guidelines/) at the start of a session: they are
+the indexes the plugin loads into every other project's sessions, and this
+repository does not consume its own plugin, so nothing else loads them. Before
+any change, including a change to the guidelines themselves, read in full every
+file their rows send you to: here that is
+[coding/general.md](guidelines/coding/general.md) and
+[coding/python.md](guidelines/coding/python.md) for any code change, and
+[coding/git.md](guidelines/coding/git.md) before committing.
 
 ## Where things are
 

@@ -19,11 +19,11 @@ The rules themselves live in [**`guidelines/`**](guidelines/), whose
 
 The rest of the repository supports the guidelines rather than stating any:
 
-- [skills/](skills/) and [agents/](agents/): find what the `guidelines`,
-  `audit-pr` and `audit-full` skills and the `auditor` agent do.
+- [skills/](skills/) and [agents/](agents/): find what the `audit-pr` and
+  `audit-full` skills and the `auditor` agent do.
 - [.claude/](.claude/): find the `audit-consistency-*` skills, which check the
   projects' guidelines and build against common's and each other.
-- [hooks/](hooks/): find the hook that loads the always-on guidelines, and the
+- [hooks/](hooks/): find the hook that loads the guideline indexes, and the
   one that reminds you to audit before a pull request.
 - [src/iglootools/](src/iglootools/): find the `iglootools` command; how
   projects install and pin it is in
@@ -43,8 +43,8 @@ clone of this repository is needed.
   a project, and to move one project or all of them to a new release.
 - [docs/usage.md](docs/usage.md): follow to audit a branch or a codebase, fix
   the findings, and check the projects against common.
-- [docs/internals.md](docs/internals.md): understand how the skill, the audits
-  and the hooks decide what an agent reads, and when.
+- [docs/internals.md](docs/internals.md): understand how the indexes, the
+  audits and the hooks decide what an agent reads, and when.
 
 Common itself does not install the plugin. An installed plugin is the last
 release, so here it would be behind the guidelines being edited.

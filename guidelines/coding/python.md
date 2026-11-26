@@ -1,9 +1,8 @@
 # Python Guidelines
 
 The Python form of [general.md](general.md)'s rules, and the rules only Python
-has. Read it before changing Python code; the plugin puts it in every session of
-a project that tracks a `.py` file. Building, packaging and checking a Python
-project is [python-tooling.md](../project-setup/python-tooling.md)'s.
+has. Read it before changing Python code. Building, packaging and checking a
+Python project is [python-tooling.md](../project-setup/python-tooling.md)'s.
 
 <!-- toc -->
 **On this page**

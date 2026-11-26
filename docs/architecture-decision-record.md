@@ -29,6 +29,11 @@ format is in
   - [Decision](#decision-3)
   - [Rationale](#rationale-3)
   - [Consequences](#consequences-3)
+- [ADR-005 — Load only the guideline indexes into every session](#adr-005--load-only-the-guideline-indexes-into-every-session)
+  - [Context](#context-4)
+  - [Decision](#decision-4)
+  - [Rationale](#rationale-4)
+  - [Consequences](#consequences-4)
 <!-- tocstop -->
 
 ## ADR-001 — Check the pins on common offline, trusting uv.lock and IGLOOTOOLS_VERSION's name
@@ -353,3 +358,65 @@ Alternatives not pursued:
 
 **Retire this** if the command is published to PyPI with its dependencies
 pinned, or if the shared workflows stop needing it.
+
+## ADR-005 — Load only the guideline indexes into every session
+
+**Date:** 2026-11-25 **Status:** Accepted
+
+### Context
+
+The plugin reached an agent through three mechanisms. A `SessionStart` hook
+emitted `applying-the-guidelines.md`, `coding/general.md` and `coding/git.md` in
+full, and `coding/python.md` in a project that tracks a `.py` file. A
+`guidelines` skill, scoped to file paths, carried a routing table to the
+`project-setup/` and `documentation/` files, the pass to make before calling a
+change done, and advice on finding code. And the directory `README.md` files
+routed people to the same guidelines as the skill did agents, with triggers that
+differed from the skill's.
+
+Each guideline was routed from two places that drifted, which file loaded how
+had to be learned from three, and every session paid for the coding rules in
+full, a commit-message rule included, whether its task touched code or not.
+
+### Decision
+
+- **The hook emits the indexes and nothing else of the shared guidelines**:
+  `guidelines/README.md` and every directory's `README.md`, then the project's
+  guidelines entry file and the list of its other guidelines files, as before.
+- **The indexes are the only route.** Each lists every file under its
+  directory, templates included, with the change that should send a reader
+  there, as precisely as the skill's table was.
+- **The `guidelines` skill goes.** What it held that no guideline did becomes
+  a rule: the check before calling a change done in
+  `applying-the-guidelines.md`, and finding code with the language server in
+  `claude-code.md`.
+
+### Rationale
+
+- One route per guideline, read by people and agents alike, cannot drift from a
+  second one.
+- A session pays for a few small tables and the guidelines its work reaches.
+- A new directory is loaded by the hook without changing it, and a new file
+  needs one line, in the index a test already checks.
+
+Alternatives not pursued:
+
+- **Keep loading the coding guidelines in full.** They apply to most changes,
+  but not to all, and the index line that sends an agent to them costs a
+  sentence rather than a file.
+- **Keep the skill, trimmed to a reminder to use the indexes.** Its path
+  trigger re-surfaced the routing in the middle of a long session, but it was a
+  second place saying the same thing, which is what this decision removes.
+
+### Consequences
+
+- An agent follows a rule only once it has read the file, so a session that
+  skips the index's row writes code without `general.md` in front of it. The
+  hook's header asks for every matching file to be read in full before the
+  change.
+- Nothing re-prompts in the middle of a session, as the skill's path trigger
+  did; after a compaction the hook emits the indexes again.
+
+**Retire this** if agents are seen to skip the guidelines the indexes route
+them to: restore the path-scoped skill as a reminder, or load the coding
+guidelines in full again.

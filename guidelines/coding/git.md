@@ -1,10 +1,9 @@
 # Git Guidelines
 
 How commits and pull requests are shaped for review. Read it before committing,
-rewriting a branch or opening a pull request; the plugin puts it in every
-session. Every commit on a branch lands on `main` as it is, so a branch reads as
-the clearest sequence of steps to the final change, not as a record of how the
-author got there.
+rewriting a branch or opening a pull request. Every commit on a branch lands on
+`main` as it is, so a branch reads as the clearest sequence of steps to the
+final change, not as a record of how the author got there.
 
 <!-- toc -->
 **On this page**

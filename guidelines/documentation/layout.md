@@ -48,10 +48,10 @@ argues.
 - **The entry file holds rules and links**: deviations from the shared
   guidelines, which shared sections are out of scope, the project's own rules,
   and a link to everything else. It is loaded into every agent session, after
-  the shared guidelines, which it overrides as
+  the shared guidelines' indexes, and overrides the shared guidelines as
   [applying-the-guidelines.md › Precedence](../applying-the-guidelines.md#precedence)
   describes, so it holds only what every change needs, as
-  [writing-guidelines.md](writing-guidelines.md#keep-the-always-on-guidelines-to-what-every-change-needs)
+  [writing-guidelines.md](writing-guidelines.md#keep-the-always-on-files-to-what-every-change-needs)
   asks. The other guidelines files are read when a change reaches what they
   govern.
 - **Start the entry file from
@@ -105,7 +105,7 @@ and a contributor needs more than the pitch.
 
 - **Every project has a `CONTRIBUTING.md`**, even one with no `docs/`, where it
   indexes whatever plays those roles and says why its shape differs. GitHub
-  links it from the pull request and issue forms, and the skill reads it to find
+  links it from the pull request and issue forms, and agents read it to find
   everything else. Start from
   [templates/CONTRIBUTING.md.template](templates/CONTRIBUTING.md.template),
   delete the lines for documents the project does not have, and add the ones
