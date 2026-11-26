@@ -13,6 +13,8 @@ it is in [installation.md](installation.md), and running the audits in
 - [Auditing](#auditing)
 - [Auditing consistency across the projects](#auditing-consistency-across-the-projects)
 - [The ones that load in every session](#the-ones-that-load-in-every-session)
+- [How common applies its own guidelines](#how-common-applies-its-own-guidelines)
+  - [Why common does not install its own plugin](#why-common-does-not-install-its-own-plugin)
 - [The `iglootools` command](#the-iglootools-command)
 - [Checking the pins on common](#checking-the-pins-on-common)
 - [Adopting a release everywhere](#adopting-a-release-everywhere)
@@ -104,7 +106,8 @@ right for a guideline triggered by a file and wrong for one that applies to
 everything. They are delivered instead by
 [hooks/load-always-on-guidelines.sh](../hooks/load-always-on-guidelines.sh),
 which runs on `SessionStart` and whose stdout becomes context the agent sees.
-Another such guideline is added to that script.
+Another such guideline is added to that script, and to common's `AGENTS.md`
+([below](#how-common-applies-its-own-guidelines)).
 
 The hook fires on `startup`, `clear` and `compact`, and deliberately not on
 `resume` or `fork`: a resumed or forked session still carries the earlier
@@ -123,6 +126,43 @@ governs, and read when a change reaches that: loading them all would make every
 session pay for every area's conventions. If a file cannot be read, the hook
 says so in the injected text rather than emitting nothing, because a guideline
 that failed to load must not be indistinguishable from one that does not apply.
+
+## How common applies its own guidelines
+
+Every other iglootools project gets the guidelines from the plugin, which it
+enables in its committed `.claude/settings.json` (see
+[installation.md](installation.md)). Common does not enable the plugin.
+[AGENTS.md](../AGENTS.md) does the same job by hand instead:
+
+| | Another project | Common |
+|---|---|---|
+| Always-on guidelines | the `SessionStart` hook injects them from the installed plugin | `AGENTS.md` names them, and the agent reads them from the working tree |
+| Guidelines that apply by file | the `guidelines` skill sends the agent to the file a change reaches | `AGENTS.md` sends the agent through [guidelines/README.md](../guidelines/README.md) and each directory's `README.md` |
+| Audit skills and the reminder before a pull request | from the installed plugin | from the working tree, with `claude --plugin-dir .`, as [setup-development-environment.md](setup-development-environment.md#loading-the-plugin-from-the-working-tree) shows |
+
+### Why common does not install its own plugin
+
+An installed plugin is a released copy, cached outside the repository, and
+`${CLAUDE_PLUGIN_ROOT}` points at that copy. In another project that is what you
+want. In common, the copy is behind the files being edited, because a branch
+here is the next release:
+
+- **The agent would follow the old rule while editing the new one.** The hook
+  would inject the released `general.md` while the branch changes it. With two
+  versions of a rule in context, the agent cannot tell which one applies.
+- **It would read and edit the wrong files.** The hook prints the absolute paths
+  of the guidelines under the plugin root, so links followed from the injected
+  text lead into the cache, not the checkout.
+- **Audits would check a branch against the guidelines it replaces.**
+- **Changes to the plugin could not be tested cleanly.** Loading the working
+  tree with `--plugin-dir` next to an installed copy loads two plugins with the
+  same name. At best the guidelines are injected twice. At worst you cannot tell
+  which copy's hooks and skills ran.
+
+Reading the files directly avoids all four. The price is that `AGENTS.md`
+repeats the list of always-on files the hook emits. A guideline added to
+[hooks/load-always-on-guidelines.sh](../hooks/load-always-on-guidelines.sh)
+is added to `AGENTS.md` in the same change.
 
 ## The `iglootools` command
 

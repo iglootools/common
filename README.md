@@ -46,4 +46,10 @@ clone of this repository is needed.
 - [docs/internals.md](docs/internals.md): understand how the skill, the audits
   and the hooks decide what an agent reads, and when.
 
+Common itself does not install the plugin. An installed plugin is the last
+release, so here it would be behind the guidelines being edited.
+[AGENTS.md](AGENTS.md) points agents at the working-tree files instead, as
+[How common applies its own guidelines](docs/internals.md#how-common-applies-its-own-guidelines)
+explains.
+
 Licensed under the [Apache License 2.0](LICENSE).
