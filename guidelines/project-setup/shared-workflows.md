@@ -150,6 +150,23 @@ it by hand.
   its `mise.toml`.
 - It sets up mise with `install: false` and `env: false`, the one legitimate use
   ([workflows.md](workflows.md#pair-install-false-with-env-false)).
+- Pass the iglootools GitHub App's credentials, from the organization secrets,
+  by name rather than with `secrets: inherit`:
+
+  ```yaml
+  secrets:
+    app-client-id: ${{ secrets.RENOVATE_LOCK_APP_CLIENT_ID }}
+    app-private-key: ${{ secrets.RENOVATE_LOCK_APP_PRIVATE_KEY }}
+  ```
+
+  GitHub holds a pull_request run that a `GITHUB_TOKEN` push triggers until
+  someone approves it, so without the app the project's preflight on the
+  regenerated lock waits by hand on every Renovate pull request. The workflow
+  falls back to `GITHUB_TOKEN` with a warning when the secrets are missing. The
+  app needs Contents read and write, and to be installed on the repository.
+- Renovate keeps rebasing a branch the workflow has committed to because the
+  base preset lists the commit's author, `github-actions[bot]`, in
+  `gitIgnoredAuthors`; any other author freezes the branch.
 
 ### Submit a uv project's dependency graph through the shared workflow
 
