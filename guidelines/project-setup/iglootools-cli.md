@@ -43,6 +43,7 @@ script in the project.
 | `iglootools common adopt <version>` | moving every pin on iglootools/common to a release, through a pull request merged once green |
 | `iglootools common adopt-all <version>` | adopting a release in every iglootools project checked out beside common, in parallel, after checking all of them (from common) |
 | `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
+| `iglootools common check-indexes` | failing when a shared guideline is missing from its directory's index (in common only) |
 | `iglootools common check-pins` | failing when the pins on common disagree, or `adopt` would miss one |
 | `iglootools build [<task>]` | running one of the project's mise tasks (`preflight`, `lint-*`, `test*`, `fmt`, `ci-*`, …) through `mise run`; with no task, listing them by family; `--fix` runs `fmt` before the task (`iglootools build --fix preflight`) |
 | `iglootools preflight` | checking every program and credential the other commands use, with how to fix what is missing; each subsystem checks its own before its first change |
