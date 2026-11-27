@@ -35,6 +35,7 @@ script in the project.
 | `iglootools demo record` / `upload` | recording the demo / publishing the newest CI recording |
 | `iglootools mise lock-check` | failing when the staged `mise.lock` is stale |
 | `iglootools shell lint` | running shellcheck on every tracked shell script |
+| `iglootools github lint` | running actionlint, with shellcheck on each `run:` script, on every tracked workflow |
 | `iglootools github merge-when-green <pr>` | merging a pull request once every check has passed, then deleting its branch, on GitHub and locally |
 | `iglootools github prune-branches` | deleting every branch whose latest pull request merged, on GitHub and locally; `-n` shows what it would delete |
 | `iglootools github checkout-release` | checking out the release a workflow run builds, or skipping a run that has none (shared workflows, publish) |

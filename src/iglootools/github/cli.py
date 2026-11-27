@@ -1,6 +1,7 @@
-"""The `iglootools github` commands: merging, pruning, and shared workflow steps."""
+"""The `iglootools github` commands: merging, pruning, linting and workflow steps."""
 
 import os
+import shutil
 import time
 from pathlib import Path
 from typing import Annotated
@@ -8,7 +9,7 @@ from typing import Annotated
 import typer
 
 from iglootools.cliwiring import display_path, ensure, invocation, say, warn
-from iglootools.github import linkreport, local, merge, prune, releasetag
+from iglootools.github import linkreport, lint, local, merge, prune, releasetag
 from iglootools.github.actions import AnnotationLevel, append_outputs, format_annotation
 from iglootools.github.client import (
     GitHub,
@@ -419,3 +420,30 @@ def _act_on_report(
             say(f"No broken links: closed {slug}#{number}.")
         case _:
             say("No broken links, and no open report.")
+
+
+@app.command("lint")
+def lint_cmd(ctx: typer.Context) -> None:
+    """
+    Run actionlint on every tracked workflow, with shellcheck on each run: script.
+
+    Lints the .yml and .yaml files under .github/workflows/. Fails when shellcheck is
+    missing rather than skipping it, as actionlint alone would.
+    """
+    root = invocation(ctx).root
+    workflows = lint.workflow_files(root)
+    if not workflows:
+        say(f"No workflows to lint under {lint.WORKFLOWS_DIR}.")
+        return
+    shellcheck = shutil.which("shellcheck")
+    if shellcheck is None:
+        warn('shellcheck not found. Pin it in mise.toml: shellcheck = "0.11.0".')
+        raise typer.Exit(1)
+    say(f"Linting {len(workflows)} workflow(s) with actionlint")
+    try:
+        status = lint.run_in(lint.actionlint_command(workflows, shellcheck), root)
+    except FileNotFoundError:
+        warn('actionlint not found. Pin it in mise.toml: actionlint = "1.7.12".')
+        raise typer.Exit(1) from None
+    if status != 0:
+        raise typer.Exit(status)
