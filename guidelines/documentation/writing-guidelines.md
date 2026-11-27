@@ -146,8 +146,8 @@ directory's `README.md`, written as
 should send a reader there, precisely enough to recognize the change by the
 files it touches. A new directory, or a file at the top of `guidelines/`, also
 gets a line in `guidelines/README.md`. Update the line when the file is renamed
-or its trigger changes. `mise run test` fails on a file missing from its index
-(`tests/test_guideline_indexes.py`).
+or its trigger changes. `mise run lint-guideline-indexes`
+(`iglootools common check-indexes`) fails on a file missing from its index.
 
 **Why:** the indexes are the only route to a guideline: people find the files
 through them, and the plugin puts them, and nothing else of the shared

@@ -115,6 +115,7 @@ run = [
   { task = "lint-lock-mise" },
   { task = "lint-lock-uv" },
   { task = "lint-toc" },
+  { task = "lint-guideline-indexes" },
   { task = "lint-renovate" },
 ]
 
@@ -175,6 +176,12 @@ run = "uv lock --check"
 [tasks.lint-toc]
 description = "Check that every Markdown document has an up-to-date table of contents (fix with `mise run toc`)"
 run = "uv run --no-sync iglootools docs toc --check --exclude 'agents/*.md' --exclude 'skills/**' --exclude '.claude/**'"
+
+# guidelines/documentation/writing-guidelines.md › Register a new or renamed guideline in its
+# directory's index.
+[tasks.lint-guideline-indexes]
+description = "Check that every guideline is listed in its directory's index"
+run = "uv run --no-sync iglootools common check-indexes"
 
 # --strict: guidelines/project-setup/dependency-automation.md › Validate and preview the config
 # with Renovate itself. Run with no argument it validates renovate.json as repository config; the

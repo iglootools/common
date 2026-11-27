@@ -32,7 +32,7 @@ every rule.
 The indexes are the only route, for people and agents alike: no skill or table
 in the plugin repeats them, so a trigger is written once, in the row that
 carries it. That is why a row names the files or the change precisely enough to
-recognize it, and why `tests/test_guideline_indexes.py` fails on a file missing
+recognize it, and why `mise run lint-guideline-indexes` fails on a file missing
 from its directory's index. Why the plugin went this way, rather than loading
 the coding guidelines in full or routing through a skill, is
 [ADR-005](architecture-decision-record.md#adr-005--load-only-the-guideline-indexes-into-every-session).

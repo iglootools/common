@@ -27,15 +27,15 @@ change to an interface.
 
 Try a change by loading the plugin from the working tree, as
 [setup-development-environment.md](setup-development-environment.md#loading-the-plugin-from-the-working-tree)
-describes. Keep it in step with the guidelines. The hook emits every
-directory's index on its own, and `mise run test` fails on a guideline missing
-from its index, but renaming or moving a guideline file still leaves
+describes. Keep it in step with the guidelines. The hook emits every directory's
+index on its own, and `mise run lint-guideline-indexes` fails on a guideline
+missing from its index, but renaming or moving a guideline file still leaves
 `agents/auditor.md` or the audit skills pointing at something that is no longer
 there, and a reference that fails to resolve fails silently, which is the
 failure mode this repository exists to prevent. They spell the paths out from
 the plugin root (`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md`), so search
-them for the old path. The hook is runnable, which is the cheapest check of
-what a session starts with:
+them for the old path. The hook is runnable, which is the cheapest check of what
+a session starts with:
 
 ```bash
 CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PROJECT_DIR="$PWD" bash hooks/load-guideline-indexes.sh
