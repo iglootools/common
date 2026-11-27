@@ -17,6 +17,7 @@ from iglootools.cliwiring import ensure, invocation, say, warn
 from iglootools.common import (
     adopt as adoption,
     adopt_all as everywhere,
+    indexes,
     pins,
     plugin,
     release as releasing,
@@ -205,6 +206,38 @@ def check_pins(ctx: typer.Context) -> None:
         return
     checked = " and uv.lock" if lock else ""
     say(f"{len(found)} pins on iglootools/common, all at v{versions[0]}{checked}.")
+
+
+@app.command("check-indexes")
+def check_indexes(ctx: typer.Context) -> None:
+    """
+    Fail when a shared guideline is missing from its directory's index (in common only).
+
+    Each guidelines/<dir>/README.md must link to every tracked file under its directory,
+    and guidelines/README.md to every directory's README.md and every top-level
+    guideline: the plugin loads the indexes into every session, not the guidelines.
+    """
+    ensure(ctx, (requirements.GIT,))
+    root = invocation(ctx).root
+    top = root / indexes.GUIDELINES_DIR / indexes.INDEX
+    if not top.exists():
+        warn(f"{top} not found. Run it from iglootools/common, or pass --root.")
+        raise typer.Exit(2)
+    unlisted = indexes.find_unlisted(root)
+    for item in unlisted:
+        state = (
+            "does not list"
+            if (root / item.index).exists()
+            else "is missing; add it, listing"
+        )
+        warn(f"{item.index} {state} {item.entry}")
+    if unlisted:
+        warn(
+            "Add a row for each, as guidelines/documentation/writing-guidelines.md › "
+            "Register a new or renamed guideline in its directory's index describes.",
+        )
+        raise typer.Exit(1)
+    say("Every guideline is listed in its directory's index.")
 
 
 @dataclass
