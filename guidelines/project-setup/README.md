@@ -6,7 +6,7 @@ written ([../coding/](../coding/README.md)).
 | File | Read it when the change touches |
 |---|---|
 | [repository.md](repository.md) | the committed `.gitignore`, setting up a new repository, its rulesets (branch or tag protection), how pull requests are merged, or the code of conduct and security policy |
-| [workflows.md](workflows.md) | anything under `.github/workflows/` |
+| [workflows.md](workflows.md) | anything under `.github/workflows/`, `.github/actionlint.yaml`, or the `lint-github-actions` task |
 | [shared-workflows.md](shared-workflows.md) | a workflow that calls one of the shared workflows: the link checker, the `mise.lock` regenerator, the uv dependency-graph submission, or the `release.yml` and `demo.yml` stubs; read it with `workflows.md`, not instead of it |
 | [dependency-automation.md](dependency-automation.md) | `renovate.json`, `renovate/`, `dependabot.yml`, the `lint-renovate` or `renovate-dry-run` tasks, the `npm:renovate` pin and `.mise/locks/`, or a dependency update that did or did not appear |
 | [mise.md](mise.md) | `mise.toml`, anything under `mise-tasks/`, `mise.lock`, or a shell script, in any project; adding, renaming or changing a mise task, including choosing its name, wherever the edit lands |
