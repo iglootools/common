@@ -44,40 +44,24 @@ intent, and a commit one step describes.
    would blame them on the wrong pull request. List those branches, suggest
    restacking them (`git rebase --update-refs` from the top branch, as git.md ›
    Fold rework into the commit it corrects shows), and stop.
-3. Each range is `<base>..<head>`. List it with
-   `git log --reverse --format='%h %s' <base>..<head>` and
-   `git diff --stat <base>..<head>`. A pull request with no commits in its
-   range is left out, and named in the reply.
-4. Uncommitted changes are not audited: when `git status --porcelain` shows any,
-   record them under "Not audited" in the report of the pull request checked
-   out, if it is one of the stack.
-5. Every pull request whose head is not the commit checked out gets a detached
+3. A pull request with no commits in `<base>..<head>` is left out, and named
+   in the reply.
+4. Every pull request whose head is not the commit checked out gets a detached
    worktree, so its auditors read and check its files rather than the
    checkout's:
    `git worktree add --detach .iglootools/worktrees/pr-<number> <head>` from the
    repository root, after removing one an earlier run left there. The pull
    request checked out uses the repository root itself.
 
-## 3. Choose the categories
+## 3. Audit each pull request
 
-All categories in `${CLAUDE_PLUGIN_ROOT}/guidelines/review/audit.md`, `HIST`
-included, unless the arguments narrow them with `only:` or `skip:`, the same
-for every pull request. A category left out on request goes under "Not audited"
-as "not requested".
+For each pull request, follow
+`${CLAUDE_PLUGIN_ROOT}/audit/branch-range.md` with its base and head, and its
+worktree as the directory that has the head checked out, with these changes.
 
-## 4. Audit the commit history yourself
-
-For each pull request, check its range as `audit-pr` does: read
-`${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md` in full and check the range
-against every rule in it, using its own commands with the pull request's base:
-`git log --reverse --stat` for the range, then each commit's diff. Record each
-problem as a `finding` block in the auditor's format, with `origin` set to the
-commit and `rule` citing the section it breaks
-(`coding/git.md` › Write the subject as a Conventional Commit, and the body
-as the why).
-
-Then check what only a stack shows, as findings in the pull request concerned,
-with `origin: n/a` and the pull request's URL as `location`:
+**Steps 1 to 3** run for every pull request before any auditor starts. To step
+2, add what only a stack shows, as findings in the pull request concerned, with
+`origin: n/a` and the pull request's URL as `location`:
 
 - each pull request above the bottom says in its description that it is
   stacked on the one below (git.md › Give a pull request one intent, and a
@@ -86,29 +70,13 @@ with `origin: n/a` and the pull request's URL as `location`:
   a preparatory step that a lower pull request needs, or work that depends on
   an upper one.
 
-## 5. Split the work
-
-For each pull request, split its remaining categories as `audit-pr` does:
-
-- **Small range** (up to about 15 changed files and 500 changed lines): one
-  auditor with every remaining category.
-- **Larger range**: three auditors —
-  functional `BUG, ERR, DATA`;
-  risk `SEC, PERF, DEPS`;
-  structure `TEST, ARCH, MAINT, OPS, DOC, GUIDE`.
-
-Each auditor's scope is one pull request's range: its base and head SHAs, its
-commit list and changed files, and its worktree as the repository root.
-
-## 6. Run the auditors and write the reports
-
-Follow `${CLAUDE_PLUGIN_ROOT}/audit/assemble-report.md` for every pull
-request at once, with these changes:
+**Step 4** follows `${CLAUDE_PLUGIN_ROOT}/audit/assemble-report.md` for every
+pull request at once, with these changes to it:
 
 - **Steps 1 and 4.** Start the auditors of every pull request in one message,
   and the verifiers likewise, at most ten agents at a time. When there are more,
-  run the pull requests in batches, bottom first. Pass each pull request's base
-  SHA and worktree, and keep each reply with the pull request it audited.
+  run the pull requests in batches, bottom first. Keep each reply with the pull
+  request it audited.
 - **Before step 5, move findings to the pull request that introduced them.** An
   auditor reports as `pre-existing` a problem present at its base, which for
   every pull request above the bottom includes the commits of the ones below.
@@ -117,31 +85,15 @@ request at once, with these changes:
   introduced it (`git log -L` or `git blame` on the lower head) and move the
   finding to that commit's pull request, with that commit as its origin; drop
   it instead when that pull request already has it, by location and root cause.
-- **Steps 5 to 7** run per pull request, with your `HIST` findings for it added
-  before "Merge duplicates", so each report has its own IDs. Each report's scope
-  name is `pr-<branch>`, with `/` in the branch name replaced by `-`, as
-  `audit-pr` names it, and its `Scope:` line gives the pull request's range.
+- **Steps 5 to 7** run per pull request, so each report has its own IDs.
   Locations still link as `../../<path>`, to the repository root, since the
   worktrees are removed. A location that is a pull request's URL links to that
   URL.
-- **Step 8** is replaced by the reply below.
+- **Step 8** gives the report's summary for each pull request, bottom first,
+  under its number, title and head branch. Then it names any pull request left
+  out, with why, and says how to continue, asking for findings by pull request
+  ("fix SEC-1 in #42"): a fix in a lower pull request is rebased into every
+  branch above it with `git rebase --update-refs`, and each branch is pushed.
 
 Then remove the worktrees: `git worktree remove --force` for each, then
 `git worktree prune`.
-
-## 7. Reply
-
-Do not paste the reports. Reply with, for each pull request, bottom first:
-
-- its number, title and head branch, and the report's path, as a link;
-- the summary table;
-- one line per `critical` and `high` finding: ID, title, location;
-- anything under "Not audited".
-
-Then name any pull request left out, with why, and how to continue: ask for
-findings by pull request and ID, category or severity ("fix SEC-1 in #42", "fix
-all high"). They will be fixed following the reports' "Fixing findings"
-section; a fix in a lower pull request is rebased into every branch above it
-with `git rebase --update-refs`, and each branch is pushed.
-
-Do not start fixing anything until asked.

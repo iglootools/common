@@ -8,8 +8,7 @@ Audit the repository as it is committed at `HEAD`. Arguments: $ARGUMENTS
 
 ## 1. Establish the scope
 
-1. Record `git rev-parse --short HEAD`. Uncommitted changes are not audited:
-   when `git status --porcelain` shows any, record them under "Not audited".
+1. Record `git rev-parse --short HEAD`.
 2. The scope is the paths given in the arguments, or every tracked file
    (`git ls-files`).
 3. Size it: the number of tracked source files and their total lines. Generated
@@ -18,12 +17,10 @@ Audit the repository as it is committed at `HEAD`. Arguments: $ARGUMENTS
 
 ## 2. Choose the categories
 
-All categories in `${CLAUDE_PLUGIN_ROOT}/guidelines/review/audit.md` except
-`HIST`, unless the arguments narrow them with `only:` or `skip:`. `HIST` is
-never run here, even when asked for: merged history cannot be rewritten, so its
-findings could not be acted on. If the arguments ask for it, say so and suggest
-`/iglootools:audit-pr` on the branch instead. A category left out on request
-goes under "Not audited" as "not requested".
+Every category in `${CLAUDE_PLUGIN_ROOT}/guidelines/review/audit.md` except
+`HIST`, which is never run here, even when asked for: merged history cannot be
+rewritten, so its findings could not be acted on. If the arguments ask for it,
+say so and suggest `/iglootools:audit-pr` on the branch instead.
 
 ## 3. Split the work
 

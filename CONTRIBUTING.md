@@ -34,7 +34,7 @@ is the bar a documented exception has to meet.
   reasoning behind the guidelines
 - [docs/internals.md](docs/internals.md): understand how the plugin delivers
   the guidelines and how the `iglootools` command is organized, before changing
-  `skills/`, `hooks/`, `agents/` or `.claude/`
+  `skills/`, `audit/`, `hooks/`, `agents/` or `.claude/`
 - [docs/architecture-decision-record.md](docs/architecture-decision-record.md):
   find out which decisions were taken on this repository, and why
 
