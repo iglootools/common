@@ -19,11 +19,14 @@ from iglootools.build import cli as build_cli
 from iglootools.cliwiring import (
     FILE_OPTION,
     OUTPUT_OPTION,
+    Mark,
     OutputFormat,
     emit,
     ensure,
     invocation,
+    marked,
     say,
+    spinning,
     warn,
 )
 from iglootools.common import (
@@ -127,13 +130,18 @@ def adopt_common_cmd(
         )
     except (GitHubError, GitStepError, plugin.PluginError) as error:
         detail = everywhere.describe(error, str(getattr(error, "detail", error)))
-        warn(f"{repository.slug}: {detail}")
+        warn(marked(Mark.FAILED, f"{repository.slug}: {detail}"))
         raise typer.Exit(1) from None
     where = f"#{outcome.pull_number}" if outcome.pull_number else ""
     if not outcome.succeeded:
-        warn(f"{repository.slug}{where}: not merged, {outcome.reason}.")
+        warn(
+            marked(
+                Mark.FAILED,
+                f"{repository.slug}{where}: not merged, {outcome.reason}.",
+            ),
+        )
         raise typer.Exit(1)
-    say(f"{repository.slug}{where}: {outcome.reason}.")
+    say(marked(Mark.OK, f"{repository.slug}{where}: {outcome.reason}."))
     on_release = [(repository.name, root)] if outcome.on_release else []
     if not skip_plugin and not common_cli.update_plugins(on_release, version):
         raise typer.Exit(1)
@@ -154,7 +162,7 @@ def lint_common_pins_cmd(ctx: typer.Context) -> None:
     found, lock = pins.scan(root)
     issues = pins.problems(found, lock, root)
     for issue in issues:
-        warn(issue)
+        warn(marked(Mark.FAILED, issue))
     if issues:
         raise typer.Exit(1)
     versions = sorted({r.version for r in found if r.version})
@@ -162,7 +170,12 @@ def lint_common_pins_cmd(ctx: typer.Context) -> None:
         say("No pins on iglootools/common.")
         return
     checked = " and uv.lock" if lock else ""
-    say(f"{len(found)} pins on iglootools/common, all at v{versions[0]}{checked}.")
+    say(
+        marked(
+            Mark.OK,
+            f"{len(found)} pins on iglootools/common, all at v{versions[0]}{checked}.",
+        ),
+    )
 
 
 def _this_repository(ctx: typer.Context) -> tuple[GitHub, OrganizationRepository, Path]:
@@ -202,7 +215,15 @@ def sync_cmd(
     problem; fails if there was any problem.
     """
     github, repository, root = _this_repository(ctx)
-    fetched = "" if dry_run else clone.fetch_origin(root)
+    with spinning(f"Syncing {repository.name}"):
+        fetched = "" if dry_run else clone.fetch_origin(root)
+        synced = (
+            []
+            if fetched
+            else [
+                sync.sync_one(root, repository, github, force=force, dry_run=dry_run),
+            ]
+        )
     cloned = [
         clone.CloneResult(
             repository.name,
@@ -210,11 +231,6 @@ def sync_cmd(
             fetched,
         ),
     ]
-    synced = (
-        []
-        if fetched
-        else [sync.sync_one(root, repository, github, force=force, dry_run=dry_run)]
-    )
     plugin_sync = (
         plugins.PluginSync([], [])
         if skip_plugins
@@ -251,7 +267,8 @@ def status_cmd(
     Fails if the status could not be read.
     """
     github, repository, root = _this_repository(ctx)
-    found = status.read_status(root, repository, github, fetch=fetch)
+    with spinning(f"Reading the status of {repository.name}"):
+        found = status.read_status(root, repository, github, fetch=fetch)
     match output:
         case OutputFormat.JSON:
             emit(json.dumps(dataclasses.asdict(found), indent=2), file)
@@ -279,7 +296,8 @@ def renovate_cmd(
     not merged.
     """
     github, repository, _ = _this_repository(ctx)
-    pulls, problem = workspace_cli.renovate_pulls(github, repository)
+    with spinning(f"Reading the Renovate pull requests of {repository.name}"):
+        pulls, problem = workspace_cli.renovate_pulls(github, repository)
     match output:
         case OutputFormat.JSON:
             emit(
@@ -290,7 +308,7 @@ def renovate_cmd(
             workspace_cli.print_pulls(pulls, file)
     for line in [problem, *(f"#{p.number}: {p.problem}" for p in pulls if p.problem)]:
         if line:
-            warn(line)
+            warn(marked(Mark.FAILED, line))
     merged = (
         workspace_cli.merge_pulls(github, pulls, dry_run=dry_run)
         if merge_them
