@@ -13,10 +13,9 @@ from iglootools.github import local
 from iglootools.github.client import GitHub, GitHubError, Run, capture
 from iglootools.github.local import GitStepError
 from iglootools.workspace import clone
+from iglootools.workspace.renovate import RENOVATE
 from iglootools.workspace.repositories import OrganizationRepository
 from iglootools.workspace.sync import other_worktrees
-
-RENOVATE = "renovate[bot]"
 
 
 @dataclass(frozen=True)

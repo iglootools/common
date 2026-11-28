@@ -6,6 +6,8 @@ import os
 import shlex
 import shutil
 import tempfile
+import threading
+import time
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -30,10 +32,19 @@ from iglootools.cliwiring import (
     warn,
 )
 from iglootools.common.plugin import PluginError
+from iglootools.github import merge
 from iglootools.github.cli import github_client
 from iglootools.github.client import GitHub, GitHubError
 from iglootools.preflight import requirements
-from iglootools.workspace import clone, parallel, plugins, run, status, sync
+from iglootools.workspace import (
+    clone,
+    parallel,
+    plugins,
+    renovate,
+    run,
+    status,
+    sync,
+)
 from iglootools.workspace.location import cache_dir
 from iglootools.workspace.repositories import (
     DEFAULT_MAX_AGE,
@@ -67,6 +78,10 @@ FORCE_OPTION = typer.Option(
 FETCH_OPTION = typer.Option(
     "--fetch/--no-fetch",
     help="Fetch each checkout first, so it is compared with origin as it is.",
+)
+MERGE_OPTION = typer.Option(
+    "--merge",
+    help="Merge each one once its checks pass, as merge-when-green does.",
 )
 
 
@@ -539,6 +554,167 @@ def _print_runs(results: Sequence[run.TaskRun], log_dir: Path) -> bool:
     passed = sum(1 for r in results if r.outcome == run.RunOutcome.PASSED)
     say(f"{passed} passed, {len(failed)} failed. Logs: {log_dir}")
     return not failed
+
+
+@app.command("renovate")
+def renovate_cmd(
+    ctx: typer.Context,
+    *,
+    cache_ttl: Annotated[str, CACHE_TTL_OPTION] = DEFAULT_MAX_AGE,
+    refresh: Annotated[bool, REFRESH_OPTION] = False,
+    merge_them: Annotated[bool, MERGE_OPTION] = False,
+    dry_run: Annotated[bool, DRY_RUN_OPTION] = False,
+    output: OUTPUT_OPTION = OutputFormat.HUMAN,
+    file: FILE_OPTION = None,
+) -> None:
+    """
+    List the open Renovate pull requests across the organization, and merge them.
+
+    Each comes with what merge-when-green would do next: merge, wait for its checks,
+    or refuse, and why. With --merge, merges every one it would not refuse, once its
+    checks pass, deleting its branch: the repositories at once, the pull requests of
+    one repository one after the other. Fails if one could not be read, or was not
+    merged.
+    """
+    session = _session(
+        ctx,
+        cache_ttl=cache_ttl,
+        refresh=refresh,
+        announce=warn if output == OutputFormat.JSON else say,
+    )
+    found = parallel.each(
+        session.repositories,
+        lambda repository: renovate_pulls(session.github, repository),
+    )
+    pulls = [pull for pulls, _ in found for pull in pulls]
+    problems = [problem for _, problem in found if problem]
+    match output:
+        case OutputFormat.JSON:
+            emit(json.dumps([pull_json(pull) for pull in pulls], indent=2), file)
+        case OutputFormat.HUMAN:
+            print_pulls(pulls, file)
+    for problem in [
+        *problems,
+        *(f"{_pull_name(p)}: {p.problem}" for p in pulls if p.problem),
+    ]:
+        warn(problem)
+    merged_ok = (
+        merge_pulls(session.github, pulls, dry_run=dry_run) if merge_them else True
+    )
+    if problems or any(pull.problem for pull in pulls) or not merged_ok:
+        raise typer.Exit(1)
+
+
+def renovate_pulls(
+    github: GitHub,
+    repository: OrganizationRepository,
+) -> tuple[list[renovate.RenovatePull], str]:
+    """Return *repository*'s open Renovate pull requests, or why they are unreadable."""
+    try:
+        return renovate.find_pulls(github, repository), ""
+    except GitHubError as error:
+        return [], f"{repository.name}: {error.detail}"
+
+
+def _pull_name(pull: renovate.RenovatePull) -> str:
+    return f"{pull.repository.name}#{pull.number}"
+
+
+def _verdict_text(pull: renovate.RenovatePull) -> str:
+    if pull.verdict is None:
+        return "not assessed"
+    return f"{pull.verdict.action}: {pull.verdict.reason}"
+
+
+def pull_json(pull: renovate.RenovatePull) -> dict[str, object]:
+    """Return a Renovate pull request as the JSON output names its fields."""
+    return {
+        "repository": pull.repository.name,
+        "number": pull.number,
+        "title": pull.title,
+        "action": str(pull.verdict.action) if pull.verdict else None,
+        "reason": pull.verdict.reason if pull.verdict else None,
+        "problem": pull.problem,
+    }
+
+
+def print_pulls(pulls: Sequence[renovate.RenovatePull], file: Path | None) -> None:
+    """Print the Renovate pull requests and verdicts, to *file* or the terminal."""
+    if not pulls:
+        emit("No open Renovate pull request.", file)
+        return
+    table = Table()
+    table.add_column("pull request", no_wrap=True)
+    table.add_column("title")
+    table.add_column("next")
+    for pull in pulls:
+        table.add_row(_pull_name(pull), pull.title, _verdict_text(pull))
+    if file is None:
+        Console(highlight=False).print(table)
+    else:
+        with file.open("w", encoding="utf-8") as handle:
+            Console(file=handle, highlight=False, width=200).print(table)
+
+
+def merge_pulls(
+    github: GitHub,
+    pulls: Sequence[renovate.RenovatePull],
+    *,
+    dry_run: bool,
+) -> bool:
+    """Merge each pull request not refused, by repository; tell whether all merged."""
+    chosen = [pull for pull in pulls if pull.mergeable]
+    for pull in pulls:
+        if not pull.mergeable and pull.verdict is not None:
+            say(f"Leaving {_pull_name(pull)}: {pull.verdict.reason}.")
+    if dry_run:
+        for pull in chosen:
+            say(f"[dry-run] Would merge {_pull_name(pull)} once its checks pass.")
+        return True
+    groups = [
+        [pull for pull in chosen if pull.repository.name == name]
+        for name in dict.fromkeys(pull.repository.name for pull in chosen)
+    ]
+
+    def merge_group(
+        group: list[renovate.RenovatePull],
+        sleep: parallel.Sleep,
+    ) -> list[tuple[renovate.RenovatePull, merge.Outcome | str]]:
+        try:
+            return renovate.merge_all(
+                github,
+                group,
+                sleep=sleep,
+                now=time.monotonic,
+                report=lambda pull: (
+                    lambda event: say(
+                        f"[{_pull_name(pull)}] {event.detail}",
+                    )
+                ),
+            )
+        except parallel.CancelledError:
+            return [(pull, "interrupted; run again to resume") for pull in group]
+
+    results = [
+        result
+        for group in parallel.each_interruptible(
+            groups,
+            merge_group,
+            stop=threading.Event(),
+        )
+        for result in group
+    ]
+    for pull, outcome in results:
+        match outcome:
+            case merge.Outcome(merged=True):
+                say(f"{_pull_name(pull)}: merged.")
+            case merge.Outcome(reason=reason):
+                warn(f"{_pull_name(pull)}: not merged, {reason}.")
+            case str() as reason:
+                warn(f"{_pull_name(pull)}: not merged, {reason}.")
+    return all(
+        isinstance(outcome, merge.Outcome) and outcome.merged for _, outcome in results
+    )
 
 
 def clone_all(
