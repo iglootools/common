@@ -189,10 +189,12 @@ through GitHub's code search, but which has no checkout in the workspace, fails
 the run: a project nobody cloned would otherwise be silently left on the old
 release.
 
-Before changing any project it checks all of them: no changes or untracked
-files, `origin` reachable with git and ssh unable to prompt, and a local default
-branch GitHub already has every commit of. One problem anywhere stops the run
-while nothing has happened.
+Before changing any project it checks that each one's `origin` is reachable
+with git and ssh unable to prompt. One problem anywhere stops the run while
+nothing has happened. A checkout's branch and changes are not checked: adopt
+works in a temporary worktree started from GitHub's default branch, so a session
+working in the checkout is never switched or blocked
+([ADR-006](architecture-decision-record.md#adr-006--adopt-a-release-in-a-temporary-worktree-not-in-the-projects-checkout)).
 
 Then each project runs `common adopt` in a thread of its own. The work is almost
 all waiting, on CI and on GitHub's API, so threads cost nothing and keep the

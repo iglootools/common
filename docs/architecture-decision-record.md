@@ -34,6 +34,11 @@ format is in
   - [Decision](#decision-4)
   - [Rationale](#rationale-4)
   - [Consequences](#consequences-4)
+- [ADR-006 — Adopt a release in a temporary worktree, not in the project's checkout](#adr-006--adopt-a-release-in-a-temporary-worktree-not-in-the-projects-checkout)
+  - [Context](#context-5)
+  - [Decision](#decision-5)
+  - [Rationale](#rationale-5)
+  - [Consequences](#consequences-5)
 <!-- tocstop -->
 
 ## ADR-001 — Check the pins on common offline, trusting uv.lock and IGLOOTOOLS_VERSION's name
@@ -420,3 +425,68 @@ Alternatives not pursued:
 **Retire this** if agents are seen to skip the guidelines the indexes route
 them to: restore the path-scoped skill as a reminder, or load the coding
 guidelines in full again.
+
+## ADR-006 — Adopt a release in a temporary worktree, not in the project's checkout
+
+**Date:** 2026-11-28 **Status:** Accepted
+
+### Context
+
+`iglootools common adopt`, and so `adopt-all`, did its work in the project's own
+checkout: it required no changes and no untracked files, switched to the
+default branch, created the release branch, committed and pushed there, and
+switched back once the pull request merged. adopt-all refused to start when any
+project's checkout had changes or a default branch ahead of GitHub's.
+
+The checkout is where people and agent sessions work on the project. An adopt
+is mechanical, and nobody reviews it in the editor, yet it could not run while
+anyone had work in progress, and it switched branches under any session that
+started while it ran.
+
+### Decision
+
+- **adopt works in a temporary worktree by default**, made under the system's
+  temporary directory from `origin/<default branch>`, and removed once the
+  branch is pushed, whether the steps in it succeeded or not.
+- **The checkout is never switched, and its files change only by a safe
+  fast-forward.** Once the pull request merges, the local release branch is
+  deleted, unless a checkout has it, and the default branch is fast-forwarded
+  only where that is safe: moved by its ref when no checkout has it, merged
+  forward when the checkout that has it has no changes, and left alone, saying
+  why, otherwise.
+- **adopt-all checks only that each `origin` is reachable** before changing
+  anything; the checkouts' branches and changes no longer matter.
+- Three options remain: `--in-place` on `adopt`, to work in the checkout for
+  someone who means to finish the branch by hand; `--keep-worktree`, to keep the
+  worktree of a failed step to inspect; `--skip-fast-forward`, to leave the
+  default branch where it is.
+
+### Rationale
+
+- A worktree shares the repository's refs, so a branch it pushes, and a branch
+  an earlier run left, are the same branches the checkout sees: resuming works
+  as before, and a hand fix after `--no-merge` is a `git switch` away.
+- Starting from `origin/<default branch>` rather than the local one makes a
+  stale or diverged local branch irrelevant to what the pull request contains.
+- The worktree only ever holds pins and a `uv.lock` the next run regenerates,
+  so removing it on failure loses nothing a rerun cannot redo.
+
+Alternatives not pursued:
+
+- **Keep working in the checkout, and wait until it is clean.** A checkout with
+  a long-running session in it is rarely clean, and waiting does not stop the
+  adopt switching branches under a session that starts meanwhile.
+- **A worktree under the workspace or inside each project.** Easier to find,
+  but a crashed run leaves a directory beside the projects or one each of them
+  has to ignore; under the temporary directory, `git worktree prune` forgets it.
+
+### Consequences
+
+- mise refuses a `mise.toml` it has not been told to trust, and a fresh
+  temporary path never has been, so `uv lock` runs with
+  `MISE_TRUSTED_CONFIG_PATHS` set to the worktree for that one command.
+- `mise exec` in the worktree installs its `[deps.uv]` environment there, about
+  a second and a half from uv's cache, gone with the worktree.
+- `--keep-worktree` keeps only a worktree whose own steps failed: a pull request
+  that fails its checks does so after the worktree is gone, with everything it
+  held already pushed.
