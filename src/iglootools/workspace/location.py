@@ -4,7 +4,8 @@ Find the iglootools workspace: the directory every project is checked out in.
 The IGLOOTOOLS_WORKSPACE environment variable names it, or a .iglootools-workspace
 directory marks it, found in the directory a command starts from or any directory above
 it. The variable wins, so one shell can point elsewhere without moving the directory.
-Nothing is guessed: where the projects live is the developer's choice, stated once.
+Nothing is guessed: where the projects live is the developer's choice, stated once. The
+directory also holds what the workspace commands keep between runs, under cache/.
 """
 
 from collections.abc import Mapping
@@ -14,6 +15,7 @@ from pathlib import Path
 
 ENVIRONMENT_VARIABLE = "IGLOOTOOLS_WORKSPACE"
 SENTINEL = ".iglootools-workspace"
+CACHE = "cache"
 
 
 class WorkspaceSource(StrEnum):
@@ -83,6 +85,11 @@ def resolve_workspace(start: Path, *, environ: Mapping[str, str]) -> Workspace:
 
 def _is_marked(directory: Path) -> bool:
     return (directory / SENTINEL).is_dir()
+
+
+def cache_dir(workspace: Path) -> Path:
+    """Return where the workspace commands keep what they reuse between runs."""
+    return workspace / SENTINEL / CACHE
 
 
 def _expand_home(value: str, environ: Mapping[str, str]) -> Path:

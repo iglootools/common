@@ -4,6 +4,7 @@ import shutil
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 
@@ -21,9 +22,13 @@ from iglootools.github.cli import github_client
 from iglootools.github.client import GitHub, GitHubError
 from iglootools.preflight import requirements
 from iglootools.workspace import clone, parallel, plugins, sync
+from iglootools.workspace.location import cache_dir
 from iglootools.workspace.repositories import (
+    DEFAULT_MAX_AGE,
+    ListingCacheError,
     OrganizationRepository,
-    list_repositories,
+    listing,
+    parse_max_age,
 )
 
 app = typer.Typer(
@@ -49,6 +54,17 @@ FORCE_OPTION = typer.Option(
 )
 
 
+CACHE_TTL_OPTION = typer.Option(
+    "--cache-ttl",
+    help="Reuse the cached repository listing while younger than this: 7d, 12h, "
+    "30m; 0 lists the repositories again.",
+)
+REFRESH_OPTION = typer.Option(
+    "--refresh",
+    help="List the organization's repositories again, ignoring the cache.",
+)
+
+
 @dataclass(frozen=True)
 class _Session:
     """The workspace, a GitHub client, and the repositories to work on."""
@@ -58,20 +74,46 @@ class _Session:
     repositories: list[OrganizationRepository]
 
 
-def _session(ctx: typer.Context) -> _Session:
+def _session(
+    ctx: typer.Context,
+    *,
+    cache_ttl: str,
+    refresh: bool,
+) -> _Session:
     """
     Find the workspace and list the organization's repositories, or exit.
 
+    The listing comes from the workspace's cache while younger than *cache_ttl*, unless
+    *refresh*, and is kept there whenever the workspace's marker directory exists.
     Archived repositories are left out, and said so: they take no change.
     """
     ensure(ctx, requirements.GITHUB)
-    workspace = resolve_workspace_or_exit(invocation(ctx).root)
-    github = github_client(ctx)
     try:
-        found = list_repositories(github)
+        max_age = parse_max_age(cache_ttl)
+    except ValueError:
+        warn(f"--cache-ttl takes 7d, 12h, 30m or 0, not {cache_ttl!r}.")
+        raise typer.Exit(2) from None
+    workspace = resolve_workspace_or_exit(invocation(ctx).root)
+    cache = cache_dir(workspace)
+    github = github_client(ctx)
+    now = datetime.now(UTC)
+    try:
+        listed = listing(github, cache, max_age=max_age, refresh=refresh, now=now)
     except GitHubError as error:
         warn(error.detail)
         raise typer.Exit(1) from None
+    except ListingCacheError as error:
+        warn(
+            f"{error.path} cannot be read ({error.detail}); --refresh lists the "
+            "repositories again and rewrites it.",
+        )
+        raise typer.Exit(1) from None
+    if listed.cached:
+        say(
+            f"Repositories as listed {_ago(now - listed.listed_at)} ago "
+            "(--refresh lists them again).",
+        )
+    found = listed.repositories
     archived = [repository.name for repository in found if repository.archived]
     if archived:
         say(f"Skipping archived: {', '.join(archived)}.")
@@ -82,10 +124,29 @@ def _session(ctx: typer.Context) -> _Session:
     )
 
 
+def _ago(age: timedelta) -> str:
+    """Say how long ago, to the largest whole unit: 3 days, 5 hours, 12 minutes."""
+    days, hours, minutes = age.days, age.seconds // 3600, age.seconds // 60 % 60
+    found = next(
+        (
+            (value, name)
+            for value, name in ((days, "day"), (hours, "hour"), (minutes, "minute"))
+            if value
+        ),
+        None,
+    )
+    if found is None:
+        return "less than a minute"
+    amount, unit = found
+    return f"{amount} {unit}{'' if amount == 1 else 's'}"
+
+
 @app.command("clone")
 def clone_cmd(
     ctx: typer.Context,
     *,
+    cache_ttl: Annotated[str, CACHE_TTL_OPTION] = DEFAULT_MAX_AGE,
+    refresh: Annotated[bool, REFRESH_OPTION] = False,
     fetch: Annotated[
         bool,
         typer.Option(
@@ -103,7 +164,7 @@ def clone_cmd(
     whose origin is another repository, and leaves it alone. Archived repositories are
     skipped.
     """
-    session = _session(ctx)
+    session = _session(ctx, cache_ttl=cache_ttl, refresh=refresh)
     results = clone_all(
         session.workspace,
         session.repositories,
@@ -118,6 +179,8 @@ def clone_cmd(
 def sync_cmd(
     ctx: typer.Context,
     *,
+    cache_ttl: Annotated[str, CACHE_TTL_OPTION] = DEFAULT_MAX_AGE,
+    refresh: Annotated[bool, REFRESH_OPTION] = False,
     skip_plugins: Annotated[bool, SKIP_PLUGINS_OPTION] = False,
     force: Annotated[bool, FORCE_OPTION] = False,
     dry_run: Annotated[bool, DRY_RUN_OPTION] = False,
@@ -135,7 +198,7 @@ def sync_cmd(
     Claude Code plugin each project enables. Lists the branches kept, the other
     worktrees, and every problem; fails if there was any problem.
     """
-    session = _session(ctx)
+    session = _session(ctx, cache_ttl=cache_ttl, refresh=refresh)
     cloned = clone_all(
         session.workspace,
         session.repositories,

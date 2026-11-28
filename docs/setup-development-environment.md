@@ -32,7 +32,7 @@ mkdir -p ~/Workspace/iglootools/.iglootools-workspace
 adopt-all finds it from common's checkout, or any directory below the workspace,
 by walking up. The directory is what to set up: it works wherever the command
 runs, including in an agent's or an editor's shell, which does not read your
-shell profile.
+shell profile. It also holds the commands' cache, under `cache/`.
 
 Optionally, to point a shell at another workspace, set `IGLOOTOOLS_WORKSPACE`
 to an absolute path. It wins over the directory:
@@ -44,6 +44,12 @@ export IGLOOTOOLS_WORKSPACE=~/Workspace/iglootools
 A variable that names no directory is an error, not a reason to fall back on the
 marker directory. With neither, adopt-all stops and prints the commands, with
 the directory above common's checkout filled in.
+
+Every workspace command starts from the organization's list of repositories,
+which rarely changes. The commands keep that list in
+`.iglootools-workspace/cache/` and reuse it for 7 days. `--cache-ttl` changes
+how old it may be (`12h`, `30m`; `0` never reuses it), and `--refresh` lists the
+repositories again now, for instance just after one is created.
 
 ## Loading the plugin from the working tree
 

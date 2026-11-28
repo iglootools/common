@@ -8,6 +8,7 @@ from iglootools.workspace.location import (
     WorkspaceError,
     WorkspaceErrorKind,
     WorkspaceSource,
+    cache_dir,
     resolve_workspace,
 )
 
@@ -98,3 +99,7 @@ def test_nothing_configured_is_an_error_naming_where_the_search_began(
         WorkspaceErrorKind.NOT_FOUND,
         checkout,
     )
+
+
+def test_the_cache_lives_in_the_sentinel_directory(tmp_path: Path) -> None:
+    assert cache_dir(tmp_path) == tmp_path / ".iglootools-workspace" / "cache"
