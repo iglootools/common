@@ -1,8 +1,30 @@
+import os
 import subprocess
 from pathlib import Path
 from typing import NoReturn
 
 import pytest
+
+
+def pytest_configure() -> None:
+    """
+    Clear the variables that point git at a repository, before any test runs.
+
+    `git rebase --exec` in a linked worktree, and git hooks, run their command with
+    GIT_DIR set to the repository being worked on. Inherited, it overrides `git -C` and
+    `cwd=`, so the fixtures below would init, commit and tag in that repository instead
+    of under tmp_path: `git init --bare` once marked a real checkout bare. Not patching:
+    the suite leaves the environment that launched it, as python-tooling.md › Run the
+    tests apart from the repository that starts them describes.
+    """
+    names = subprocess.run(
+        ["git", "rev-parse", "--local-env-vars"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+    for name in names & os.environ.keys():
+        del os.environ[name]
 
 
 class UnexpectedCallError(AssertionError):
