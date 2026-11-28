@@ -49,13 +49,14 @@ a person.
 
 ## Auditing
 
-`audit-pr` and `audit-full`, run as [usage.md](usage.md) shows, each split the
-categories in [guidelines/review/audit.md](../guidelines/review/audit.md)
-across parallel `auditor` agents, send the `critical` and `high` findings to a
-second auditor that tries to disprove them, and write a Markdown report to
-`.iglootools/audits/`. Both set `disable-model-invocation`, so they run only
-when typed, because an audit starts several agents and costs accordingly. The
-report-writing steps they share are in
+`audit-pr`, `audit-pr-stack` and `audit-full`, run as [usage.md](usage.md)
+shows, each split the categories in
+[guidelines/review/audit.md](../guidelines/review/audit.md) across parallel
+`auditor` agents, send the `critical` and `high` findings to a second auditor
+that tries to disprove them, and write a Markdown report to
+`.iglootools/audits/`. All three set `disable-model-invocation`, so they run
+only when typed, because an audit starts several agents and costs accordingly.
+The report-writing steps they share are in
 [skills/audit-pr/assemble-report.md](../skills/audit-pr/assemble-report.md).
 
 The skills run in the main conversation rather than in a subagent of their own,
@@ -63,15 +64,25 @@ for two reasons. The findings have to be in the conversation that will fix them.
 And the fan-out needs no nested delegation when the main conversation starts the
 auditors itself.
 
+`audit-pr-stack` audits each pull request of a stack against the one below it
+and writes one report per pull request, so each keeps the `audit-pr` layout,
+its own IDs and its own `Scope:` line. Each pull request other than the one
+checked out is audited in a detached worktree under `.iglootools/worktrees/`,
+because the auditors read files and run checks from the directory they are
+given, and switching the checkout would disturb whoever works in it. A problem
+an upper pull request inherits from a lower one is moved to the lower one's
+report, so it is fixed once, in the commit that introduced it.
+
 The auditors do not see what the `SessionStart` hook emits, because a subagent
 does not receive it, so the `auditor` agent reads the guidelines itself.
 
 When Claude is about to open a pull request, mark it ready or merge it,
 [hooks/remind-audit-pr.sh](../hooks/remind-audit-pr.sh) reminds the user if no
 report under `.iglootools/audits/` covers the current commit: it takes the SHA
-after `..` in each report's `Scope:` line, the head an `audit-pr` report
-audited. It does not block the command, since an audit is a judgment call rather
-than a gate, and pull requests opened outside Claude get no reminder.
+after `..` in each report's `Scope:` line, the head an `audit-pr` or
+`audit-pr-stack` report audited. It does not block the command, since an audit
+is a judgment call rather than a gate, and pull requests opened outside Claude
+get no reminder.
 
 When Claude is about to push a branch other than the default one,
 [hooks/remind-clean-branch.sh](../hooks/remind-clean-branch.sh) asks it to read

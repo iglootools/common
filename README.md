@@ -19,8 +19,8 @@ The rules themselves live in [**`guidelines/`**](guidelines/), whose
 
 The rest of the repository supports the guidelines rather than stating any:
 
-- [skills/](skills/) and [agents/](agents/): find what the `audit-pr` and
-  `audit-full` skills and the `auditor` agent do.
+- [skills/](skills/) and [agents/](agents/): find what the `audit-pr`,
+  `audit-pr-stack` and `audit-full` skills and the `auditor` agent do.
 - [.claude/](.claude/): find the `audit-consistency-*` skills, which check the
   projects' guidelines and build against common's and each other.
 - [hooks/](hooks/): find the hook that loads the guideline indexes, and the
