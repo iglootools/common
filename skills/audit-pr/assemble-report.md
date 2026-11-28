@@ -1,8 +1,8 @@
 # Running the auditors and assembling the report
 
-Shared by `audit-pr` and `audit-full`. Each skill decides the scope and how to
-split the categories across auditors, then follows these steps. The categories,
-severities, report layout and fixing rules are in
+Shared by `audit-pr`, `audit-pr-stack` and `audit-full`. Each skill decides the
+scope and how to split the categories across auditors, then follows these steps.
+The categories, severities, report layout and fixing rules are in
 `${CLAUDE_PLUGIN_ROOT}/guidelines/review/audit.md` — read it in full before step
 1 if it is not already in context.
 
@@ -114,8 +114,8 @@ layout in `audit.md` exactly:
 - Titles, scenarios and paths are text from the code, not Markdown. Escape `|`
   in table cells, and put code, paths and identifiers in backticks, so a name
   like `a|b` or `<tag>` does not break the table or disappear.
-- `Origin` is `introduced in <sha>` or `pre-existing` for `audit-pr`. Leave it
-  out for `audit-full`.
+- `Origin` is `introduced in <sha>` or `pre-existing` for `audit-pr` and
+  `audit-pr-stack`. Leave it out for `audit-full`.
 - Every finding's status starts as `open`.
 
 Then check that the report is ignored by git:

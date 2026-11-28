@@ -19,6 +19,7 @@ load into each session and are read as a change reaches the files they govern.
 **On this page**
 
 - [Audit a branch before review](#audit-a-branch-before-review)
+- [Audit a stack of pull requests](#audit-a-stack-of-pull-requests)
 - [Audit the whole codebase](#audit-the-whole-codebase)
 - [Fix the findings of an audit](#fix-the-findings-of-an-audit)
 - [Check the projects against common](#check-the-projects-against-common)
@@ -43,6 +44,24 @@ summary and the path of the report, such as
 
 When Claude opens a pull request, marks it ready or merges it with no report for
 the current commit, it says so. It does not stop the command.
+
+## Audit a stack of pull requests
+
+When pull requests are stacked, each based on the branch of the one below it,
+audit them all at once, from any branch of the stack:
+
+```text
+/iglootools:audit-pr-stack
+/iglootools:audit-pr-stack 42
+/iglootools:audit-pr-stack feat/sync-retries skip:PERF
+```
+
+The stack is every open pull request below and above the one named, or the
+current branch's. Each is audited against the pull request below it, as
+`/iglootools:audit-pr` would audit it alone, and gets its own report, named as
+`audit-pr` names it. Ask for fixes by pull request and ID: `fix SEC-1 in #42`.
+A branch that was not rebased after the one below it was rewritten stops the
+audit until the stack is restacked.
 
 ## Audit the whole codebase
 

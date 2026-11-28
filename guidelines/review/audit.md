@@ -3,8 +3,8 @@
 What an iglootools audit looks for, how it rates and reports what it finds, and
 how the findings are fixed. Read it before running or changing an audit, fixing
 a finding from an audit report, or reviewing a pull request by hand, which can
-use the categories as a checklist. The plugin's `audit-pr` and `audit-full`
-skills and the `auditor` agent they start follow it.
+use the categories as a checklist. The plugin's `audit-pr`, `audit-pr-stack` and
+`audit-full` skills and the `auditor` agent they start follow it.
 
 <!-- toc -->
 **On this page**

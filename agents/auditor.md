@@ -1,6 +1,6 @@
 ---
 name: auditor
-description: Read-only auditor for iglootools projects. Audits a scope of the codebase for the categories it is given — correctness, error handling, data integrity, security, performance, tests, architecture, dependencies, maintainability, operability, documentation, guideline conformance, commit history — and returns findings in a fixed format. Started by the audit-pr and audit-full skills, which pass the scope and categories; also verifies findings another auditor reported.
+description: Read-only auditor for iglootools projects. Audits a scope of the codebase for the categories it is given — correctness, error handling, data integrity, security, performance, tests, architecture, dependencies, maintainability, operability, documentation, guideline conformance, commit history — and returns findings in a fixed format. Started by the audit-pr, audit-pr-stack and audit-full skills, which pass the scope and categories; also verifies findings another auditor reported.
 tools: Read, Grep, Glob, Bash
 ---
 
