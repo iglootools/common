@@ -3,8 +3,9 @@ Move every iglootools project in the workspace to a release of common, in parall
 
 The workspace is the directory common's checkout sits in. Every project is checked
 before any is changed, so a problem in one stops the run while nothing has happened yet.
-Then each project runs `adopt`, which is safe to run again, in a thread of its own: the
-work is almost all waiting on CI and GitHub, so threads cost nothing. Pushes take turns,
+Then each project runs `adopt`, which is safe to run again, in a thread of its own and a
+temporary worktree, so the project's checkout is left to whoever works there: the work
+is almost all waiting on CI and GitHub, so threads cost nothing. Pushes take turns,
 so a credential prompt can never collide with another. Interrupting the run stops every
 project at its next poll, and running it again picks up where each one stopped.
 
@@ -136,29 +137,32 @@ def missing_checkouts(
     return sorted(names - checked_out - excluded - {pins.COMMON.name})
 
 
-def problems(project: Project, base: str, *, run: Run = capture) -> list[str]:
-    """List what stops *project* from being adopted safely, without changing it."""
-    issues: list[str] = []
-    try:
-        local.require_clean(project.root, run=run)
-    except local.GitStepError:
-        issues.append("has changes or untracked files; commit, stash or remove them")
+def problems(project: Project, *, run: Run = capture) -> list[str]:
+    """
+    List what stops *project* from being adopted, without changing it.
+
+    The checkout's own branch and changes do not matter: adopt works in a worktree
+    started from GitHub's default branch. Only reaching origin does.
+    """
     reach = run(["git", "ls-remote", "-q", "origin", "HEAD"], project.root)
-    if reach.returncode != 0:
-        first = (reach.stderr.strip().splitlines() or ["no reason given"])[0]
-        issues.append(
+    if reach.returncode == 0:
+        return []
+    first = (reach.stderr.strip().splitlines() or ["no reason given"])[0]
+    return [
+        (
             f"cannot reach origin without a prompt ({first}); load your key with "
-            "`ssh-add`, or log in to git over HTTPS",
-        )
-        return issues
-    run(["git", "fetch", "-q", "origin", base], project.root)
-    ahead = run(
-        ["git", "rev-list", "--count", f"origin/{base}..{base}"],
-        project.root,
-    ).stdout.strip()
-    if ahead not in ("", "0"):
-        issues.append(f"its local {base} has {ahead} commit(s) GitHub lacks")
-    return issues
+            "`ssh-add`, or log in to git over HTTPS"
+        ),
+    ]
+
+
+def describe(error: BaseException, detail: str) -> str:
+    """
+    Return *detail* followed by the notes added to *error*, one sentence each.
+
+    A note says, for instance, where a failed adopt kept its worktree.
+    """
+    return " ".join([detail, *getattr(error, "__notes__", [])])
 
 
 class CancelledError(Exception):
@@ -200,15 +204,15 @@ def run_all(
                 sleep,
                 push_guard,
             )
-        except CancelledError:
+        except CancelledError as error:
             return adopt.Outcome(
                 adopt.Result.REFUSED,
-                "interrupted; run again to resume",
+                describe(error, "interrupted; run again to resume"),
             )
         except (GitHubError, local.GitStepError) as error:
             return adopt.Outcome(
                 adopt.Result.REFUSED,
-                getattr(error, "detail", str(error)),
+                describe(error, getattr(error, "detail", str(error))),
             )
 
     outcomes: dict[str, adopt.Outcome] = {}

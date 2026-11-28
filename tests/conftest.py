@@ -37,3 +37,41 @@ def track(repo: Path, name: str, content: str) -> Path:
     path.write_text(content, encoding="utf-8")
     subprocess.run(["git", "-C", str(repo), "add", name], check=True)
     return path
+
+
+def git(directory: Path, *args: str) -> str:
+    """Run git in *directory* and return its output; fail the test when git does."""
+    return subprocess.run(
+        ["git", "-C", str(directory), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
+def commit(directory: Path, name: str) -> None:
+    """Commit a new file called *name* in *directory*."""
+    (directory / name).write_text(name, encoding="utf-8")
+    git(directory, "add", name)
+    git(directory, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", name)
+
+
+@pytest.fixture
+def clone(tmp_path: Path) -> Path:
+    """Clone a bare origin, and push one commit to its main."""
+    origin, checkout = tmp_path / "origin.git", tmp_path / "checkout"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))
+    git(tmp_path, "clone", "-q", str(origin), str(checkout))
+    git(checkout, "switch", "-q", "-c", "main")
+    commit(checkout, "first")
+    git(checkout, "push", "-q", "-u", "origin", "main")
+    return checkout
+
+
+def advance_origin(clone: Path) -> str:
+    """Push a commit to origin's main from a second clone; return its SHA."""
+    other = clone.parent / "other"
+    git(clone.parent, "clone", "-q", str(clone.parent / "origin.git"), str(other))
+    commit(other, "second")
+    git(other, "push", "-q", "origin", "main")
+    return git(other, "rev-parse", "HEAD").strip()

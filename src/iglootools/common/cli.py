@@ -22,7 +22,6 @@ from iglootools.common import (
     plugin,
     release as releasing,
 )
-from iglootools.github import pulls
 from iglootools.github.cli import REPO_OPTION, github_session
 from iglootools.github.client import GitHub, GitHubError
 from iglootools.github.events import Event, Report
@@ -38,6 +37,14 @@ VERSION_ARGUMENT = typer.Argument(help="The release, as X.Y.Z.")
 SKIP_PLUGIN_OPTION = typer.Option(
     "--skip-plugin",
     help="Leave the Claude Code plugin installed for the project as it is.",
+)
+KEEP_WORKTREE_OPTION = typer.Option(
+    "--keep-worktree",
+    help="Keep the temporary worktree when a step in it fails, to inspect.",
+)
+SKIP_FAST_FORWARD_OPTION = typer.Option(
+    "--skip-fast-forward",
+    help="Leave the checkout's default branch as it is once the pull request merges.",
 )
 
 
@@ -63,21 +70,37 @@ def adopt(
         typer.Option("--dry-run", "-n", help="Show the pins that would move."),
     ] = False,
     skip_plugin: Annotated[bool, SKIP_PLUGIN_OPTION] = False,
+    in_place: Annotated[
+        bool,
+        typer.Option(
+            "--in-place",
+            help="Work in this checkout instead of a temporary worktree, to finish the "
+            "branch by hand. Needs no changes and no untracked files.",
+        ),
+    ] = False,
+    keep_worktree: Annotated[bool, KEEP_WORKTREE_OPTION] = False,
+    skip_fast_forward: Annotated[bool, SKIP_FAST_FORWARD_OPTION] = False,
 ) -> None:
     """
     Move every pin on iglootools/common to a release, through a pull request.
 
     Moves the reusable workflows (to the release's commit), the iglootools command and
-    the Renovate presets, and regenerates uv.lock.
-    Then opens a pull request and merges it once every check has passed, as
-    merge-when-green does. Once the project is on the release, updates the Claude Code
-    plugin installed for it, when its .claude/settings.json enables the plugin. Safe to
-    run again: it picks up from the pull request or branch an earlier run left, and
-    does nothing once the release is in place. Needs a checkout with no changes and no
-    untracked files.
+    the Renovate presets, and regenerates uv.lock, in a temporary worktree started from
+    GitHub's default branch: the checkout is left as it is, whatever branch it is on
+    and whatever changes it has. Then opens a pull request and merges it once every
+    check has passed, as merge-when-green does, and fast-forwards the checkout's default
+    branch where that is safe. Once the project is on the release, updates the Claude
+    Code plugin installed for it, when its .claude/settings.json enables the plugin.
+    Safe to run again: it picks up from the pull request or branch an earlier run left,
+    and does nothing once the release is in place.
     """
     ensure(ctx, requirements.COMMON)
     version = _version(version)
+    workplace = _workplace(
+        in_place=in_place,
+        keep_worktree=keep_worktree,
+        skip_fast_forward=skip_fast_forward,
+    )
     root = invocation(ctx).root
     repository, github = github_session(ctx, repo)
     try:
@@ -91,6 +114,7 @@ def adopt(
                 found,
                 merge_it=not no_merge,
                 update_plugin=not skip_plugin and plugin.is_enabled(root),
+                workplace=workplace,
             ):
                 say(f"[dry-run] {line}")
             return
@@ -104,9 +128,11 @@ def adopt(
             report=lambda event: say(event.detail),
             sleep=time.sleep,
             now=time.monotonic,
+            workplace=workplace,
         )
     except (GitHubError, GitStepError, plugin.PluginError) as error:
-        warn(f"{repository.slug}: {getattr(error, 'detail', error)}")
+        detail = everywhere.describe(error, str(getattr(error, "detail", error)))
+        warn(f"{repository.slug}: {detail}")
         raise typer.Exit(1) from None
     where = f"#{outcome.pull_number}" if outcome.pull_number else ""
     if not outcome.succeeded:
@@ -116,6 +142,36 @@ def adopt(
     on_release = [(repository.name, root)] if outcome.on_release else []
     if not skip_plugin and not _update_plugins(on_release, version):
         raise typer.Exit(1)
+
+
+def _workplace(
+    *,
+    in_place: bool,
+    keep_worktree: bool,
+    skip_fast_forward: bool,
+) -> adoption.Workplace:
+    """Exit 2 when --in-place comes with an option only a worktree has."""
+    clashing = [
+        flag
+        for flag, given in (
+            ("--keep-worktree", keep_worktree),
+            ("--skip-fast-forward", skip_fast_forward),
+        )
+        if given
+    ]
+    if in_place and clashing:
+        one = len(clashing) == 1
+        warn(
+            f"{' and '.join(clashing)} {'acts' if one else 'act'} on the temporary "
+            "worktree, which --in-place does not make: drop "
+            f"{'it' if one else 'them'}, or --in-place.",
+        )
+        raise typer.Exit(2)
+    return adoption.Workplace(
+        in_place=in_place,
+        keep_worktree=keep_worktree,
+        skip_fast_forward=skip_fast_forward,
+    )
 
 
 @app.command("release")
@@ -309,6 +365,8 @@ def adopt_all(
         typer.Option("--dry-run", "-n", help="Check and plan, change nothing."),
     ] = False,
     skip_plugin: Annotated[bool, SKIP_PLUGIN_OPTION] = False,
+    keep_worktree: Annotated[bool, KEEP_WORKTREE_OPTION] = False,
+    skip_fast_forward: Annotated[bool, SKIP_FAST_FORWARD_OPTION] = False,
 ) -> None:
     """
     Move every iglootools project in the workspace to a release of common, in parallel.
@@ -316,12 +374,16 @@ def adopt_all(
     Run from common's checkout: the workspace is the directory it sits in. Takes every
     checked-out iglootools project that pins common (narrowed by --only and --exclude),
     fails when a repository of the organization pins common but has no checkout here,
-    and checks every project (no changes or untracked files, origin reachable without a
-    prompt, a default branch GitHub has every commit of) before changing any. Then
-    adopts them all at once, as `common adopt` does, summarises what merged, and updates
-    the Claude Code plugin in each project on the release that enables it. Safe to run
-    again: each project picks up where it stopped.
+    and checks that every project's origin is reachable without a prompt before
+    changing any. Then adopts them all at once, as `common adopt` does, each in a
+    temporary worktree, so the checkouts are left to whoever works in them; summarises
+    what merged, and updates the Claude Code plugin in each project on the release that
+    enables it. Safe to run again: each project picks up where it stopped.
     """
+    workplace = adoption.Workplace(
+        keep_worktree=keep_worktree,
+        skip_fast_forward=skip_fast_forward,
+    )
     ensure(ctx, requirements.COMMON)
     version = _version(version)
     root = invocation(ctx).root
@@ -349,7 +411,7 @@ def adopt_all(
         raise typer.Exit(1) from None
     for item in [*skipped, *left_out]:
         say(f"Skipping {item.name}: {item.reason}.")
-    _stop_if_blocked(_blockers(github, root.parent, missing, selected))
+    _stop_if_blocked(_blockers(root.parent, missing, selected))
     if not selected:
         say("No project to adopt.")
         return
@@ -361,9 +423,17 @@ def adopt_all(
             sha,
             merge_it=not no_merge,
             skip_plugin=skip_plugin,
+            workplace=workplace,
         )
         return
-    outcomes = _run_everywhere(github, selected, version, sha, merge_it=not no_merge)
+    outcomes = _run_everywhere(
+        github,
+        selected,
+        version,
+        sha,
+        merge_it=not no_merge,
+        workplace=workplace,
+    )
     if not _report_all(selected, outcomes, version, skip_plugin=skip_plugin):
         raise typer.Exit(1)
 
@@ -377,7 +447,6 @@ def _stop_if_blocked(blocked: list[str]) -> None:
 
 
 def _blockers(
-    github: GitHub,
     workspace: Path,
     missing: list[str],
     selected: list[everywhere.Project],
@@ -388,18 +457,13 @@ def _blockers(
     That is each repository that pins common but has no checkout, and each problem in
     a selected project.
     """
-    bases = {p.name: pulls.default_branch(github, p.repository) for p in selected}
     return [
         *(
             f"{name}: pins common on GitHub, but has no checkout in {workspace}; "
             "clone it, or pass --exclude"
             for name in missing
         ),
-        *(
-            f"{p.name}: {issue}"
-            for p in selected
-            for issue in everywhere.problems(p, bases[p.name])
-        ),
+        *(f"{p.name}: {issue}" for p in selected for issue in everywhere.problems(p)),
     ]
 
 
@@ -411,6 +475,7 @@ def _preview_all(
     *,
     merge_it: bool,
     skip_plugin: bool,
+    workplace: adoption.Workplace,
 ) -> None:
     for p in selected:
         found = adoption.plan(p.root, version, sha)
@@ -426,6 +491,7 @@ def _preview_all(
             found,
             merge_it=merge_it,
             update_plugin=update_plugin,
+            workplace=workplace,
         ):
             say(f"[dry-run] [{p.name}] {line}")
 
@@ -449,6 +515,7 @@ def _run_everywhere(
     sha: str,
     *,
     merge_it: bool,
+    workplace: adoption.Workplace,
 ) -> dict[str, adoption.Outcome]:
     console = Console(highlight=False)
     board = _Board([p.name for p in projects], live=console.is_terminal)
@@ -471,6 +538,7 @@ def _run_everywhere(
             sleep=sleep,
             now=time.monotonic,
             push_guard=push_guard,
+            workplace=workplace,
         )
         board.finish(project.name, outcome)
         return outcome
