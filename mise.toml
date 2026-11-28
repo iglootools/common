@@ -2,7 +2,7 @@
 python = "3.15.2"
 uv = "0.13.7"
 shellcheck = "0.11.0"
-actionlint = "1.7.12"
+jactionlint = "2.6.0"
 dprint = "0.64.3"
 rumdl = "0.3.4"
 # Renovate, for lint-renovate and renovate-dry-run (guidelines/project-setup/dependency-automation.md).
@@ -144,7 +144,7 @@ description = "Lint the tracked shell scripts with shellcheck"
 run = "uv run --no-sync iglootools shell lint"
 
 [tasks.lint-github-actions]
-description = "Lint the tracked GitHub Actions workflows with actionlint"
+description = "Lint the tracked GitHub Actions workflows with jactionlint"
 run = "uv run --no-sync iglootools github lint"
 
 [tasks.lint-markdown]

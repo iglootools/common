@@ -13,7 +13,7 @@ are in [shared-workflows.md](shared-workflows.md), releasing to PyPI is in
   - [Keep workflows thin: set up the toolchain, then run one `ci-*` task](#keep-workflows-thin-set-up-the-toolchain-then-run-one-ci--task)
   - [Name every workflow after its own file](#name-every-workflow-after-its-own-file)
   - [Name each job after the task it runs, without `ci-`](#name-each-job-after-the-task-it-runs-without-ci-)
-  - [Lint every workflow with actionlint](#lint-every-workflow-with-actionlint)
+  - [Lint every workflow with jactionlint](#lint-every-workflow-with-jactionlint)
 - [Security](#security)
   - [Declare `permissions` on every job, at least privilege](#declare-permissions-on-every-job-at-least-privilege)
   - [Pin every action to a commit SHA, with the tag in a trailing comment](#pin-every-action-to-a-commit-sha-with-the-tag-in-a-trailing-comment)
@@ -107,35 +107,53 @@ reproduces it: `mise run preflight`.
   [repository.md › Protect the default branch and release tags](repository.md#protect-the-default-branch-and-release-tags)
   gives.
 
-### Lint every workflow with actionlint
+### Lint every workflow with jactionlint
 
-Pin [actionlint](https://github.com/rhysd/actionlint) and shellcheck in
-`[tools]`, and add a `lint-github-actions` task to `lint` that runs
+Pin [jactionlint](https://jactionlint.jdx.dev) and shellcheck in `[tools]`, and
+add a `lint-github-actions` task to `lint` that runs
 [`iglootools github lint`](iglootools-cli.md):
 
 ```toml
 [tools]
-actionlint = "<version>"
+jactionlint = "<version>"
 shellcheck = "<version>"
 
 [tasks.lint-github-actions]
-description = "Lint the tracked GitHub Actions workflows with actionlint"
+description = "Lint the tracked GitHub Actions workflows with jactionlint"
 run = "uv run --no-sync iglootools github lint"
 ```
 
 **Why:** a workflow is only parsed when GitHub runs it, so a misspelled
 expression, an unknown action input or an unquoted `$VAR` in a `run:` script
 otherwise surfaces as a failed run after the merge, or on the next release.
+jactionlint, a fork of [actionlint](https://github.com/rhysd/actionlint), runs
+all of actionlint's checks and adds the security audits of
+[zizmor](https://github.com/zizmorcore/zizmor): script injection, token
+permissions, dangerous triggers, cache poisoning, unpinned actions. Those are
+mistakes no run exposes, so nothing else catches them.
 
 - It lints every tracked `.yml` and `.yaml` file directly under
   `.github/workflows/`, and runs shellcheck on each `run:` script, at the
   severity
   [mise.md › Lint every shell script with shellcheck](mise.md#lint-every-shell-script-with-shellcheck)
-  sets. It fails when shellcheck is missing, where actionlint alone would skip
-  those scripts and pass.
-- Fix a finding, or silence one in the project's `.github/actionlint.yaml`
-  under `paths:`, scoped to the workflow it concerns, with the reason in a
-  comment beside it.
+  sets. It fails when shellcheck is missing, where jactionlint alone would skip
+  those scripts with a note and pass.
+- Keep jactionlint's `default` profile: leave `profile:` out of the project's
+  `.github/jactionlint.yaml`. `correctness` drops the security rules, and
+  `pedantic` adds opinionated ones whose findings are mostly noise.
+- Fix a finding, or silence one in `.github/jactionlint.yaml` under `ignores:`,
+  scoped by `file:` (and `job:` or `step:` where that narrows it) to the place
+  it concerns, with the reason in `reason:`. The entry matches the workflow's
+  structure, not a line, so a Renovate bump does not drop it.
+
+```yaml
+ignores:
+  - rule: dangerous-triggers
+    file: .github/workflows/publish.yml
+    reason: >-
+      workflow_run names only this repository's own release workflow, which
+      needs write access to start; see pypi-publishing.md in iglootools/common.
+```
 
 ## Security
 
@@ -269,10 +287,6 @@ group on `main` means every commit there still gets a complete run.
   triggering commit. Keyed on it, every `workflow_run` run lands in one group
   and cancels the one already going. The term is inert elsewhere, so use the
   expression verbatim everywhere.
-- [actionlint](#lint-every-workflow-with-actionlint) does not catch a
-  misspelled `github.event.*` property: it exits 0 on
-  `github.event.workflow_run.head_shaa`. Check property names against the
-  workflow-run object in the REST API.
 - Interpolate `github.workflow` once, outside the `format()`. Inside it as well,
   the group reads `preflight-preflight-main-…`, which is hard to recognise in
   the API.
