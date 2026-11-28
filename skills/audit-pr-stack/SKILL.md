@@ -69,9 +69,12 @@ as "not requested".
 
 For each pull request, check its range as `audit-pr` does: read
 `${CLAUDE_PLUGIN_ROOT}/guidelines/coding/git.md` in full and check the range
-against every rule in it, using its own commands with the pull request's base,
-recording each problem as a `finding` block in the auditor's format with
-`origin` set to the commit.
+against every rule in it, using its own commands with the pull request's base:
+`git log --reverse --stat` for the range, then each commit's diff. Record each
+problem as a `finding` block in the auditor's format, with `origin` set to the
+commit and `rule` citing the section it breaks
+(`coding/git.md` › Write the subject as a Conventional Commit, and the body
+as the why).
 
 Then check what only a stack shows, as findings in the pull request concerned,
 with `origin: n/a` and the pull request's URL as `location`:
