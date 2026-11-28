@@ -21,6 +21,7 @@ are in [shared-workflows.md](shared-workflows.md), releasing to PyPI is in
   - [Pin the mise version in every `jdx/mise-action` step, under a `# renovate:` marker](#pin-the-mise-version-in-every-jdxmise-action-step-under-a--renovate-marker)
   - [Prefer tools whose mise backend is lockable](#prefer-tools-whose-mise-backend-is-lockable)
   - [Pair `install: false` with `env: false`](#pair-install-false-with-env-false)
+  - [Turn the mise cache off in a job that releases or publishes](#turn-the-mise-cache-off-in-a-job-that-releases-or-publishes)
 - [Running](#running)
   - [Supersede runs that can be redone, but never a push to `main`](#supersede-runs-that-can-be-redone-but-never-a-push-to-main)
   - [Queue runs whose partial state cannot be redone](#queue-runs-whose-partial-state-cannot-be-redone)
@@ -261,6 +262,28 @@ installed, taking the setup step down.
 - Nothing is lost: a workflow that skips the install needs the mise binary and
   the config, not a tool environment. A step that needs one variable restates
   it.
+
+### Turn the mise cache off in a job that releases or publishes
+
+Set `cache: false` on the `jdx/mise-action` step of a job that tags a release,
+publishes a package or deploys, or that runs on a pushed tag:
+
+```yaml
+- uses: jdx/mise-action@<sha> # v5
+  with:
+    # renovate: datasource=github-releases depName=jdx/mise
+    version: <version>
+    # No cache in a publishing job (workflows.md › Turn the mise cache off).
+    cache: false
+```
+
+**Why:** the cache is shared with every other run on the branch, so a tool
+tampered with in an entry written by a less trusted job, such as one running a
+compromised dependency, would build the release. Installing from `mise.lock`
+instead checks every tool's checksum. jactionlint's `cache-poisoning` rule
+fails the job otherwise.
+
+- The cost is a fresh install in a job that runs once per release.
 
 ## Running
 
