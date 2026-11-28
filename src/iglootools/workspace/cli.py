@@ -19,18 +19,26 @@ from typing import Annotated
 import typer
 from rich.console import Console
 from rich.live import Live
+from rich.spinner import Spinner
 from rich.table import Table
+from rich.text import Text
 
 from iglootools.build import tasks
 from iglootools.cliwiring import (
     FILE_OPTION,
     OUTPUT_OPTION,
+    Mark,
     OutputFormat,
     emit,
     ensure,
     invocation,
+    marked,
+    progress,
     resolve_workspace_or_exit,
     say,
+    spinning,
+    styled,
+    tally,
     warn,
 )
 from iglootools.common import (
@@ -143,7 +151,8 @@ def _session(
     github = github_client(ctx)
     now = datetime.now(UTC)
     try:
-        listed = listing(github, cache, max_age=max_age, refresh=refresh, now=now)
+        with spinning("Listing the organization's repositories"):
+            listed = listing(github, cache, max_age=max_age, refresh=refresh, now=now)
     except GitHubError as error:
         warn(error.detail)
         raise typer.Exit(1) from None
@@ -311,16 +320,18 @@ def sync_cmd(
         if result.action != clone.CloneAction.FAILED
         and clone.is_checkout(clone.checkout_path(session.workspace, repository))
     ]
-    synced = parallel.each(
-        present,
-        lambda repository: sync.sync_one(
-            clone.checkout_path(session.workspace, repository),
-            repository,
-            session.github,
-            force=force,
-            dry_run=dry_run,
-        ),
-    )
+    with progress("Syncing", [r.name for r in present]) as done:
+        synced = parallel.each(
+            present,
+            lambda repository: sync.sync_one(
+                clone.checkout_path(session.workspace, repository),
+                repository,
+                session.github,
+                force=force,
+                dry_run=dry_run,
+            ),
+            on_done=lambda repository, _: done(repository.name),
+        )
     plugin_sync = (
         plugins.PluginSync([], [])
         if skip_plugins
@@ -343,22 +354,23 @@ def _set_up_workspace(
     dry_run: bool,
 ) -> toolchain.SetupResult:
     """Put the workspace's iglootools on release *version*; the newest if None."""
-    try:
-        found = (
-            toolchain.recommended(github)
-            if version is None
-            else toolchain.at_release(github, version)
+    with spinning("Setting up the workspace's own iglootools"):
+        try:
+            found = (
+                toolchain.recommended(github)
+                if version is None
+                else toolchain.at_release(github, version)
+            )
+        except GitHubError as error:
+            return toolchain.SetupResult(problems=[error.detail])
+        except toolchain.ToolchainError as error:
+            return toolchain.SetupResult(problems=[_describe_toolchain_error(error)])
+        return toolchain.set_up(
+            workspace,
+            found,
+            dry_run=dry_run,
+            run=run.captured(run.child_environment(os.environ)),
         )
-    except GitHubError as error:
-        return toolchain.SetupResult(problems=[error.detail])
-    except toolchain.ToolchainError as error:
-        return toolchain.SetupResult(problems=[_describe_toolchain_error(error)])
-    return toolchain.set_up(
-        workspace,
-        found,
-        dry_run=dry_run,
-        run=run.captured(run.child_environment(os.environ)),
-    )
 
 
 def _print_setup(setup: toolchain.SetupResult, label: str) -> None:
@@ -366,9 +378,9 @@ def _print_setup(setup: toolchain.SetupResult, label: str) -> None:
     if setup.done or setup.problems:
         say(f"{label}workspace:")
         for line in setup.done:
-            say(f"  {line}")
+            say(marked(Mark.OK, line, indent=1))
         for problem in setup.problems:
-            warn(f"  ! {problem}")
+            warn(marked(Mark.FAILED, problem, indent=1))
 
 
 def _describe_toolchain_error(error: toolchain.ToolchainError) -> str:
@@ -405,7 +417,8 @@ def bring_plugins_up_to_date(
             ],
         )
     try:
-        return plugins.sync_plugins(projects, directory, dry_run=dry_run)
+        with spinning("Installing and updating the Claude Code plugins"):
+            return plugins.sync_plugins(projects, directory, dry_run=dry_run)
     except PluginError as error:
         return plugins.PluginSync([], [error.detail])
 
@@ -424,9 +437,11 @@ def print_sync(
     clone_problems = [f"{r.name}: {r.problem}" for r in cloned if r.problem]
     for result in cloned:
         if result.action == clone.CloneAction.CLONED:
-            say(f"{label}{'Would clone' if dry_run else 'Cloned'} {result.name}")
+            cloned_it = "Would clone" if dry_run else "Cloned"
+            say(Text.assemble(label, marked(Mark.OK, f"{cloned_it} {result.name}")))
     for name in plugin_sync.added:
-        say(f"{label}{'Would add' if dry_run else 'Added'} the marketplace {name}")
+        added = "Would add" if dry_run else "Added"
+        say(Text.assemble(label, marked(Mark.OK, f"{added} the marketplace {name}")))
     steps_by_project = {
         name: [step for step in plugin_sync.steps if step.project == name]
         for name in (result.name for result in synced)
@@ -436,13 +451,13 @@ def print_sync(
         for result in synced
     ]
     for (header, lines, problems), result in zip(blocks, synced, strict=True):
-        say(f"{label}{header}")
+        say(Text.assemble(label, header))
         for line in lines:
             say(f"  {line}")
         for warning in result.warnings:
-            warn(f"  warning: {warning}")
+            warn(marked(Mark.WARNING, warning, indent=1))
         for problem in problems:
-            warn(f"  ! {problem}")
+            warn(marked(Mark.FAILED, problem, indent=1))
     everything = [
         *setup.problems,
         *clone_problems,
@@ -450,13 +465,18 @@ def print_sync(
         *(problem for _, _, problems in blocks for problem in problems),
     ]
     for problem in [*clone_problems, *plugin_sync.problems]:
-        warn(problem)
+        warn(marked(Mark.FAILED, problem))
     kept = sum(1 for result in synced if result.kept)
     warnings = sum(len(result.warnings) for result in synced)
-    say(
-        f"{label}{len(synced)} synced, {kept} with branches kept, "
-        f"{warnings} warning(s), {len(everything)} problem(s).",
+    summary = tally(
+        [
+            (len(synced), "synced", Mark.OK),
+            (kept, "with branches kept", Mark.WARNING),
+            (warnings, "warning(s)", Mark.WARNING),
+            (len(everything), "problem(s)", Mark.FAILED),
+        ],
     )
+    say(Text.assemble(label, summary, "."))
     return not everything
 
 
@@ -465,8 +485,12 @@ def _sync_block(
     steps: Sequence[plugins.PluginStep],
     *,
     dry_run: bool,
-) -> tuple[str, list[str], list[str]]:
-    """Return a repository's header, its lines, and its problems, ready to print."""
+) -> tuple[Text, list[str], list[str]]:
+    """
+    Return a repository's header, its lines, and its problems, ready to print.
+
+    The header's mark is the worst the repository had: a problem, then a warning.
+    """
     would = "would " if dry_run else ""
     plugin_lines = [
         f"{would}{step.action} plugin {step.plugin}"
@@ -485,8 +509,9 @@ def _sync_block(
         *(f"{step.plugin}: {step.problem}" for step in steps if step.problem),
     ]
     quiet = not (result.done or problems or result.kept or result.warnings)
+    mark = Mark.FAILED if problems else Mark.WARNING if result.warnings else Mark.OK
     return (
-        f"{result.name}: up to date" if quiet else f"{result.name}:",
+        marked(mark, f"{result.name}: up to date" if quiet else f"{result.name}:"),
         lines,
         problems,
     )
@@ -517,15 +542,20 @@ def status_cmd(
         refresh=refresh,
         announce=warn if output == OutputFormat.JSON else say,
     )
-    found = parallel.each(
-        session.repositories,
-        lambda repository: status.read_status(
-            clone.checkout_path(session.workspace, repository),
-            repository,
-            session.github,
-            fetch=fetch,
-        ),
-    )
+    with progress(
+        "Reading the status",
+        [r.name for r in session.repositories],
+    ) as done:
+        found = parallel.each(
+            session.repositories,
+            lambda repository: status.read_status(
+                clone.checkout_path(session.workspace, repository),
+                repository,
+                session.github,
+                fetch=fetch,
+            ),
+            on_done=lambda repository, _: done(repository.name),
+        )
     match output:
         case OutputFormat.JSON:
             emit(json.dumps([dataclasses.asdict(row) for row in found], indent=2), file)
@@ -551,33 +581,58 @@ def print_status(found: Sequence[status.RepositoryStatus], file: Path | None) ->
             Console(file=handle, highlight=False, width=200).print(table)
     for row in found:
         if row.problem:
-            warn(f"{row.name}: {row.problem}")
+            warn(marked(Mark.FAILED, f"{row.name}: {row.problem}"))
 
 
-def _status_cells(row: status.RepositoryStatus) -> list[str]:
-    """Return a status row's cells, as plain text: names are not markup."""
-    pulls = f"{row.open_pulls}" + (
-        f" ({row.renovate_pulls} Renovate)" if row.renovate_pulls else ""
+def _status_mark(row: status.RepositoryStatus) -> Mark:
+    """
+    Return how a repository stands at a glance.
+
+    Failed when its status could not be read, skipped when not cloned, a warning when
+    its checkout differs from origin's default branch: changes, commits ahead or
+    behind, or a detached HEAD.
+    """
+    match row:
+        case status.RepositoryStatus(problem=problem) if problem:
+            return Mark.FAILED
+        case status.RepositoryStatus(cloned=False):
+            return Mark.SKIPPED
+        case _ if row.changes or row.ahead or row.behind or not row.branch:
+            return Mark.WARNING
+        case _:
+            return Mark.OK
+
+
+def _status_cells(row: status.RepositoryStatus) -> list[Text]:
+    """Return a status row's cells, as Text: names are not markup."""
+    pulls = Text(
+        f"{row.open_pulls}"
+        + (f" ({row.renovate_pulls} Renovate)" if row.renovate_pulls else ""),
     )
+    name = marked(_status_mark(row), row.name)
     if not row.cloned:
-        return [row.name, "not cloned", "", "", "", "", pulls]
+        empty = [Text()] * 4
+        return [name, styled("not cloned", Mark.SKIPPED), *empty, pulls]
     standing = (
-        "up to date"
+        styled("up to date", Mark.OK)
         if not row.ahead and not row.behind
-        else ", ".join(
-            [
-                *([f"{row.ahead} ahead"] if row.ahead else []),
-                *([f"{row.behind} behind"] if row.behind else []),
-            ],
+        else styled(
+            ", ".join(
+                [
+                    *([f"{row.ahead} ahead"] if row.ahead else []),
+                    *([f"{row.behind} behind"] if row.behind else []),
+                ],
+            ),
+            Mark.WARNING,
         )
     )
     return [
-        row.name,
-        row.branch or "detached",
-        str(row.changes) if row.changes else "",
+        name,
+        Text(row.branch) if row.branch else styled("detached", Mark.WARNING),
+        styled(str(row.changes), Mark.WARNING) if row.changes else Text(),
         standing,
-        str(len(row.branches)) if row.branches else "",
-        str(row.worktrees) if row.worktrees else "",
+        Text(str(len(row.branches)) if row.branches else ""),
+        Text(str(row.worktrees) if row.worktrees else ""),
         pulls,
     ]
 
@@ -617,20 +672,31 @@ def run_cmd(
         return
     log_dir = Path(tempfile.mkdtemp(prefix="iglootools-run-"))
     runner = run.logged(run.child_environment(os.environ))
-    say(f"Running {shlex.join(tasks.mise_command(task, ctx.args))} in each project")
-    results = parallel.each(
-        session.repositories,
-        lambda repository: run.run_in(
-            session.workspace,
-            repository,
-            task,
-            ctx.args,
-            log_dir,
-            run=runner,
-        ),
-        jobs=jobs or None,
-    )
-    if not _print_runs(results, log_dir):
+    command = shlex.join(tasks.mise_command(task, ctx.args))
+    say(f"Running {command} in each project")
+    with progress(
+        f"Running {command}",
+        [r.name for r in session.repositories],
+    ) as done:
+
+        def finished(repository: OrganizationRepository, result: run.TaskRun) -> None:
+            _print_run(result)
+            done(repository.name)
+
+        results = parallel.each(
+            session.repositories,
+            lambda repository: run.run_in(
+                session.workspace,
+                repository,
+                task,
+                ctx.args,
+                log_dir,
+                run=runner,
+            ),
+            jobs=jobs or None,
+            on_done=finished,
+        )
+    if not _print_run_summary(results, log_dir):
         raise typer.Exit(1)
 
 
@@ -653,22 +719,31 @@ def _preview_run(session: _Session, task: str, args: Sequence[str]) -> None:
         )
 
 
-def _print_runs(results: Sequence[run.TaskRun], log_dir: Path) -> bool:
-    """Print each project's outcome and the logs' directory; tell if all passed."""
-    for result in results:
-        match result.outcome:
-            case run.RunOutcome.PASSED:
-                say(f"{result.name}: passed in {result.seconds:.0f}s")
-            case run.RunOutcome.SKIPPED:
-                say(f"{result.name}: skipped, {result.detail}")
-            case run.RunOutcome.FAILED:
-                warn(f"{result.name}: failed, {result.detail}")
-                for line in result.tail:
-                    warn(f"  | {line}")
-    failed = [r.name for r in results if r.outcome == run.RunOutcome.FAILED]
-    passed = sum(1 for r in results if r.outcome == run.RunOutcome.PASSED)
-    say(f"{passed} passed, {len(failed)} failed. Logs: {log_dir}")
-    return not failed
+def _print_run(result: run.TaskRun) -> None:
+    """Print how the task ended in one project, with the end of its log if it failed."""
+    match result.outcome:
+        case run.RunOutcome.PASSED:
+            say(marked(Mark.OK, f"{result.name}: passed in {result.seconds:.0f}s"))
+        case run.RunOutcome.SKIPPED:
+            say(marked(Mark.SKIPPED, f"{result.name}: skipped, {result.detail}"))
+        case run.RunOutcome.FAILED:
+            warn(marked(Mark.FAILED, f"{result.name}: failed, {result.detail}"))
+            for line in result.tail:
+                warn(f"  | {line}")
+
+
+def _print_run_summary(results: Sequence[run.TaskRun], log_dir: Path) -> bool:
+    """Print the count of each outcome and the logs' directory; tell if none failed."""
+    counts = Counter(result.outcome for result in results)
+    summary = tally(
+        [
+            (counts[run.RunOutcome.PASSED], "passed", Mark.OK),
+            (counts[run.RunOutcome.FAILED], "failed", Mark.FAILED),
+            (counts[run.RunOutcome.SKIPPED], "skipped", Mark.SKIPPED),
+        ],
+    )
+    say(Text.assemble(summary, f". Logs: {log_dir}"))
+    return not counts[run.RunOutcome.FAILED]
 
 
 @app.command("renovate")
@@ -697,10 +772,15 @@ def renovate_cmd(
         refresh=refresh,
         announce=warn if output == OutputFormat.JSON else say,
     )
-    found = parallel.each(
-        session.repositories,
-        lambda repository: renovate_pulls(session.github, repository),
-    )
+    with progress(
+        "Reading the Renovate pull requests",
+        [r.name for r in session.repositories],
+    ) as done:
+        found = parallel.each(
+            session.repositories,
+            lambda repository: renovate_pulls(session.github, repository),
+            on_done=lambda repository, _: done(repository.name),
+        )
     pulls = [pull for pulls, _ in found for pull in pulls]
     problems = [problem for _, problem in found if problem]
     match output:
@@ -712,7 +792,7 @@ def renovate_cmd(
         *problems,
         *(f"{_pull_name(p)}: {p.problem}" for p in pulls if p.problem),
     ]:
-        warn(problem)
+        warn(marked(Mark.FAILED, problem))
     merged_ok = (
         merge_pulls(session.github, pulls, dry_run=dry_run) if merge_them else True
     )
@@ -735,10 +815,17 @@ def _pull_name(pull: renovate.RenovatePull) -> str:
     return f"{pull.repository.name}#{pull.number}"
 
 
-def _verdict_text(pull: renovate.RenovatePull) -> str:
+def _verdict_text(pull: renovate.RenovatePull) -> Text:
+    """Return what merge-when-green would do next, coloured by how well it goes."""
     if pull.verdict is None:
-        return "not assessed"
-    return f"{pull.verdict.action}: {pull.verdict.reason}"
+        return styled("not assessed", Mark.FAILED)
+    mark = {
+        merge.Action.MERGE: Mark.OK,
+        merge.Action.WAIT: Mark.WARNING,
+        merge.Action.REFUSE: Mark.FAILED,
+        merge.Action.DONE: Mark.SKIPPED,
+    }[pull.verdict.action]
+    return styled(f"{pull.verdict.action}: {pull.verdict.reason}", mark)
 
 
 def pull_json(pull: renovate.RenovatePull) -> dict[str, object]:
@@ -763,7 +850,7 @@ def print_pulls(pulls: Sequence[renovate.RenovatePull], file: Path | None) -> No
     table.add_column("title")
     table.add_column("next")
     for pull in pulls:
-        table.add_row(_pull_name(pull), pull.title, _verdict_text(pull))
+        table.add_row(Text(_pull_name(pull)), Text(pull.title), _verdict_text(pull))
     if file is None:
         Console(highlight=False).print(table)
     else:
@@ -781,7 +868,12 @@ def merge_pulls(
     chosen = [pull for pull in pulls if pull.mergeable]
     for pull in pulls:
         if not pull.mergeable and pull.verdict is not None:
-            say(f"Leaving {_pull_name(pull)}: {pull.verdict.reason}.")
+            say(
+                marked(
+                    Mark.SKIPPED,
+                    f"Leaving {_pull_name(pull)}: {pull.verdict.reason}.",
+                ),
+            )
     if dry_run:
         for pull in chosen:
             say(f"[dry-run] Would merge {_pull_name(pull)} once its checks pass.")
@@ -822,11 +914,9 @@ def merge_pulls(
     for pull, outcome in results:
         match outcome:
             case merge.Outcome(merged=True):
-                say(f"{_pull_name(pull)}: merged.")
-            case merge.Outcome(reason=reason):
-                warn(f"{_pull_name(pull)}: not merged, {reason}.")
-            case str() as reason:
-                warn(f"{_pull_name(pull)}: not merged, {reason}.")
+                say(marked(Mark.OK, f"{_pull_name(pull)}: merged."))
+            case merge.Outcome(reason=reason) | (str() as reason):
+                warn(marked(Mark.FAILED, f"{_pull_name(pull)}: not merged, {reason}."))
     return all(
         isinstance(outcome, merge.Outcome) and outcome.merged for _, outcome in results
     )
@@ -841,46 +931,65 @@ def clone_all(
 ) -> list[clone.CloneResult]:
     """Clone or fetch each of *repositories* at once, as the clone command does."""
     protocol = clone.infer_protocol(clone.existing_origins(workspace, repositories))
-    return parallel.each(
-        repositories,
-        lambda repository: clone.clone_one(
-            workspace,
-            repository,
-            protocol,
-            fetch=fetch,
-            dry_run=dry_run,
-        ),
-    )
+    with progress(
+        "Cloning and fetching" if fetch else "Cloning",
+        [r.name for r in repositories],
+    ) as done:
+        return parallel.each(
+            repositories,
+            lambda repository: clone.clone_one(
+                workspace,
+                repository,
+                protocol,
+                fetch=fetch,
+                dry_run=dry_run,
+            ),
+            on_done=lambda repository, _: done(repository.name),
+        )
 
 
 def _print_clone(results: Sequence[clone.CloneResult], *, dry_run: bool) -> bool:
     """Print what clone did to each repository; tell whether none failed."""
-    prefix = "[dry-run] Would " if dry_run else ""
+    label = "[dry-run] " if dry_run else ""
     for result in results:
         match result.action:
             case clone.CloneAction.CLONED:
-                say(f"{prefix}{'clone' if dry_run else 'Cloned'} {result.name}")
+                did = "Would clone" if dry_run else "Cloned"
+                say(Text.assemble(label, marked(Mark.OK, f"{did} {result.name}")))
             case clone.CloneAction.FETCHED:
-                say(f"{prefix}{'fetch' if dry_run else 'Fetched'} {result.name}")
+                did = "Would fetch" if dry_run else "Fetched"
+                say(Text.assemble(label, marked(Mark.OK, f"{did} {result.name}")))
             case clone.CloneAction.PRESENT:
-                say(f"{result.name}: already cloned")
+                say(marked(Mark.SKIPPED, f"{result.name}: already cloned"))
             case clone.CloneAction.FAILED:
-                warn(f"{result.name}: {result.problem}")
+                warn(marked(Mark.FAILED, f"{result.name}: {result.problem}"))
     counts = Counter(result.action for result in results)
-    say(
-        f"{'[dry-run] ' if dry_run else ''}{counts[clone.CloneAction.CLONED]} cloned, "
-        f"{counts[clone.CloneAction.FETCHED]} fetched, "
-        f"{counts[clone.CloneAction.FAILED]} failed.",
+    summary = tally(
+        [
+            (counts[clone.CloneAction.CLONED], "cloned", Mark.OK),
+            (counts[clone.CloneAction.FETCHED], "fetched", Mark.OK),
+            (counts[clone.CloneAction.FAILED], "failed", Mark.FAILED),
+        ],
     )
+    say(Text.assemble(label, summary, "."))
     return not counts[clone.CloneAction.FAILED]
 
 
 @dataclass
 class _Row:
+    """
+    One project's line on the board: a spinner while it runs, its mark once done.
+
+    The spinner is kept from one redraw to the next, as it animates from when it was
+    first drawn.
+    """
+
     stage: str = "starting"
     pull: int | None = None
     started: float = field(default_factory=time.monotonic)
     finished: float | None = None
+    mark: Mark | None = None
+    spinner: Spinner = field(default_factory=lambda: Spinner("dots"))
 
 
 class _Board:
@@ -905,6 +1014,7 @@ class _Board:
             row.stage = f"{outcome.result}: {outcome.reason}"
             row.pull = outcome.pull_number or row.pull
             row.finished = time.monotonic()
+            row.mark = _adopt_mark(outcome)
 
     def table(self) -> Table:
         table = Table(box=None, pad_edge=False)
@@ -914,12 +1024,33 @@ class _Board:
             for name, row in self.rows.items():
                 seconds = int((row.finished or time.monotonic()) - row.started)
                 table.add_row(
-                    name,
-                    row.stage,
+                    _board_project(name, row),
+                    Text(row.stage)
+                    if row.mark is None
+                    else styled(row.stage, row.mark),
                     f"#{row.pull}" if row.pull else "",
                     f"{seconds // 60}:{seconds % 60:02d}",
                 )
         return table
+
+
+def _board_project(name: str, row: _Row) -> Spinner | Text:
+    """Return the project's cell: its spinner while it runs, then its mark."""
+    if row.mark is None:
+        row.spinner.update(text=Text(name))
+        return row.spinner
+    return marked(row.mark, name)
+
+
+def _adopt_mark(outcome: adoption.Outcome) -> Mark:
+    """Return the mark of how an adopt ended: refused failed, a release reached ok."""
+    match outcome.result:
+        case adoption.Result.REFUSED:
+            return Mark.FAILED
+        case adoption.Result.OPENED:
+            return Mark.WARNING
+        case adoption.Result.MERGED | adoption.Result.UP_TO_DATE:
+            return Mark.OK
 
 
 @app.command("adopt-common")
@@ -973,17 +1104,18 @@ def adopt_common_cmd(
     github, workspace = session.github, session.workspace
     version = common_cli.adopted_version_or_exit(github, version, latest=latest)
     try:
-        sha = pins.tag_commit(github, version)
-        found = everywhere.discover(workspace, session.repositories)
-        selected, left_out = everywhere.select(
-            found.projects,
-            only or [],
-            exclude or [],
-        )
-        unchecked = everywhere.find_unchecked(
-            github,
-            [r for r in found.not_checked_out if r.name not in (exclude or [])],
-        )
+        with spinning("Finding the projects that pin iglootools/common"):
+            sha = pins.tag_commit(github, version)
+            found = everywhere.discover(workspace, session.repositories)
+            selected, left_out = everywhere.select(
+                found.projects,
+                only or [],
+                exclude or [],
+            )
+            unchecked = everywhere.find_unchecked(
+                github,
+                [r for r in found.not_checked_out if r.name not in (exclude or [])],
+            )
     except everywhere.SelectionError as error:
         warn(f"{error}.")
         raise typer.Exit(2) from None
@@ -1061,15 +1193,15 @@ def _report_skips(
     missing the preset is seen rather than silently left on its old release.
     """
     for item in local:
-        say(f"Skipping {item.name}: {item.reason}.")
+        say(marked(Mark.SKIPPED, f"Skipping {item.name}: {item.reason}."))
     for item in remote:
-        warn(f"Skipping {item.name}: {item.reason}.")
+        warn(marked(Mark.WARNING, f"Skipping {item.name}: {item.reason}."))
 
 
 def _stop_if_blocked(blocked: list[str]) -> None:
     if blocked:
         for issue in blocked:
-            warn(issue)
+            warn(marked(Mark.FAILED, issue))
         warn("Nothing was changed.")
         raise typer.Exit(1)
 
@@ -1132,7 +1264,10 @@ def _summarise(
     for p in selected:
         outcome = outcomes[p.name]
         where = f" #{outcome.pull_number}" if outcome.pull_number else ""
-        line = f"{p.name}{where}: {outcome.result}, {outcome.reason}"
+        line = marked(
+            _adopt_mark(outcome),
+            f"{p.name}{where}: {outcome.result}, {outcome.reason}",
+        )
         (say if outcome.succeeded else warn)(line)
 
 

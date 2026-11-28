@@ -5,11 +5,16 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 
 
+def _ignore(_item: object, _result: object) -> None:
+    pass
+
+
 def each[T, R](
     items: Sequence[T],
     work: Callable[[T], R],
     *,
     jobs: int | None = None,
+    on_done: Callable[[T, R], None] = _ignore,
 ) -> list[R]:
     """
     Return *work* applied to each of *items*, in their order, running *jobs* at once.
@@ -17,9 +22,17 @@ def each[T, R](
     All of them by default: the work is almost all waiting on git, GitHub or a
     subprocess, so threads cost nothing. *work* reports its own failures in what it
     returns; an exception it raises propagates once every item has finished.
+    *on_done* is given each item and its result as soon as it finishes, in the order
+    they finish and on the worker's thread, so a caller can show progress.
     """
+
+    def done(item: T) -> R:
+        result = work(item)
+        on_done(item, result)
+        return result
+
     with ThreadPoolExecutor(max_workers=jobs or max(len(items), 1)) as pool:
-        return list(pool.map(work, items))
+        return list(pool.map(done, items))
 
 
 type Sleep = Callable[[float], None]
