@@ -6,6 +6,10 @@ then are the two tags made, on the merge commit: `iglootools--v<version>`, which
 plugin tag` creates and the plugin installs by, and the plain `v<version>`, which
 projects pin the workflows, presets and command by. Both must name the same commit, and
 the release checks that they do.
+
+Both the bump and the tags are made in temporary worktrees started from origin's
+default branch, so the checkout the release runs from is never switched: it works while
+another worktree holds the default branch, or someone works in the checkout.
 """
 
 import base64
@@ -18,7 +22,7 @@ from http import HTTPStatus
 from pathlib import Path
 
 from iglootools.common.pins import COMMON, VERSION
-from iglootools.github import events, local, merge, pulls
+from iglootools.github import events, local, merge, pulls, worktree
 from iglootools.github.client import GitHub, GitHubError, Repository, Run, capture
 
 PLUGIN_JSON = Path(".claude-plugin") / "plugin.json"
@@ -129,7 +133,7 @@ def steps(found: Plan, version: str) -> list[str]:
         Stage.BUMP: [
             (
                 f"Would create chore/release-{version} from the default branch, "
-                "up to date."
+                "up to date, in a temporary worktree."
             ),
             (
                 f"Would set {PLUGIN_JSON} to {version}, commit, push and open a "
@@ -140,8 +144,8 @@ def steps(found: Plan, version: str) -> list[str]:
         Stage.PLUGIN_TAG: [
             (
                 "Would run `claude plugin validate .` and "
-                f"`claude plugin tag --push` on the default branch, creating "
-                f"iglootools--v{version}."
+                "`claude plugin tag --push` on the default branch, in a temporary "
+                f"worktree, creating iglootools--v{version}."
             ),
         ],
         Stage.PLAIN_TAG: [
@@ -151,8 +155,10 @@ def steps(found: Plan, version: str) -> list[str]:
             ),
         ],
     }
-    return [found.reason[0].upper() + found.reason[1:] + "."] + [
-        line for stage in found.stages for line in lines[stage]
+    return [
+        found.reason[0].upper() + found.reason[1:] + ".",
+        *(line for stage in found.stages for line in lines[stage]),
+        "Would fast-forward the checkout's default branch, where that is safe.",
     ]
 
 
@@ -208,27 +214,22 @@ def release(
     sleep: Callable[[float], None],
     now: Callable[[], float],
     run: Run = capture,
+    make_dir_fn: worktree.MakeDirFn = worktree.make_temporary_dir,
 ) -> Outcome:
-    """Run *found*'s stages: bump and merge once green, then tag both ways."""
+    """
+    Run *found*'s stages: bump and merge once green, then tag both ways.
+
+    Works in temporary worktrees of the checkout at *root*, which is never switched.
+    Once the release is tagged, deletes the bump's local branch, unless a checkout has
+    it, and fast-forwards the checkout's default branch where that is safe.
+    """
     if repository != COMMON:
         raise WrongRepositoryError(repository)
     base = pulls.default_branch(github, repository)
     number: int | None = None
     if Stage.BUMP in found.stages:
-        branch = f"chore/release-{version}"
-        local.start_branch(root, base, branch, run=run)
-        plugin_json = root / PLUGIN_JSON
-        plugin_json.write_text(
-            bump(plugin_json.read_text(encoding="utf-8"), version),
-            encoding="utf-8",
-        )
-        local.commit_and_push(
-            root,
-            [str(PLUGIN_JSON)],
-            f"chore: release {version}",
-            branch,
-            run=run,
-        )
+        branch = push_bump(root, base, version, run=run, make_dir_fn=make_dir_fn)
+        report(events.Event(events.Stage.PUSHED, f"Pushed {branch}"))
         number = pulls.open_pull(
             github,
             repository,
@@ -254,14 +255,93 @@ def release(
         )
         if not merged.merged:
             return Outcome(number, released=False, reason=merged.reason)
-        local.clean_local(root, branch, base, run=run)
-    else:
-        local.sync(root, base, run=run)
-    if Stage.PLUGIN_TAG in found.stages:
-        plugin_tag(root, run=run)
-    if Stage.PLAIN_TAG in found.stages:
-        plain_tag(root, version, report=report, run=run)
-    return Outcome(number, released=True, reason=f"released {version}")
+        if worktree.checkout_of(root, branch, run=run) is None:
+            local.clean_local(root, branch, base, run=run)
+    tag_release(
+        root,
+        base,
+        version,
+        found.stages,
+        report=report,
+        run=run,
+        make_dir_fn=make_dir_fn,
+    )
+    said = worktree.fast_forward_where_safe(root, base, run=run)
+    return Outcome(number, released=True, reason=f"released {version}; {said}")
+
+
+def push_bump(
+    root: Path,
+    base: str,
+    version: str,
+    *,
+    run: Run = capture,
+    make_dir_fn: worktree.MakeDirFn = worktree.make_temporary_dir,
+) -> str:
+    """
+    Push plugin.json bumped to *version* on chore/release-<version>; return the branch.
+
+    The branch starts from origin's *base* in a temporary worktree of *root*, removed
+    once pushed. Raises GitStepError with git's message when a step fails, such as a
+    branch of that name left by an earlier run.
+    """
+    branch = f"chore/release-{version}"
+    local.git(root, "fetch", "-q", "origin", base, run=run)
+    with worktree.temporary_worktree(
+        root,
+        f"origin/{base}",
+        name="release",
+        keep_on_failure=False,
+        run=run,
+        make_dir_fn=make_dir_fn,
+    ) as work:
+        local.git(work, "switch", "-q", "-c", branch, run=run)
+        plugin_json = work / PLUGIN_JSON
+        plugin_json.write_text(
+            bump(plugin_json.read_text(encoding="utf-8"), version),
+            encoding="utf-8",
+        )
+        local.commit_and_push(
+            work,
+            [str(PLUGIN_JSON)],
+            f"chore: release {version}",
+            branch,
+            run=run,
+        )
+    return branch
+
+
+def tag_release(
+    root: Path,
+    base: str,
+    version: str,
+    stages: tuple[Stage, ...],
+    *,
+    report: events.Report,
+    run: Run = capture,
+    make_dir_fn: worktree.MakeDirFn = worktree.make_temporary_dir,
+) -> None:
+    """
+    Make the tags *stages* still lack, in a temporary worktree at origin's *base*.
+
+    `claude plugin tag` tags the commit it runs on, with the version its plugin.json
+    holds, so it runs on the merged bump; the worktree is removed afterwards.
+    """
+    if not {Stage.PLUGIN_TAG, Stage.PLAIN_TAG} & set(stages):
+        return
+    local.git(root, "fetch", "-q", "origin", base, run=run)
+    with worktree.temporary_worktree(
+        root,
+        f"origin/{base}",
+        name="release-tags",
+        keep_on_failure=False,
+        run=run,
+        make_dir_fn=make_dir_fn,
+    ) as work:
+        if Stage.PLUGIN_TAG in stages:
+            plugin_tag(work, run=run)
+        if Stage.PLAIN_TAG in stages:
+            plain_tag(work, version, report=report, run=run)
 
 
 def plugin_tag(root: Path, *, run: Run) -> None:

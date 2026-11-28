@@ -106,7 +106,12 @@ uv run --no-sync iglootools workspace adopt-common "$VERSION"
   `.claude-plugin/plugin.json`, merges it once every check has passed, then tags
   the merge commit both ways and checks the two tags name it. It plans from what
   GitHub already has, so rerunning it after an interruption finishes the
-  release, and rerunning it on a finished release changes nothing.
+  release, and rerunning it on a finished release changes nothing. It makes the
+  bump and the tags in temporary worktrees started from GitHub's default
+  branch, as `adopt-common` does, so it runs from any checkout of common, even
+  while another worktree holds `main` or someone works in the checkout. That
+  checkout is never switched; its `main` is fast-forwarded afterwards where
+  that is safe.
 - **`--latest`** adopts the newest release, in place of a version, with either
   command: `iglootools workspace adopt-common --latest`.
 - **`workspace adopt-common`** takes every iglootools project checked out in the
