@@ -46,6 +46,7 @@ and
 - [Tests](#tests)
   - [Run test suites in parallel with pytest-xdist](#run-test-suites-in-parallel-with-pytest-xdist)
   - [Enforce the patching rule](#enforce-the-patching-rule)
+  - [Run the tests apart from the repository that starts them](#run-the-tests-apart-from-the-repository-that-starts-them)
 - [Rationale](#rationale)
   - [Target the latest stable Python, unless others install the package](#target-the-latest-stable-python-unless-others-install-the-package-1)
   - [Pin the build backend explicitly](#pin-the-build-backend-explicitly-1)
@@ -635,6 +636,46 @@ and nothing reports it.
 - A patch already in place on adoption, listed as **pending** as general.md
   says, gets its `noqa` like any other, so the checks go in before the tests
   are converted.
+
+### Run the tests apart from the repository that starts them
+
+A suite whose tests or code under test run git clears git's repository
+variables before the first test, in a `pytest_configure` hook in the root
+`tests/conftest.py` ([tests/conftest.py](../../tests/conftest.py) is a working
+example):
+
+```python
+def pytest_configure() -> None:
+    """Clear the variables that point git at a repository, before any test runs."""
+    names = subprocess.run(
+        ["git", "rev-parse", "--local-env-vars"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+    for name in names & os.environ.keys():
+        del os.environ[name]
+```
+
+**Why:** `git rebase --exec` in a linked worktree, and every git hook, runs its
+command with `GIT_DIR` set to the repository being worked on. Inherited, it
+overrides `git -C` and `cwd=`, so a fixture's `git init`, `commit` or `tag`
+lands in that repository instead of `tmp_path`. In iglootools/common, a
+fixture's `git init --bare` once marked the real checkout bare, which every
+worktree's config shares.
+
+- `git rev-parse --local-env-vars` lists every variable that names a
+  repository, its index or its configuration (`GIT_DIR`, `GIT_WORK_TREE`,
+  `GIT_INDEX_FILE`, `GIT_CONFIG_PARAMETERS`, …), as the installed git knows
+  them, so the list never goes stale.
+- It is not patching: nothing is replaced for a test, and the suite simply does
+  not run inside the launcher's repository. It needs no `noqa` and no row in
+  the patch table.
+- Give it a test that runs a test using the git fixtures in a child pytest with
+  `GIT_DIR` set to a throwaway repository, and checks that repository is
+  unchanged, as
+  [tests/test_conftest.py](../../tests/test_conftest.py) does. Nothing else
+  notices the hook being dropped until the next incident.
 
 ## Rationale
 

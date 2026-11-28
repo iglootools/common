@@ -194,6 +194,11 @@ developer's machine, such as a home directory.
 - A test never touches the developer's real environment: a user-level secret
   store, config or SSH configuration. Choose a test backend once for the suite,
   or pass the path in.
+- That includes the repository the suite runs from. A suite that runs git
+  clears the variables pointing git at a repository (`GIT_DIR` and the rest)
+  before its first test: `git rebase --exec` in a worktree, and git hooks, set
+  them, and they override the directory a test runs git in. The Python setup is
+  [python-tooling.md › Run the tests apart from the repository that starts them](../project-setup/python-tooling.md#run-the-tests-apart-from-the-repository-that-starts-them).
 
 ## Code Comments
 
