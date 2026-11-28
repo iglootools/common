@@ -108,14 +108,18 @@ def clone_one(
         return CloneResult(repository.name, CloneAction.PRESENT)
     if dry_run:
         return CloneResult(repository.name, CloneAction.FETCHED)
-    result = run(["git", "fetch", "-q", "--prune", "origin"], path)
-    if result.returncode != 0:
-        return CloneResult(
-            repository.name,
-            CloneAction.FAILED,
-            f"git fetch failed: {result.stderr.strip()}",
-        )
+    problem = fetch_origin(path, run=run)
+    if problem:
+        return CloneResult(repository.name, CloneAction.FAILED, problem)
     return CloneResult(repository.name, CloneAction.FETCHED)
+
+
+def fetch_origin(path: Path, *, run: Run = capture) -> str:
+    """Fetch and prune origin in the checkout at *path*; return why it failed, or ""."""
+    result = run(["git", "fetch", "-q", "--prune", "origin"], path)
+    return (
+        "" if result.returncode == 0 else f"git fetch failed: {result.stderr.strip()}"
+    )
 
 
 def _clone(
