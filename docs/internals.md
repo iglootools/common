@@ -67,6 +67,15 @@ after `..` in each report's `Scope:` line, the head an `audit-pr` report
 audited. It does not block the command, since an audit is a judgment call rather
 than a gate, and pull requests opened outside Claude get no reminder.
 
+When Claude is about to push a branch other than the default one,
+[hooks/remind-clean-branch.sh](../hooks/remind-clean-branch.sh) asks it to read
+the branch as its reviewer will and fold any rework first, as
+[git.md](../guidelines/coding/git.md#rebase-and-clean-up-before-asking-for-review)
+says. That pass is easiest to skip when adding commits to a pull request
+already open, since nothing else marks the moment. Common wires the same script
+in its own `.claude/settings.json`, as it does not load its own plugin; that
+file holds this hook and nothing else.
+
 ## Auditing consistency across the projects
 
 The `audit-consistency-*` skills, run as

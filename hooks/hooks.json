@@ -1,5 +1,5 @@
 {
-  "description": "Loads the iglootools guideline indexes into every session, and reminds the user to run /iglootools:audit-pr before a pull request is opened, marked ready or merged.",
+  "description": "Loads the iglootools guideline indexes into every session, reminds the user to run /iglootools:audit-pr before a pull request is opened, marked ready or merged, and reminds Claude to clean up a branch's history before pushing it.",
   "hooks": {
     "SessionStart": [
       {
@@ -30,6 +30,11 @@
             "type": "command",
             "if": "Bash(gh pr merge*)",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/remind-audit-pr.sh\""
+          },
+          {
+            "type": "command",
+            "if": "Bash(git push*)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/remind-clean-branch.sh\""
           }
         ]
       }
