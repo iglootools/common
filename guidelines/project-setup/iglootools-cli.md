@@ -46,7 +46,7 @@ script in the project.
 | `iglootools common check-indexes` | failing when a shared guideline is missing from its directory's index (in common only) |
 | `iglootools common check-pins` | failing when the pins on common disagree, or `adopt` would miss one |
 | `iglootools workspace clone` | cloning every repository of the organization the workspace lacks, and fetching the rest |
-| `iglootools workspace sync` | `clone`, then each checkout on an up-to-date default branch, merged branches deleted, the Claude Code plugins its project enables installed and current; reports what is left |
+| `iglootools workspace sync` | the workspace's own `iglootools` on common's newest release, `clone`, then each checkout on an up-to-date default branch, merged branches deleted, the Claude Code plugins its project enables installed and current; reports what is left |
 | `iglootools workspace status` | a table of every repository: its branch, uncommitted changes, standing against origin, branches, worktrees and open pull requests |
 | `iglootools workspace run <task>` | running one mise task in every project at once, each logged, with a pass/fail summary |
 | `iglootools workspace renovate` | the open Renovate pull requests across the organization, with what merge-when-green would do; `--merge` merges the ones it would not refuse |

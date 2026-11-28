@@ -45,8 +45,35 @@ export IGLOOTOOLS_WORKSPACE=~/Workspace/iglootools
 A variable that names no directory is an error, not a reason to fall back on the
 marker directory. With neither, adopt-all stops and prints the commands, with
 the directory above common's checkout filled in. Every `iglootools workspace`
-command finds it the same way; `iglootools workspace clone` then fills it with
-every repository of the organization.
+command finds it the same way.
+
+Then run `iglootools workspace sync`, the first time from common's checkout:
+
+```bash
+cd ~/Workspace/iglootools/common
+uv run --no-sync iglootools workspace sync
+```
+
+It clones every repository of the organization into the workspace, and sets
+the workspace itself up as a project without Python of its own is: a
+`pyproject.toml` pinning the `iglootools` command to common's newest release, a
+`mise.toml` with the tools and uv settings common's own `mise.toml` has at that
+release, and the `uv.lock` and `.venv` that install it. From
+then on the command runs from anywhere in the workspace, as in every project:
+
+```bash
+cd ~/Workspace/iglootools
+iglootools workspace status
+```
+
+Inside a project, `iglootools` is still that project's own: mise sources the
+`.venv` of the nearest uv project.
+
+`iglootools workspace sync` maintains these four: each run brings them to the
+newest release, rewriting `mise.toml` and `pyproject.toml` whenever it differs,
+so they are always on the recommended version. Do not edit them; a change
+belongs in common. mise applies the `mise.toml` in every project below it as
+well, so it holds only what each project sets the same way.
 
 Every workspace command starts from the organization's list of repositories,
 which rarely changes. The commands keep that list in

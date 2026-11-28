@@ -20,6 +20,7 @@ it is in [installation.md](installation.md), and running the audits in
 - [The workspace commands](#the-workspace-commands)
   - [Why sync leaves some checkouts where they are](#why-sync-leaves-some-checkouts-where-they-are)
   - [Why sync installs plugins, not only updates them](#why-sync-installs-plugins-not-only-updates-them)
+  - [Why the workspace is set up as a project](#why-the-workspace-is-set-up-as-a-project)
   - [Why run cleans the environment it starts tasks in](#why-run-cleans-the-environment-it-starts-tasks-in)
 <!-- tocstop -->
 
@@ -289,6 +290,31 @@ whether a plugin is enabled for the directory it is asked in: a plugin
 installed but turned off there, as a personal `.claude/settings.local.json`
 can, is reported. A session already open in the project loads the change after
 a restart or `/reload-plugins`.
+
+### Why the workspace is set up as a project
+
+The workspace runs `iglootools` the way every project does, through uv from a
+`pyproject.toml` and its `uv.lock`, rather than as a tool installed by `uvx` or
+mise's `pipx:` backend, which would resolve the command's dependencies again on
+each machine
+([iglootools-cli.md](../guidelines/project-setup/iglootools-cli.md#install-it-as-a-dev-dependency-pinned-to-a-release)).
+Sync reads everything from common's newest release, so the workspace follows
+the releases with nothing to bump by hand. Its `mise.toml` is not a template:
+it holds the entries of common's own `mise.toml` at the release that
+`INHERITED`, in `iglootools.workspace.toolchain`, names, with their values, so
+a change to the guidelines reaches the workspace through common's file, which
+follows them. A test fails when an entry on that list disappears from common's
+`mise.toml`.
+
+The list is the decision. mise reads every configuration from the current
+directory up, so the workspace's `mise.toml` applies in every project as well,
+and the list holds only what each project sets the same way: the tools, the uv
+variables, sourcing the uv environment and `[deps.uv]`. mise sources and
+installs the environment of the nearest uv project, so inside a project
+`iglootools` is that project's own, and a `mise run` there installs nothing for
+the workspace. A task or a project's own setting would show in every project,
+so neither is on it. Each project's `mise.lock` still lists only its own
+tools.
 
 ### Why run cleans the environment it starts tasks in
 

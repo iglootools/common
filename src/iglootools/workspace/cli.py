@@ -44,6 +44,7 @@ from iglootools.workspace import (
     run,
     status,
     sync,
+    toolchain,
 )
 from iglootools.workspace.location import cache_dir
 from iglootools.workspace.repositories import (
@@ -233,6 +234,7 @@ def sync_cmd(
     worktrees, and every problem; fails if there was any problem.
     """
     session = _session(ctx, cache_ttl=cache_ttl, refresh=refresh)
+    setup = _set_up_workspace(session, dry_run=dry_run)
     cloned = clone_all(
         session.workspace,
         session.repositories,
@@ -264,9 +266,35 @@ def sync_cmd(
             dry_run=dry_run,
         )
     )
-    ok = print_sync(cloned, synced, plugin_sync, dry_run=dry_run)
+    ok = print_sync(setup, cloned, synced, plugin_sync, dry_run=dry_run)
     if not ok:
         raise typer.Exit(1)
+
+
+def _set_up_workspace(session: _Session, *, dry_run: bool) -> toolchain.SetupResult:
+    """Keep the workspace's own iglootools on common's newest release."""
+    try:
+        found = toolchain.recommended(session.github)
+    except GitHubError as error:
+        return toolchain.SetupResult(problems=[error.detail])
+    except toolchain.ToolchainError as error:
+        return toolchain.SetupResult(problems=[_describe_toolchain_error(error)])
+    return toolchain.set_up(
+        session.workspace,
+        found,
+        dry_run=dry_run,
+        run=run.captured(run.child_environment(os.environ)),
+    )
+
+
+def _describe_toolchain_error(error: toolchain.ToolchainError) -> str:
+    match error.kind:
+        case toolchain.ToolchainErrorKind.NO_RELEASE:
+            return "iglootools/common has no release for the workspace to use"
+        case toolchain.ToolchainErrorKind.NO_FILE:
+            return f"iglootools/common {error.tag} has no {', '.join(error.missing)}"
+        case toolchain.ToolchainErrorKind.MISSING_PIN:
+            return f"iglootools/common {error.tag} lacks {', '.join(error.missing)}"
 
 
 def bring_plugins_up_to_date(
@@ -299,6 +327,7 @@ def bring_plugins_up_to_date(
 
 
 def print_sync(
+    setup: toolchain.SetupResult,
     cloned: Sequence[clone.CloneResult],
     synced: Sequence[sync.SyncResult],
     plugin_sync: plugins.PluginSync,
@@ -307,6 +336,12 @@ def print_sync(
 ) -> bool:
     """Print each repository's block, then a summary; tell whether nothing failed."""
     label = "[dry-run] " if dry_run else ""
+    if setup.done or setup.problems:
+        say(f"{label}workspace:")
+        for line in setup.done:
+            say(f"  {line}")
+        for problem in setup.problems:
+            warn(f"  ! {problem}")
     clone_problems = [f"{r.name}: {r.problem}" for r in cloned if r.problem]
     for result in cloned:
         if result.action == clone.CloneAction.CLONED:
@@ -330,6 +365,7 @@ def print_sync(
         for problem in problems:
             warn(f"  ! {problem}")
     everything = [
+        *setup.problems,
         *clone_problems,
         *plugin_sync.problems,
         *(problem for _, _, problems in blocks for problem in problems),

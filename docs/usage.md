@@ -120,6 +120,9 @@ uv run --no-sync iglootools workspace renovate --merge
 ```
 
 - **`status`** changes nothing but fetched refs. Start there.
+- **`sync`** also keeps the workspace's own `iglootools` on common's newest
+  release, which is what the commands above run with
+  ([setup](setup-development-environment.md#the-iglootools-workspace)).
 - **`sync`** leaves alone what holds someone's work: a checkout with
   uncommitted changes, one on a branch that has not merged (`--force` switches
   it), and a branch with commits its default branch lacks. It names each, with

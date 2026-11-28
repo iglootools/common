@@ -19,6 +19,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from iglootools.build import tasks
+from iglootools.github.client import Run
 from iglootools.workspace import clone
 from iglootools.workspace.repositories import OrganizationRepository
 
@@ -76,6 +77,25 @@ def child_environment(environ: Mapping[str, str]) -> dict[str, str]:
         },
         "PATH": path,
     }
+
+
+def captured(environ: Mapping[str, str]) -> Run:
+    """Return a runner that captures a command's output, in *environ*."""
+
+    def run(
+        command: Sequence[str],
+        directory: Path,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            command,
+            cwd=directory,
+            capture_output=True,
+            text=True,
+            env=dict(environ),
+            check=False,
+        )
+
+    return run
 
 
 def logged(environ: Mapping[str, str]) -> RunLogged:
