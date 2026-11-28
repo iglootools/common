@@ -197,10 +197,14 @@ Nothing is guessed, not even common's parent directory: a run that picked the
 wrong directory would adopt in the wrong checkouts, or report every project
 missing. It takes every git checkout there whose `origin` is a repository of the
 iglootools organization and that pins common, narrowed by `--only` and
-`--exclude`, and passes over the rest with the reason. A repository of the
-organization whose `renovate.json` mentions common, found through GitHub's code
-search, but which has no checkout in the workspace, fails the run: a project
-nobody cloned would otherwise be silently left on the old release.
+`--exclude`, and passes over the rest with the reason. It then lists every
+repository of the organization and reads the `renovate.json` on the default
+branch of each one with no checkout in the workspace. One that extends a preset
+from common, as every project that adopts common does, fails the run: a project
+nobody cloned would otherwise be silently left on the old release. One that does
+not, or has no `renovate.json`, is skipped with a warning, so a project meant to
+pin common but missing the preset is seen; an archived one is skipped unread,
+since it cannot take a pull request.
 
 Before changing any project it checks that each one's `origin` is reachable
 with git and ssh unable to prompt. One problem anywhere stops the run while

@@ -19,22 +19,19 @@ from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import quote
 
 from iglootools.common import adopt, pins
-from iglootools.github import local
+from iglootools.github import contents, local
 from iglootools.github.client import (
     GitHub,
     GitHubError,
     Repository,
     Run,
     capture,
-    origin_repository,
 )
 from iglootools.github.events import Event, Report
-from iglootools.workspace import parallel
-
-ORGANIZATION = "iglootools"
+from iglootools.workspace import clone, parallel
+from iglootools.workspace.repositories import ORGANIZATION, OrganizationRepository
 
 
 @dataclass(frozen=True)
@@ -54,37 +51,63 @@ class Skipped:
     reason: str
 
 
+@dataclass(frozen=True)
+class Discovery:
+    """
+    What the workspace holds of the organization.
+
+    The projects that pin common, the repositories passed over with why, and the ones
+    with no checkout there, whose pins are read on GitHub instead.
+    """
+
+    projects: list[Project]
+    skipped: list[Skipped]
+    not_checked_out: list[OrganizationRepository]
+
+
 def discover(
     workspace: Path,
+    repositories: Sequence[OrganizationRepository],
     *,
     run: Run = capture,
-) -> tuple[list[Project], list[Skipped]]:
+) -> Discovery:
     """
-    Find the iglootools projects checked out in *workspace* that pin common.
+    Sort the organization's *repositories*, common aside, by what the workspace holds.
 
-    Also return the directories passed over, with why.
+    Each is looked for where `workspace clone` puts it, `<workspace>/<name>`. An
+    archived one is passed over, as is a checkout whose origin is another repository.
     """
-    projects: list[Project] = []
-    skipped: list[Skipped] = []
-    for directory in sorted(
-        path for path in workspace.iterdir() if (path / ".git").exists()
-    ):
-        try:
-            repository = origin_repository(directory, run=run)
-        except GitHubError:
-            skipped.append(Skipped(directory.name, "origin is not a GitHub repository"))
-            continue
-        if repository == pins.COMMON:
-            continue
-        if repository.owner != ORGANIZATION:
-            skipped.append(Skipped(directory.name, f"belongs to {repository.owner}"))
-            continue
-        found, _ = pins.scan(directory, run=run)
-        if not found:
-            skipped.append(Skipped(directory.name, "pins nothing on common"))
-            continue
-        projects.append(Project(directory.name, directory, repository))
-    return projects, skipped
+    found = [
+        (repository, _classify(workspace, repository, run=run))
+        for repository in repositories
+        if repository.name != pins.COMMON.name
+    ]
+    return Discovery(
+        projects=[kind for _, kind in found if isinstance(kind, Project)],
+        skipped=[kind for _, kind in found if isinstance(kind, Skipped)],
+        not_checked_out=[repository for repository, kind in found if kind is None],
+    )
+
+
+def _classify(
+    workspace: Path,
+    repository: OrganizationRepository,
+    *,
+    run: Run,
+) -> Project | Skipped | None:
+    """Return the project, why it is passed over, or None when it is not checked out."""
+    path = clone.checkout_path(workspace, repository)
+    if repository.archived:
+        return Skipped(repository.name, "archived")
+    if not clone.is_checkout(path):
+        return None
+    mismatch = clone.origin_mismatch(path, repository, run=run)
+    if mismatch:
+        return Skipped(repository.name, mismatch)
+    pinned, _ = pins.scan(path, run=run)
+    if not pinned:
+        return Skipped(repository.name, "pins nothing on common")
+    return Project(repository.name, path, repository.repository)
 
 
 class SelectionError(ValueError):
@@ -121,21 +144,56 @@ def select(
     return selected, left_out
 
 
-def missing_checkouts(
-    github: GitHub,
-    checked_out: set[str],
-    excluded: set[str],
-) -> list[str]:
-    """
-    List the organization's repositories that pin common but have no checkout here.
+RENOVATE_CONFIG = "renovate.json"
 
-    Searches renovate.json files, since every project that adopts common extends its
-    Renovate presets; the search indexes each repository's default branch.
+
+@dataclass(frozen=True)
+class Unchecked:
+    """The organization's repositories with no checkout here, sorted by what to do."""
+
+    missing: list[str]
+    """Those that pin common, which the run cannot leave out."""
+    passed_over: list[Skipped]
+    """Those that do not, with why."""
+
+
+def find_unchecked(
+    github: GitHub,
+    repositories: Sequence[OrganizationRepository],
+) -> Unchecked:
     """
-    query = quote(f'"iglootools/common" org:{ORGANIZATION} filename:renovate.json')
-    found = github.get(f"/search/code?q={query}&per_page=100")
-    names = {item["repository"]["name"] for item in found.get("items", [])}
-    return sorted(names - checked_out - excluded - {pins.COMMON.name})
+    Sort *repositories*, which have no checkout here, by whether they pin common.
+
+    A repository pins common when the renovate.json on its default branch extends a
+    preset from common, as every project that adopts common does. Raises GitHubError
+    when GitHub cannot be asked.
+    """
+    pinning = {
+        repository.name: extends_common(_renovate_config(github, repository.name))
+        for repository in repositories
+    }
+    return Unchecked(
+        missing=[name for name, pins_common in pinning.items() if pins_common],
+        passed_over=[
+            Skipped(
+                name,
+                f"not checked out, and its {RENOVATE_CONFIG} does not extend "
+                f"{pins.COMMON.slug}",
+            )
+            for name, pins_common in pinning.items()
+            if not pins_common
+        ],
+    )
+
+
+def extends_common(config: str | None) -> bool:
+    """Tell whether a Renovate config, None when there is none, names common."""
+    return config is not None and pins.COMMON.slug in config
+
+
+def _renovate_config(github: GitHub, name: str) -> str | None:
+    """Return the renovate.json on *name*'s default branch, None when it has none."""
+    return contents.read_text(github, Repository(ORGANIZATION, name), RENOVATE_CONFIG)
 
 
 def problems(project: Project, *, run: Run = capture) -> list[str]:

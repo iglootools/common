@@ -101,7 +101,7 @@ def clone_one(
             CloneAction.FAILED,
             f"{path} exists but is not a git checkout",
         )
-    mismatch = _origin_mismatch(path, repository, run=run)
+    mismatch = origin_mismatch(path, repository, run=run)
     if mismatch:
         return CloneResult(repository.name, CloneAction.FAILED, mismatch)
     if not fetch:
@@ -141,7 +141,7 @@ def _clone(
     return CloneResult(repository.name, CloneAction.CLONED)
 
 
-def _origin_mismatch(
+def origin_mismatch(
     path: Path,
     repository: OrganizationRepository,
     *,

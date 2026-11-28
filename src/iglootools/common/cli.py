@@ -33,6 +33,7 @@ from iglootools.github.client import GitHub, GitHubError
 from iglootools.github.events import Event, Report
 from iglootools.github.local import GitStepError
 from iglootools.preflight import requirements
+from iglootools.workspace.repositories import list_repositories
 
 app = typer.Typer(
     help="Maintain a project's link to iglootools/common.",
@@ -399,12 +400,15 @@ def adopt_all(
     workspace = resolve_workspace_or_exit(root)
     try:
         sha = pins.tag_commit(github, version)
-        projects, skipped = everywhere.discover(workspace)
-        selected, left_out = everywhere.select(projects, only or [], exclude or [])
-        missing = everywhere.missing_checkouts(
+        found = everywhere.discover(workspace, list_repositories(github))
+        selected, left_out = everywhere.select(
+            found.projects,
+            only or [],
+            exclude or [],
+        )
+        unchecked = everywhere.find_unchecked(
             github,
-            {p.name for p in projects},
-            set(exclude or []),
+            [r for r in found.not_checked_out if r.name not in (exclude or [])],
         )
     except everywhere.SelectionError as error:
         warn(f"{error}.")
@@ -412,9 +416,8 @@ def adopt_all(
     except GitHubError as error:
         warn(f"{error.detail}")
         raise typer.Exit(1) from None
-    for item in [*skipped, *left_out]:
-        say(f"Skipping {item.name}: {item.reason}.")
-    _stop_if_blocked(_blockers(workspace, missing, selected))
+    _report_skips([*found.skipped, *left_out], unchecked.passed_over)
+    _stop_if_blocked(_blockers(workspace, unchecked.missing, selected))
     if not selected:
         say("No project to adopt.")
         return
@@ -451,6 +454,22 @@ def _require_common_checkout_or_exit(ctx: typer.Context) -> GitHub:
         )
         raise typer.Exit(2)
     return github
+
+
+def _report_skips(
+    local: Sequence[everywhere.Skipped],
+    remote: Sequence[everywhere.Skipped],
+) -> None:
+    """
+    Say which checkouts are passed over, and warn of each repository not checked out.
+
+    A repository with no checkout is warned of, so that one meant to pin common but
+    missing the preset is seen rather than silently left on its old release.
+    """
+    for item in local:
+        say(f"Skipping {item.name}: {item.reason}.")
+    for item in remote:
+        warn(f"Skipping {item.name}: {item.reason}.")
 
 
 def _stop_if_blocked(blocked: list[str]) -> None:
