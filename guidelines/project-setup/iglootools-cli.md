@@ -42,7 +42,7 @@ script in the project.
 | `iglootools github link-report` | keeping one issue open for a lychee report's broken links (the shared link checker) |
 | `iglootools repo run [<task>]` | running one of the project's mise tasks (`preflight`, `lint-*`, `test*`, `fmt`, `ci-*`, …) through `mise run`; with no task, listing them by family; `--fix` runs `fmt` before the task (`iglootools repo run --fix preflight`) |
 | `iglootools repo sync` / `status` / `renovate` | `workspace sync`, `status` and `renovate` (below) for the repository checked out at `--root` alone, with the same options |
-| `iglootools repo adopt-common <version>` | moving every pin on iglootools/common to a release (`--latest` for the newest), through a pull request merged once green, in a temporary worktree that leaves the checkout as it is (`--in-place` to work in the checkout) |
+| `iglootools repo adopt-common <version>` | moving every pin on iglootools/common to a release (`--latest` for the newest), through a pull request merged once green, in a temporary worktree that leaves the checkout as it is (`--no-merge` to finish the branch by hand) |
 | `iglootools repo lint-common-pins` | failing when the pins on common disagree, or `adopt` would miss one |
 | `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
 | `iglootools common check-indexes` | failing when a shared guideline is missing from its directory's index (in common only) |

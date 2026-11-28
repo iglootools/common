@@ -133,21 +133,19 @@ def _project(tmp_path: Path, version: str = "1.33.0") -> Path:
     return tmp_path
 
 
-IN_PLACE = adopt.Workplace(in_place=True)
-
-
 def _adopt(
     root: Path,
     github: FakeGitHub,
     tools: FakeTools,
     events: list[Event],
     *,
-    workplace: adopt.Workplace = IN_PLACE,
+    workplace: adopt.Workplace = adopt.IN_WORKTREE,
     worktree_dir: Path | None = None,
 ) -> adopt.Outcome:
     def make_dir(_prefix: str) -> Path:
-        assert worktree_dir is not None, "an in-place adopt made a worktree"
-        return worktree_dir
+        # The fake git adds no files: unless the test separates them, the project
+        # directory stands in for the worktree too.
+        return worktree_dir or root
 
     return adopt.adopt(
         root,
@@ -230,12 +228,6 @@ def test_a_project_already_on_a_newer_release_is_not_moved_back(tmp_path: Path) 
     assert not [c for c in tools.commands if c[:2] == ["git", "push"]]
 
 
-def test_untracked_files_stop_it_before_anything_changes(tmp_path: Path) -> None:
-    with pytest.raises(GitStepError) as raised:
-        _adopt(_project(tmp_path), FakeGitHub(), FakeTools(status="?? notes.txt\n"), [])
-    assert raised.value.kind == GitStepFailureKind.UNCLEAN_CHECKOUT
-
-
 def test_a_checkout_switched_away_mid_run_is_neither_committed_nor_pushed(
     tmp_path: Path,
 ) -> None:
@@ -253,7 +245,7 @@ def test_a_checkout_switched_away_mid_run_is_neither_committed_nor_pushed(
 
 
 class TestInWorktree:
-    """The default: the work happens in a worktree, and the checkout is left alone."""
+    """The work happens in a worktree, and the checkout is left alone."""
 
     def _checkout_and_worktree(self, tmp_path: Path) -> tuple[Path, Path]:
         # The fake git adds no files, so the worktree directory starts as a copy.
@@ -378,14 +370,6 @@ class TestInWorktree:
             adopt.Workplace(keep_worktree=True, skip_fast_forward=True),
             ["Would remove the worktree, or keep it if a step fails."],
             ["Would fast-forward the checkout's default branch, where that is safe."],
-        ),
-        (
-            IN_PLACE,
-            [f"Would create {BRANCH} from the default branch, up to date."],
-            [
-                "Would remove the worktree.",
-                "Would fast-forward the checkout's default branch, where that is safe.",
-            ],
         ),
     ],
 )

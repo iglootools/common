@@ -99,17 +99,16 @@ def commit_message(version: str) -> str:
 @dataclass(frozen=True)
 class Workplace:
     """
-    Where adopt does its work, and what it leaves the project's checkout on.
+    What adopt leaves behind it, in its worktree and the project's checkout.
 
-    By default it works in a temporary worktree, so the checkout is never switched and
+    Adopt always works in a temporary worktree, so the checkout is never switched and
     another session can go on working there, then fast-forwards the checkout's default
-    branch once the pull request merges, where that is safe.
-    *in_place* works in the checkout itself, for someone who means to finish the
-    branch by hand. *keep_worktree* keeps the worktree when a step in it fails, to
-    inspect; *skip_fast_forward* leaves the default branch where it is.
+    branch once the pull request merges, where that is safe. To finish the branch by
+    hand, adopt with merge_it off and check the branch out in any worktree.
+    *keep_worktree* keeps the worktree when a step in it fails, to inspect;
+    *skip_fast_forward* leaves the default branch where it is.
     """
 
-    in_place: bool = False
     keep_worktree: bool = False
     skip_fast_forward: bool = False
 
@@ -169,7 +168,7 @@ def preview(
     plugin = [PLUGIN_STEP] if update_plugin else []
     fast_forward = (
         []
-        if workplace.in_place or workplace.skip_fast_forward
+        if workplace.skip_fast_forward
         else ["Would fast-forward the checkout's default branch, where that is safe."]
     )
     finish = (
@@ -210,24 +209,18 @@ def preview(
             f"Would continue from {branch} on GitHub, which an earlier run pushed"
         ),
     }[start]
-    where = "." if workplace.in_place else ", in a temporary worktree."
-    removal = (
-        []
-        if workplace.in_place
-        else [
-            "Would remove the worktree"
-            + (", or keep it if a step fails." if workplace.keep_worktree else "."),
-        ]
+    removal = "Would remove the worktree" + (
+        ", or keep it if a step fails." if workplace.keep_worktree else "."
     )
     return [
-        opening + where,
+        opening + ", in a temporary worktree.",
         *moves,
         *(["Would regenerate uv.lock."] if (root / "uv.lock").is_file() else []),
         (
             "Would commit what still differs, and push: "
             f"chore: move to iglootools {found.version}."
         ),
-        *removal,
+        removal,
         "Would open a pull request into the default branch.",
         *finish,
     ]
@@ -263,8 +256,6 @@ def adopt(
     raised in the worktree carries a note saying where it was kept.
     """
     branch = branch_name(version)
-    if workplace.in_place:
-        local.require_clean(root, run=run)
     state, number = prune.latest_pull(github, repository, branch)
     base = pulls.default_branch(github, repository)
     match state:
@@ -295,20 +286,16 @@ def adopt(
         case prune.PullState.OPEN | prune.PullState.NONE:
             pass  # nothing to resume: open one below
     change = _Change(version, sha, branch, report, push_guard or nullcontext())
-    if workplace.in_place:
-        local.sync(root, base, run=run)
-        stopped = _push_change(root, change, run=run)
-    else:
-        local.git(root, "fetch", "-q", "origin", base, run=run)
-        with worktree.temporary_worktree(
-            root,
-            f"origin/{base}",
-            name=f"adopt-{repository.name}",
-            keep_on_failure=workplace.keep_worktree,
-            run=run,
-            make_dir_fn=make_dir_fn,
-        ) as work:
-            stopped = _push_change(work, change, run=run)
+    local.git(root, "fetch", "-q", "origin", base, run=run)
+    with worktree.temporary_worktree(
+        root,
+        f"origin/{base}",
+        name=f"adopt-{repository.name}",
+        keep_on_failure=workplace.keep_worktree,
+        run=run,
+        make_dir_fn=make_dir_fn,
+    ) as work:
+        stopped = _push_change(work, change, run=run)
     if stopped is not None:
         return stopped
     number = pulls.open_pull(
@@ -486,19 +473,15 @@ def tidy_after_merge(
     """
     Tidy the checkout at *root* once the pull request merged; say what became of *base*.
 
-    Deletes the local *branch* when GitHub's copy was deleted. In place, that returns
-    the checkout to an up-to-date *base*, and nothing more is said. Out of place, a
-    checkout someone switched to *branch* keeps it, since cleaning up would switch
-    that checkout, and *base* is fast-forwarded where safe unless
-    *skip_fast_forward*. Returns the sentence saying what happened to *base*, or ""
-    when nothing was tried.
+    Deletes the local *branch* when GitHub's copy was deleted, unless a checkout someone
+    switched to *branch* keeps it, since cleaning up would switch that checkout; *base*
+    is fast-forwarded where safe unless *skip_fast_forward*. Returns the sentence
+    saying what happened to *base*, or "" when nothing was tried.
     """
-    kept_by = (
-        None if workplace.in_place else worktree.checkout_of(root, branch, run=run)
-    )
+    kept_by = worktree.checkout_of(root, branch, run=run)
     if branch_deleted and kept_by is None:
         local.clean_local(root, branch, base, run=run)
-    if workplace.in_place or workplace.skip_fast_forward:
+    if workplace.skip_fast_forward:
         return ""
     return _fast_forward(root, base, run=run)
 
