@@ -2,7 +2,10 @@
 
 import dataclasses
 import json
+import os
+import shlex
 import shutil
+import tempfile
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -14,6 +17,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from iglootools.build import tasks
 from iglootools.cliwiring import (
     FILE_OPTION,
     OUTPUT_OPTION,
@@ -29,7 +33,7 @@ from iglootools.common.plugin import PluginError
 from iglootools.github.cli import github_client
 from iglootools.github.client import GitHub, GitHubError
 from iglootools.preflight import requirements
-from iglootools.workspace import clone, parallel, plugins, status, sync
+from iglootools.workspace import clone, parallel, plugins, run, status, sync
 from iglootools.workspace.location import cache_dir
 from iglootools.workspace.repositories import (
     DEFAULT_MAX_AGE,
@@ -446,6 +450,95 @@ def _status_cells(row: status.RepositoryStatus) -> list[str]:
         str(row.worktrees) if row.worktrees else "",
         pulls,
     ]
+
+
+@app.command(
+    "run",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def run_cmd(
+    ctx: typer.Context,
+    task: Annotated[str, typer.Argument(help="The mise task to run in each project.")],
+    *,
+    cache_ttl: Annotated[str, CACHE_TTL_OPTION] = DEFAULT_MAX_AGE,
+    refresh: Annotated[bool, REFRESH_OPTION] = False,
+    jobs: Annotated[
+        int,
+        typer.Option(
+            "--jobs",
+            "-j",
+            min=0,
+            help="How many projects run at once; 0, the default, runs them all.",
+        ),
+    ] = 0,
+    dry_run: Annotated[bool, DRY_RUN_OPTION] = False,
+) -> None:
+    """
+    Run one mise task in every project of the workspace, and say where it passed.
+
+    Arguments after the task go to it, as `iglootools build` passes them. Each
+    project's output goes to a log file, named at the end; a failure shows the end of
+    its log. A repository that is not cloned, or has no such task, is skipped. The task
+    runs in the project's own environment, not common's. Fails if it failed anywhere.
+    """
+    session = _session(ctx, cache_ttl=cache_ttl, refresh=refresh)
+    if dry_run:
+        _preview_run(session, task, ctx.args)
+        return
+    log_dir = Path(tempfile.mkdtemp(prefix="iglootools-run-"))
+    runner = run.logged(run.child_environment(os.environ))
+    say(f"Running {shlex.join(tasks.mise_command(task, ctx.args))} in each project")
+    results = parallel.each(
+        session.repositories,
+        lambda repository: run.run_in(
+            session.workspace,
+            repository,
+            task,
+            ctx.args,
+            log_dir,
+            run=runner,
+        ),
+        jobs=jobs or None,
+    )
+    if not _print_runs(results, log_dir):
+        raise typer.Exit(1)
+
+
+def _preview_run(session: _Session, task: str, args: Sequence[str]) -> None:
+    command = shlex.join(tasks.mise_command(task, args))
+    for repository in session.repositories:
+        path = clone.checkout_path(session.workspace, repository)
+        if not clone.is_checkout(path):
+            say(f"[dry-run] {repository.name}: not cloned, skipped")
+            continue
+        try:
+            has_task = task in {found.name for found in tasks.list_tasks(path)}
+        except tasks.TaskListError as error:
+            warn(f"[dry-run] {repository.name}: mise: {error}")
+            continue
+        say(
+            f"[dry-run] {repository.name}: would run {command}"
+            if has_task
+            else f"[dry-run] {repository.name}: has no task {task!r}, skipped",
+        )
+
+
+def _print_runs(results: Sequence[run.TaskRun], log_dir: Path) -> bool:
+    """Print each project's outcome and the logs' directory; tell if all passed."""
+    for result in results:
+        match result.outcome:
+            case run.RunOutcome.PASSED:
+                say(f"{result.name}: passed in {result.seconds:.0f}s")
+            case run.RunOutcome.SKIPPED:
+                say(f"{result.name}: skipped, {result.detail}")
+            case run.RunOutcome.FAILED:
+                warn(f"{result.name}: failed, {result.detail}")
+                for line in result.tail:
+                    warn(f"  | {line}")
+    failed = [r.name for r in results if r.outcome == run.RunOutcome.FAILED]
+    passed = sum(1 for r in results if r.outcome == run.RunOutcome.PASSED)
+    say(f"{passed} passed, {len(failed)} failed. Logs: {log_dir}")
+    return not failed
 
 
 def clone_all(
