@@ -185,25 +185,56 @@ def prune_branches(
     try:
         default_branch, branches = prune.gather(github, repository, locals_)
         decisions = prune.plan(branches, default_branch)
+        # With --repo naming another repository, the checkout here is not its own.
+        current = (
+            _leave_doomed_branch(root, decisions, default_branch, dry_run=dry_run)
+            if on_origin
+            else ""
+        )
         for decision in decisions:
-            name = decision.branch.name
             if not decision.delete:
-                say(f"Keep {name}: {decision.reason}.")
+                say(f"Keep {decision.branch.name}: {decision.reason}.")
                 continue
-            if dry_run:
-                say(f"[dry-run] Would delete {name}: {decision.reason}.")
-                continue
-            if decision.branch.on_remote:
-                prune.delete_remote(github, repository, name)
-            if decision.branch.local:
-                cleanup = local.clean_local(root, name, default_branch)
-                if cleanup.problem:
-                    warn(f"Kept the local {name}: {cleanup.problem}")
-                    continue
-            say(f"Deleted {name}: {decision.reason}.")
+            pruned = prune.delete_merged(
+                github,
+                repository,
+                decision,
+                root if on_origin else None,
+                current=current,
+                dry_run=dry_run,
+            )
+            label = "[dry-run] " if dry_run else ""
+            for line in pruned.done:
+                say(f"{label}{line[0].upper()}{line[1:]}.")
+            for problem in pruned.problems:
+                warn(f"{problem[0].upper()}{problem[1:]}")
     except GitHubError as error:
         warn(f"{repository.slug}: {error.detail}")
         raise typer.Exit(1) from None
+
+
+def _leave_doomed_branch(
+    root: Path,
+    decisions: list[prune.Decision],
+    default_branch: str,
+    *,
+    dry_run: bool,
+) -> str:
+    """
+    Switch a clean checkout off a branch about to be deleted; return its branch.
+
+    The checkout moves to an up-to-date default branch, so the merged branch it was on
+    can go too. One with changes stays, and its branch with it.
+    """
+    current = local.git(root, "branch", "--show-current").strip()
+    doomed = {decision.branch.name for decision in decisions if decision.delete}
+    if current not in doomed or local.git(root, "status", "--porcelain").strip():
+        return current
+    if dry_run:
+        say(f"[dry-run] Would switch from {current} to {default_branch}.")
+    else:
+        local.sync(root, default_branch)
+    return default_branch
 
 
 GITHUB_OUTPUT_OPTION = typer.Option(
