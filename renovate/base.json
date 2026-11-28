@@ -57,6 +57,12 @@
       "enabled": false
     },
     {
+      "description": "Renovate's mise manager looks jactionlint up as jdx/jactionlint's GitHub releases, tagged vX.Y.Z, but gives it no extractVersion as it does shellcheck, so without this it would write `jactionlint = \"v2.7.0\"` into mise.toml instead of the bare version every other pin uses.",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["jactionlint"],
+      "extractVersion": "^v(?<version>.+)$"
+    },
+    {
       "description": "No minimumReleaseAge for iglootools' own repositories: the hold guards against other people's releases, not ours.",
       "matchPackageNames": [
         "/^(https://github\\.com/)?iglootools//",
