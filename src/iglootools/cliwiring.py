@@ -2,7 +2,9 @@
 
 import os
 import shlex
-from collections.abc import Callable, Sequence
+import threading
+from collections.abc import Callable, Generator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -10,6 +12,14 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+)
+from rich.text import Text
 
 from iglootools.preflight import requirements
 from iglootools.project import Project, ProjectError, ProjectErrorKind, load_project
@@ -87,9 +97,9 @@ def display_path(path: Path, root: Path) -> str:
     return str(path.relative_to(root)) if path.is_relative_to(root) else str(path)
 
 
-def say(text: str) -> None:
+def say(text: str | Text) -> None:
     """
-    Print plain text as is.
+    Print plain text, or styled Text, as is.
 
     No markup, because paths and names may contain square brackets, which Rich would
     read as tags and drop. No wrapping, because a path broken across two lines can no
@@ -98,9 +108,162 @@ def say(text: str) -> None:
     console.print(text, markup=False, soft_wrap=True)
 
 
-def warn(text: str) -> None:
-    """Print plain text as is to stderr, without markup or wrapping, as say() does."""
-    err_console.print(text, markup=False, soft_wrap=True)
+def warn(text: str | Text) -> None:
+    """
+    Print plain text, or styled Text, to stderr, as say() does to stdout.
+
+    While a spinner or progress bar is on screen, prints through the console drawing
+    it instead, so the line lands above the display rather than across it: a Rich
+    console writes past the display's redirection of stderr. Both streams are then
+    the same terminal, as nothing is drawn otherwise.
+    """
+    (console if _drawing.is_set() else err_console).print(
+        text,
+        markup=False,
+        soft_wrap=True,
+    )
+
+
+_drawing = threading.Event()
+"""Set while a spinner or progress bar is on screen."""
+
+
+class Mark(StrEnum):
+    """How one item of a batch ended, as the coloured symbol before its line."""
+
+    OK = "ok"
+    WARNING = "warning"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
+_NAMES_SHOWN = 3
+"""How many of the names a progress bar waits on it shows beside it."""
+
+_SYMBOLS = {
+    Mark.OK: "✓",
+    Mark.WARNING: "⚠",
+    Mark.FAILED: "✗",
+    Mark.SKIPPED: "\N{EN DASH}",
+}
+_STYLES = {
+    Mark.OK: "green",
+    Mark.WARNING: "dark_orange",
+    Mark.FAILED: "red",
+    Mark.SKIPPED: "dim",
+}
+
+
+def marked(mark: Mark, text: str | Text, *, indent: int = 0) -> Text:
+    """
+    Return *text* after *mark*'s coloured symbol, *indent* levels of two spaces in.
+
+    Text never reads its content as markup, so names and reasons print as they are.
+    """
+    return Text.assemble(
+        "  " * indent,
+        (_SYMBOLS[mark], _STYLES[mark]),
+        " ",
+        text,
+    )
+
+
+def styled(text: str, mark: Mark) -> Text:
+    """Return *text* in *mark*'s colour, without the symbol: a table cell, say."""
+    return Text(text, style=_STYLES[mark])
+
+
+def tally(counts: Sequence[tuple[int, str, Mark]]) -> Text:
+    """
+    Return a summary such as "3 passed, 1 failed", from (count, label, mark) triples.
+
+    A count above zero takes its mark's colour, so a failure stands out at the end of a
+    long run; a zero is left plain.
+    """
+    parts = [
+        Text(f"{count} {label}", style=_STYLES[mark] if count else "")
+        for count, label, mark in counts
+    ]
+    return Text(", ").join(parts)
+
+
+def _is_interactive() -> bool:
+    """
+    Tell whether progress may be drawn: stdout and stderr both on a terminal.
+
+    A live display redirects both streams through itself while it runs, so with either
+    sent to a file or a pipe it would carry that stream's lines to the terminal
+    instead.
+    """
+    return console.is_terminal and err_console.is_terminal
+
+
+@contextmanager
+def spinning(description: str) -> Generator[None]:
+    """
+    Show a spinner and *description*, plain text, while the block runs, then clear it.
+
+    For one slow step with no count to show; draws nothing off a terminal.
+    """
+    if not _is_interactive():
+        yield
+        return
+    with console.status(Text(description)), _drawn():
+        yield
+
+
+@contextmanager
+def progress(
+    description: str,
+    names: Sequence[str],
+) -> Generator[Callable[[str], None]]:
+    """
+    Show a bar over *names* while the block runs, then clear it; yield `done(name)`.
+
+    Each call to `done` advances the bar by the item *name*. Beside the bar are the
+    names not done yet, so a run waiting on one slow repository says which. Lines
+    printed through say() or warn() meanwhile appear above the bar. Safe to call from
+    worker threads; draws nothing off a terminal, and yields a `done` that does nothing.
+    """
+    if not _is_interactive() or not names:
+        yield lambda _name: None
+        return
+    left = dict.fromkeys(names)
+    lock = threading.Lock()
+    bar = Progress(
+        SpinnerColumn(),
+        TextColumn("{task.description}", markup=False),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TextColumn("{task.fields[left]}", style="dim", markup=False),
+        console=console,
+        transient=True,
+    )
+
+    def waiting_on() -> str:
+        shown = list(left)[:_NAMES_SHOWN]
+        more = len(left) - len(shown)
+        return ", ".join(shown) + (f" and {more} more" if more else "")
+
+    task = bar.add_task(description, total=len(names), left=waiting_on())
+
+    def done(name: str) -> None:
+        with lock:
+            left.pop(name, None)
+            bar.update(task, advance=1, left=waiting_on())
+
+    with bar, _drawn():
+        yield done
+
+
+@contextmanager
+def _drawn() -> Generator[None]:
+    """Mark a spinner or progress bar as on screen while the block runs."""
+    _drawing.set()
+    try:
+        yield
+    finally:
+        _drawing.clear()
 
 
 def project(ctx: typer.Context) -> Project:
