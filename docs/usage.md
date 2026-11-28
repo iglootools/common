@@ -133,7 +133,9 @@ uv run --no-sync iglootools workspace renovate --merge
 - **`renovate`** lists the open Renovate pull requests with what
   merge-when-green would do; `--merge` merges the ones it would not refuse.
 
-`clone` alone fills a new workspace. Each command takes `--help`.
+`init` sets up a new workspace, as
+[setup-development-environment.md](setup-development-environment.md#the-iglootools-workspace)
+shows, and `clone` alone fills it. Each command takes `--help`.
 
 `iglootools repo sync`, `status`, `renovate`, `run` and `adopt-common` do the
 same on the repository you are in alone, with the same options.

@@ -56,7 +56,7 @@ from iglootools.workspace import (
     sync,
     toolchain,
 )
-from iglootools.workspace.location import cache_dir
+from iglootools.workspace.location import SENTINEL, cache_dir
 from iglootools.workspace.repositories import (
     DEFAULT_MAX_AGE,
     ListingCacheError,
@@ -186,6 +186,49 @@ def _ago(age: timedelta) -> str:
     return f"{amount} {unit}{'' if amount == 1 else 's'}"
 
 
+@app.command("init")
+def init_cmd(
+    ctx: typer.Context,
+    *,
+    dry_run: Annotated[bool, DRY_RUN_OPTION] = False,
+) -> None:
+    """
+    Set the current directory, or --root, up as the iglootools workspace.
+
+    Creates .iglootools-workspace/, which marks the workspace and holds what the
+    commands reuse, and sets the workspace up as a project without Python of
+    its own: a pyproject.toml pinning iglootools to common's newest release and a
+    mise.toml from common's, installed with uv, so `iglootools` works there bare. Safe
+    to run again; workspace sync keeps the files on the newest release. Refuses inside
+    a git checkout, which is a project, not the directory that holds them. Clones
+    nothing: `iglootools workspace sync` does, next.
+    """
+    root = invocation(ctx).root
+    if (root / ".git").exists():
+        warn(
+            f"{root} is a git checkout. Run `iglootools workspace init` in the "
+            "directory that holds the checkouts, or pass --root.",
+        )
+        raise typer.Exit(2)
+    ensure(ctx, requirements.GITHUB)
+    marker = root / SENTINEL
+    created = (
+        []
+        if marker.is_dir()
+        else [f"{'would create' if dry_run else 'created'} {SENTINEL}/"]
+    )
+    if created and not dry_run:
+        marker.mkdir()
+    setup = _set_up_workspace(root, github_client(ctx), version=None, dry_run=dry_run)
+    _print_setup(
+        toolchain.SetupResult([*created, *setup.done], setup.problems),
+        "[dry-run] " if dry_run else "",
+    )
+    if setup.problems:
+        raise typer.Exit(1)
+    say("Next: `iglootools workspace sync`, to clone the organization's repositories.")
+
+
 @app.command("clone")
 def clone_cmd(
     ctx: typer.Context,
@@ -244,7 +287,18 @@ def sync_cmd(
     worktrees, and every problem; fails if there was any problem.
     """
     session = _session(ctx, cache_ttl=cache_ttl, refresh=refresh)
-    setup = _set_up_workspace(session, version=None, dry_run=dry_run)
+    if not (session.workspace / SENTINEL).is_dir():
+        warn(
+            f"{session.workspace} is not set up as a workspace: run `iglootools "
+            "workspace init` there first.",
+        )
+        raise typer.Exit(2)
+    setup = _set_up_workspace(
+        session.workspace,
+        session.github,
+        version=None,
+        dry_run=dry_run,
+    )
     cloned = clone_all(
         session.workspace,
         session.repositories,
@@ -282,7 +336,8 @@ def sync_cmd(
 
 
 def _set_up_workspace(
-    session: _Session,
+    workspace: Path,
+    github: GitHub,
     *,
     version: str | None,
     dry_run: bool,
@@ -290,16 +345,16 @@ def _set_up_workspace(
     """Put the workspace's iglootools on release *version*; the newest if None."""
     try:
         found = (
-            toolchain.recommended(session.github)
+            toolchain.recommended(github)
             if version is None
-            else toolchain.at_release(session.github, version)
+            else toolchain.at_release(github, version)
         )
     except GitHubError as error:
         return toolchain.SetupResult(problems=[error.detail])
     except toolchain.ToolchainError as error:
         return toolchain.SetupResult(problems=[_describe_toolchain_error(error)])
     return toolchain.set_up(
-        session.workspace,
+        workspace,
         found,
         dry_run=dry_run,
         run=run.captured(run.child_environment(os.environ)),
@@ -947,7 +1002,12 @@ def adopt_common_cmd(
         workplace=workplace,
         dry_run=dry_run,
     )
-    setup = _set_up_workspace(session, version=version, dry_run=dry_run)
+    setup = _set_up_workspace(
+        session.workspace,
+        session.github,
+        version=version,
+        dry_run=dry_run,
+    )
     _print_setup(setup, "[dry-run] " if dry_run else "")
     if not projects_ok or setup.problems:
         raise typer.Exit(1)
