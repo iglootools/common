@@ -94,8 +94,13 @@ is fetched once per machine. What is per project is the *pointer* to it, which
 is the pin doing its job — one repository can sit on an older version while
 another moves ahead.
 
-There is no global switch, so moving them together is a loop. Point it at
-wherever the iglootools repositories are checked out:
+There is no global switch. `iglootools workspace sync` moves every project of
+the [workspace](setup-development-environment.md#the-iglootools-workspace)
+together, along with the other plugins each enables: it adds the marketplace
+on a machine that lacks it, installs the plugin in a project with no install
+of its own, and updates it everywhere else, at project scope. It also brings
+each checkout up to date with GitHub; to update the plugin alone, the loop
+does it by hand:
 
 ```bash
 claude plugin marketplace update iglootools-plugins

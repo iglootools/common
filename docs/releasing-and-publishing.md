@@ -106,6 +106,8 @@ uv run --no-sync iglootools common adopt-all "$VERSION"
   the merge commit both ways and checks the two tags name it. It plans from what
   GitHub already has, so rerunning it after an interruption finishes the
   release, and rerunning it on a finished release changes nothing.
+- **`--latest`** adopts the newest release, in place of a version, with either
+  command: `iglootools common adopt-all --latest`.
 - **`common adopt-all`** takes every iglootools project checked out in the
   [workspace](setup-development-environment.md#the-iglootools-workspace) that
   pins common, and fails if a repository of the organization pins common without

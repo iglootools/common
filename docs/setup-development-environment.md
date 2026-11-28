@@ -21,9 +21,10 @@ test, which is what the `preflight` workflow runs on each pull request;
 
 ## The iglootools workspace
 
-`iglootools common adopt-all` works on every iglootools project checked out in
-one directory, the workspace, such as `~/Workspace/iglootools`, with common's
-checkout among them. Mark it with a `.iglootools-workspace` directory:
+`iglootools common adopt-all` and the `iglootools workspace` commands work on
+every iglootools project checked out in one directory, the workspace, such as
+`~/Workspace/iglootools`, with common's checkout among them. Mark it with a
+`.iglootools-workspace` directory:
 
 ```bash
 mkdir -p ~/Workspace/iglootools/.iglootools-workspace
@@ -43,7 +44,9 @@ export IGLOOTOOLS_WORKSPACE=~/Workspace/iglootools
 
 A variable that names no directory is an error, not a reason to fall back on the
 marker directory. With neither, adopt-all stops and prints the commands, with
-the directory above common's checkout filled in.
+the directory above common's checkout filled in. Every `iglootools workspace`
+command finds it the same way; `iglootools workspace clone` then fills it with
+every repository of the organization.
 
 Every workspace command starts from the organization's list of repositories,
 which rarely changes. The commands keep that list in

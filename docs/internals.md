@@ -17,6 +17,10 @@ it is in [installation.md](installation.md), and running the audits in
 - [The `iglootools` command](#the-iglootools-command)
 - [Checking the pins on common](#checking-the-pins-on-common)
 - [Adopting a release everywhere](#adopting-a-release-everywhere)
+- [The workspace commands](#the-workspace-commands)
+  - [Why sync leaves some checkouts where they are](#why-sync-leaves-some-checkouts-where-they-are)
+  - [Why sync installs plugins, not only updates them](#why-sync-installs-plugins-not-only-updates-them)
+  - [Why run cleans the environment it starts tasks in](#why-run-cleans-the-environment-it-starts-tasks-in)
 <!-- tocstop -->
 
 ## Indexes always, guidelines on demand
@@ -244,3 +248,53 @@ a warning.
 If one ever did, for instance a project consuming another's package, adopt-all
 would need an order: adopt and release the dependency first, then the projects
 that depend on it, which turns the single parallel step into stages.
+
+## The workspace commands
+
+`iglootools workspace` works on every repository of the organization, listed
+from GitHub with the archived ones left out, each looked for at
+`<workspace>/<name>`, as `adopt-all` does. A checkout whose origin is another
+repository, or a directory there that is not a checkout, is reported and left
+alone. Each command runs the repositories at once and reports every one's
+problems, failing if any had one.
+
+### Why sync leaves some checkouts where they are
+
+The checkouts are where people and agent sessions work, so sync changes only
+what holds nobody's work. A checkout with uncommitted changes is not switched.
+One on a branch whose pull request merged is switched to the default branch,
+since sync is about to delete that branch; one on any other branch stays, with a
+warning, unless `--force`: an open pull request or a local branch with no pull
+request is most likely a session's work in progress. The default branch is
+fast-forwarded wherever that is safe: by its ref when no checkout has it, by a
+fast-forward merge when the one that has it is clean.
+
+Branches go as `github prune-branches` decides, through the same helper: those
+whose latest pull request merged, on GitHub and locally, except one pushed to
+after the merge, as Renovate does when it reuses a branch name, and a local one
+`git branch -d` refuses because it holds commits the default branch lacks.
+
+### Why sync installs plugins, not only updates them
+
+A project commits which Claude Code plugins it enables, but whether each is
+installed, and at which version, is recorded only on the machine, and Claude
+Code loads a plugin only once both hold. So sync adds each marketplace the
+plugins need that the machine lacks, from where a project declares it under
+`extraKnownMarketplaces`, refreshes the others, and installs each enabled plugin
+at project scope where it is missing and updates it elsewhere. It reads what is
+installed from `claude plugin list --json` rather than from the commands' exit
+codes, since `claude plugin update` succeeds in a project with no install of its
+own. It then asks again from inside each project, because Claude Code says
+whether a plugin is enabled for the directory it is asked in: a plugin
+installed but turned off there, as a personal `.claude/settings.local.json`
+can, is reported. A session already open in the project loads the change after
+a restart or `/reload-plugins`.
+
+### Why run cleans the environment it starts tasks in
+
+`iglootools` runs in common's environment: its virtual environment's `bin` is
+first on `PATH`, `VIRTUAL_ENV` names it, and mise's record of the shell's
+activation describes common's configuration. Started from there, a task in
+another project found common's Python ahead of its own. `run` starts each task
+without them, so mise builds the project's environment from its own
+configuration.
