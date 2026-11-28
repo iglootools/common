@@ -33,6 +33,7 @@ from iglootools.github.client import GitHub, GitHubError
 from iglootools.github.events import Event, Report
 from iglootools.github.local import GitStepError
 from iglootools.preflight import requirements
+from iglootools.workspace import plugins
 from iglootools.workspace.repositories import list_repositories
 
 app = typer.Typer(
@@ -603,39 +604,37 @@ def _report_all(
 
 def _update_plugins(projects: Sequence[tuple[str, Path]], version: str) -> bool:
     """
-    Update the plugin in each project that enables it; tell whether nothing failed.
+    Bring the plugins each project enables up to date; tell whether nothing failed.
 
-    Refreshes the marketplace once first, since every project reads the same clone.
-    Updates one project at a time: Claude Code keeps one list of installs for all.
+    As workspace sync does: each marketplace refreshed once, then every enabled plugin
+    updated, or installed where it is missing, one project at a time. The iglootools
+    plugin is then checked against the adopted *version*.
     """
-    enabled = {name: _plugin_enabled(name, root) for name, root in projects}
-    targets = [(name, root) for name, root in projects if enabled[name]]
-    if not targets:
-        return None not in enabled.values()
+    if not projects:
+        return True
     try:
-        plugin.refresh_marketplace(targets[0][1])
+        synced = plugins.sync_plugins(projects, projects[0][1], dry_run=False)
     except plugin.PluginError as error:
-        warn(f"Claude Code plugin not updated anywhere: {error.detail}")
+        warn(f"Claude Code plugins not updated anywhere: {error.detail}")
         return False
-    updated = [_update_plugin(name, root, version) for name, root in targets]
-    return None not in enabled.values() and all(updated)
+    for name in synced.added:
+        say(f"Added the Claude Code marketplace {name}.")
+    for problem in synced.problems:
+        warn(f"Claude Code plugins: {problem}")
+    reported = [_report_plugin_step(step, version) for step in synced.steps]
+    return not synced.problems and all(reported)
 
 
-def _plugin_enabled(name: str, root: Path) -> bool | None:
-    """Tell whether *root* enables the plugin; warn and return None if unreadable."""
-    try:
-        return plugin.is_enabled(root)
-    except plugin.PluginError as error:
-        warn(f"{name}: Claude Code plugin not updated: {error.detail}")
-        return None
-
-
-def _update_plugin(name: str, root: Path, version: str) -> bool:
-    try:
-        result = plugin.update(root, version)
-    except plugin.PluginError as error:
-        warn(f"{name}: Claude Code plugin not updated: {error.detail}")
+def _report_plugin_step(step: plugins.PluginStep, version: str) -> bool:
+    """Say where one project's plugin ended up; tell whether that is fine."""
+    name = step.project
+    if step.problem:
+        warn(f"{name}: {step.plugin} not updated: {step.problem}")
         return False
+    if step.plugin != plugin.PLUGIN:
+        say(f"{name}: {step.plugin} at {step.version}.")
+        return True
+    result = plugin.classify_sync(step.version, version)
     match result.sync:
         case plugin.Sync.CURRENT:
             say(
@@ -651,7 +650,7 @@ def _update_plugin(name: str, root: Path, version: str) -> bool:
             return True
         case plugin.Sync.NOT_INSTALLED:
             warn(
-                f"{name}: .claude/settings.json enables the Claude Code plugin, but it"
-                f" is not installed for {root}; run `{plugin.INSTALL_COMMAND}` there.",
+                f"{name}: the Claude Code plugin was {step.action}d, but Claude Code"
+                " does not list it for the project afterwards.",
             )
             return False

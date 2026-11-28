@@ -1,12 +1,9 @@
 """
-Bring the Claude Code plugin a project loads up to the release it adopted.
+Read the Claude Code plugins a project enables, and judge an install against a release.
 
-Adopting a release moves the pins a repository commits, but which plugin version a
-project loads is recorded on each machine, in Claude Code's own list of installs, and
-the marketplace clone behind it is not refreshed on its own: the plugin is pinned to its
-version string so a guideline change lands deliberately (docs/installation.md). So after
-an adopt, the project would keep loading the old guidelines until someone ran
-`claude plugin update` in it. These functions run it.
+A project commits which plugins it enables in `.claude/settings.json`, but which version
+it loads is recorded on each machine; iglootools.workspace.plugins installs and updates
+them. After an adopt, the iglootools plugin is classified against the adopted release.
 """
 
 import json
@@ -15,13 +12,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import cast
 
-from iglootools.github.client import Run, capture
-
 PLUGIN = "iglootools@iglootools-plugins"
-MARKETPLACE = "iglootools-plugins"
 SETTINGS = Path(".claude/settings.json")
-INSTALL_COMMAND = f"claude plugin install {PLUGIN} --scope project"
-"""What installs the plugin for a project that enables it but never installed it."""
 
 
 class PluginFailureKind(StrEnum):
@@ -140,29 +132,6 @@ def _settings(root: Path) -> dict[str, object]:
     return cast("dict[str, object]", settings)
 
 
-def refresh_marketplace(root: Path, *, run: Run = capture) -> None:
-    """
-    Fetch the marketplace again, so an update can see the newest release.
-
-    Run once per machine, not per project: every project reads the same clone. Raises
-    PluginError when the command fails.
-    """
-    _claude(root, ["plugin", "marketplace", "update", MARKETPLACE], run)
-
-
-def update(root: Path, version: str, *, run: Run = capture) -> SyncResult:
-    """
-    Update the plugin at project scope in *root*, and say where that left it.
-
-    The marketplace serves common's default branch, not a tag, so the plugin lands on
-    the newest release there, which is *version* unless a later one exists. Not
-    concurrent-safe: Claude Code rewrites one list of installs for every project.
-    Raises PluginError when a command fails.
-    """
-    _claude(root, ["plugin", "update", PLUGIN, "--scope", "project"], run)
-    return classify_sync(read_installed_version(root, run=run), version)
-
-
 def classify_sync(installed: str | None, version: str) -> SyncResult:
     """Decide where the plugin stands, from the installed and the adopted versions."""
     match installed:
@@ -172,43 +141,3 @@ def classify_sync(installed: str | None, version: str) -> SyncResult:
             return SyncResult(Sync.CURRENT, installed)
         case _:
             return SyncResult(Sync.OTHER_VERSION, installed)
-
-
-def read_installed_version(root: Path, *, run: Run = capture) -> str | None:
-    """
-    Return the plugin version installed at project scope for *root*, if any.
-
-    Raises PluginError when `claude plugin list` fails or prints something other than
-    the JSON list it documents.
-    """
-    listed = _claude(root, ["plugin", "list", "--json"], run)
-    try:
-        entries = json.loads(listed)
-    except ValueError as error:
-        raise PluginError(
-            PluginFailureKind.COMMAND_FAILED,
-            f"claude plugin list --json printed no JSON: {error}",
-        ) from error
-    project = root.resolve()
-    return next(
-        (
-            str(entry["version"])
-            for entry in entries
-            if entry.get("id") == PLUGIN
-            and entry.get("scope") == "project"
-            and Path(entry.get("projectPath", "")).resolve() == project
-        ),
-        None,
-    )
-
-
-def _claude(root: Path, arguments: list[str], run: Run) -> str:
-    command = ["claude", *arguments]
-    result = run(command, root)
-    if result.returncode != 0:
-        reason = (result.stderr or result.stdout).strip() or "no reason given"
-        raise PluginError(
-            PluginFailureKind.COMMAND_FAILED,
-            f"`{' '.join(command)}` failed: {reason}",
-        )
-    return result.stdout

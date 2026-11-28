@@ -224,18 +224,21 @@ adopt-all after an interruption or a failure resumes each project where it
 stopped. Progress is a live table in a terminal and lines prefixed with the
 project's name elsewhere, from the same events.
 
-Once every project has finished, each one on the release that enables the
-plugin has its Claude Code install updated: the marketplace is refreshed once,
-then `claude plugin update --scope project` runs in each project, one after the
-other, since Claude Code keeps a single list of installs for every project.
-Which version a project loads is recorded only on the machine, so without this
-step a merged adopt left every session on the old guidelines. The version is
-then read back from `claude plugin list --json` rather than trusted from the
-update, for two reasons: `claude plugin update` reports success in a project
-that has no install of its own, and the marketplace serves the newest release on
-common's default branch, which is not the adopted one when a later release
-exists. The first fails the run, naming the install command; the second is a
-warning.
+Once every project has finished, each one on the release has its Claude Code
+plugins brought up to date, as `iglootools workspace sync` does: each
+marketplace the projects use is refreshed once, then every plugin a project's
+`.claude/settings.json` enables is updated where it is installed for that
+project and installed where it is not, with `--scope project`, one project
+after the other, since Claude Code keeps a single list of installs for every
+project. Which version a project loads is recorded only on the machine, so
+without this step a merged adopt left every session on the old guidelines.
+Whether a plugin is installed for a project, and at which version, is read from
+`claude plugin list --json` rather than trusted from the commands, for two
+reasons: `claude plugin update` reports success in a project that has no
+install of its own, and the marketplace serves the newest release on common's
+default branch, which is not the adopted one when a later release exists. The
+first is why a missing install is installed rather than updated; the second is
+a warning.
 
 **No project depends on another**, so the projects run in any order and at once.
 If one ever did, for instance a project consuming another's package, adopt-all
