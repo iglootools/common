@@ -2,17 +2,30 @@
 The `iglootools repo` commands: work on the repository checked out at --root.
 
 Each is the one-repository form of a workspace command, on the same core and options:
-`repo adopt-common` of `workspace adopt-common`, `repo run` of `workspace run`. The
-workspace commands run them on every repository of the organization at once.
+`repo adopt-common` of `workspace adopt-common`, `repo sync` of `workspace sync`, and
+likewise status, renovate and run. The workspace commands run them on every repository
+of the organization at once.
 """
 
+import dataclasses
+import json
 import time
+from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from iglootools.build import cli as build_cli
-from iglootools.cliwiring import ensure, invocation, say, warn
+from iglootools.cliwiring import (
+    FILE_OPTION,
+    OUTPUT_OPTION,
+    OutputFormat,
+    emit,
+    ensure,
+    invocation,
+    say,
+    warn,
+)
 from iglootools.common import (
     adopt as adoption,
     adopt_all as everywhere,
@@ -21,9 +34,18 @@ from iglootools.common import (
     plugin,
 )
 from iglootools.github.cli import REPO_OPTION, github_session
-from iglootools.github.client import GitHubError
+from iglootools.github.client import GitHub, GitHubError
 from iglootools.github.local import GitStepError
 from iglootools.preflight import requirements
+from iglootools.workspace import (
+    cli as workspace_cli,
+    clone,
+    plugins,
+    status,
+    sync,
+    toolchain,
+)
+from iglootools.workspace.repositories import OrganizationRepository, get_repository
 
 app = typer.Typer(
     help="Work on the repository at --root, as workspace does on every one.",
@@ -179,3 +201,138 @@ def lint_common_pins_cmd(ctx: typer.Context) -> None:
         return
     checked = " and uv.lock" if lock else ""
     say(f"{len(found)} pins on iglootools/common, all at v{versions[0]}{checked}.")
+
+
+def _this_repository(ctx: typer.Context) -> tuple[GitHub, OrganizationRepository, Path]:
+    """
+    Return a GitHub client, the repository checked out at --root, and its checkout.
+
+    The repository is the checkout's origin; exits 2 when that is no GitHub
+    repository, and 1 when GitHub cannot describe it.
+    """
+    ensure(ctx, requirements.GITHUB)
+    root = invocation(ctx).root
+    repository, github = github_session(ctx, None)
+    try:
+        return github, get_repository(github, repository), root
+    except GitHubError as error:
+        warn(f"{repository.slug}: {error.detail}")
+        raise typer.Exit(1) from None
+
+
+@app.command("sync")
+def sync_cmd(
+    ctx: typer.Context,
+    *,
+    skip_plugins: Annotated[bool, workspace_cli.SKIP_PLUGINS_OPTION] = False,
+    force: Annotated[bool, workspace_cli.FORCE_OPTION] = False,
+    dry_run: Annotated[bool, workspace_cli.DRY_RUN_OPTION] = False,
+) -> None:
+    """
+    Bring this checkout in line with GitHub, as workspace sync does for every one.
+
+    Fetches, then switches to the default branch when the branch the checkout is on
+    merged (with --force, from any branch), never with uncommitted changes;
+    fast-forwards it where safe and checks it matches origin's; deletes every branch
+    whose latest pull request merged, on GitHub and locally; and installs or updates the
+    Claude Code
+    plugins the project enables. Lists the branches kept, the other worktrees and every
+    problem; fails if there was any problem.
+    """
+    github, repository, root = _this_repository(ctx)
+    fetched = "" if dry_run else clone.fetch_origin(root)
+    cloned = [
+        clone.CloneResult(
+            repository.name,
+            clone.CloneAction.FAILED if fetched else clone.CloneAction.FETCHED,
+            fetched,
+        ),
+    ]
+    synced = (
+        []
+        if fetched
+        else [sync.sync_one(root, repository, github, force=force, dry_run=dry_run)]
+    )
+    plugin_sync = (
+        plugins.PluginSync([], [])
+        if skip_plugins
+        else workspace_cli.bring_plugins_up_to_date(
+            [(repository.name, root)],
+            root,
+            dry_run=dry_run,
+        )
+    )
+    if not workspace_cli.print_sync(
+        toolchain.SetupResult(),
+        cloned,
+        synced,
+        plugin_sync,
+        dry_run=dry_run,
+    ):
+        raise typer.Exit(1)
+
+
+@app.command("status")
+def status_cmd(
+    ctx: typer.Context,
+    *,
+    fetch: Annotated[bool, workspace_cli.FETCH_OPTION] = True,
+    output: OUTPUT_OPTION = OutputFormat.HUMAN,
+    file: FILE_OPTION = None,
+) -> None:
+    """
+    Show where this repository stands, as workspace status does for every one.
+
+    The branch the checkout is on, its uncommitted changes, its default branch's
+    commits ahead of and behind origin's, its other local branches and worktrees, and
+    its open pull requests, Renovate's among them. Changes nothing but fetched refs.
+    Fails if the status could not be read.
+    """
+    github, repository, root = _this_repository(ctx)
+    found = status.read_status(root, repository, github, fetch=fetch)
+    match output:
+        case OutputFormat.JSON:
+            emit(json.dumps(dataclasses.asdict(found), indent=2), file)
+        case OutputFormat.HUMAN:
+            workspace_cli.print_status([found], file)
+    if found.problem:
+        raise typer.Exit(1)
+
+
+@app.command("renovate")
+def renovate_cmd(
+    ctx: typer.Context,
+    *,
+    merge_them: Annotated[bool, workspace_cli.MERGE_OPTION] = False,
+    dry_run: Annotated[bool, workspace_cli.DRY_RUN_OPTION] = False,
+    output: OUTPUT_OPTION = OutputFormat.HUMAN,
+    file: FILE_OPTION = None,
+) -> None:
+    """
+    List this repository's open Renovate pull requests, and merge them.
+
+    As workspace renovate does for every repository: each comes with what
+    merge-when-green would do next, and --merge merges every one it would not refuse,
+    once its checks pass, one after the other. Fails if one could not be read, or was
+    not merged.
+    """
+    github, repository, _ = _this_repository(ctx)
+    pulls, problem = workspace_cli.renovate_pulls(github, repository)
+    match output:
+        case OutputFormat.JSON:
+            emit(
+                json.dumps([workspace_cli.pull_json(p) for p in pulls], indent=2),
+                file,
+            )
+        case OutputFormat.HUMAN:
+            workspace_cli.print_pulls(pulls, file)
+    for line in [problem, *(f"#{p.number}: {p.problem}" for p in pulls if p.problem)]:
+        if line:
+            warn(line)
+    merged = (
+        workspace_cli.merge_pulls(github, pulls, dry_run=dry_run)
+        if merge_them
+        else True
+    )
+    if problem or any(p.problem for p in pulls) or not merged:
+        raise typer.Exit(1)

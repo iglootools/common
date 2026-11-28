@@ -16,6 +16,7 @@ it is in [installation.md](installation.md), and running the audits in
   - [Why common does not install its own plugin](#why-common-does-not-install-its-own-plugin)
 - [The `iglootools` command](#the-iglootools-command)
 - [Checking the pins on common](#checking-the-pins-on-common)
+  - [Why adopting renames commands](#why-adopting-renames-commands)
 - [Adopting a release everywhere](#adopting-a-release-everywhere)
 - [The workspace commands](#the-workspace-commands)
   - [Why sync leaves some checkouts where they are](#why-sync-leaves-some-checkouts-where-they-are)
@@ -192,6 +193,19 @@ tracked file that mentions common rather than in a list of files, and
 Why the check runs offline, trusting `uv.lock`'s record, is in
 [ADR-001](architecture-decision-record.md#adr-001--check-the-pins-on-common-offline-trusting-uvlock-and-iglootools_versions-name).
 
+### Why adopting renames commands
+
+A project calls `iglootools` commands by name, in its mise tasks above all
+(`lint-common-pins` runs `iglootools repo lint-common-pins`), and runs the
+release it pins. When a release renames a command, a project adopting it would
+fail its own checks on the old name, and the adopt pull request would never
+merge. So adopt rewrites each renamed command in the project's tracked files,
+from the table in `iglootools.common.renames`, in the commit that moves the
+pins. Old names are dropped outright rather than kept as aliases, which would
+need removing later; `iglootools build` is the one exception, kept hidden for
+one release because people and agents type it. A rename stays in the table while
+a project may still pin a release from before it.
+
 ## Adopting a release everywhere
 
 `iglootools workspace adopt-common` works on the projects checked out in the
@@ -271,7 +285,10 @@ asked again. A cache file that cannot be read is an error naming `--refresh`,
 not a silent refetch. A checkout whose origin is another repository, or a
 directory there that is not a checkout, is reported and left alone. Each command
 runs the repositories at once and reports every one's problems, failing if any
-had one.
+had one. `iglootools repo` runs the same core on the repository checked out at
+`--root` alone, with the same options and output: `repo sync`, `status`,
+`renovate`, `run` and `adopt-common` are the one-repository forms of the
+workspace commands.
 
 ### Why sync leaves some checkouts where they are
 

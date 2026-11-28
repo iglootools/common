@@ -10,6 +10,7 @@ import re
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from iglootools.github.client import GitHub, Repository
 
@@ -43,17 +44,27 @@ def list_repositories(github: GitHub) -> list[OrganizationRepository]:
     Raises GitHubError when GitHub cannot be asked.
     """
     return sorted(
-        (
-            OrganizationRepository(
-                name=item["name"],
-                archived=bool(item.get("archived")),
-                default_branch=item.get("default_branch") or "main",
-                ssh_url=item.get("ssh_url", ""),
-                https_url=item.get("clone_url", ""),
-            )
-            for item in github.get_all(f"/orgs/{ORGANIZATION}/repos?type=all")
-        ),
+        map(_parse, github.get_all(f"/orgs/{ORGANIZATION}/repos?type=all")),
         key=lambda found: found.name,
+    )
+
+
+def get_repository(github: GitHub, repository: Repository) -> OrganizationRepository:
+    """
+    Read one repository of the organization, as the listing describes it.
+
+    Raises GitHubError when GitHub cannot be asked, or has no such repository.
+    """
+    return _parse(github.get(f"/repos/{repository.slug}"))
+
+
+def _parse(item: dict[str, Any]) -> OrganizationRepository:
+    return OrganizationRepository(
+        name=item["name"],
+        archived=bool(item.get("archived")),
+        default_branch=item.get("default_branch") or "main",
+        ssh_url=item.get("ssh_url", ""),
+        https_url=item.get("clone_url", ""),
     )
 
 

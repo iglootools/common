@@ -40,19 +40,22 @@ script in the project.
 | `iglootools github prune-branches` | deleting every branch whose latest pull request merged, on GitHub and locally; `-n` shows what it would delete |
 | `iglootools github checkout-release` | checking out the release a workflow run builds, or skipping a run that has none (shared workflows, publish) |
 | `iglootools github link-report` | keeping one issue open for a lychee report's broken links (the shared link checker) |
+| `iglootools repo run [<task>]` | running one of the project's mise tasks (`preflight`, `lint-*`, `test*`, `fmt`, `ci-*`, …) through `mise run`; with no task, listing them by family; `--fix` runs `fmt` before the task (`iglootools repo run --fix preflight`) |
+| `iglootools repo sync` / `status` / `renovate` | `workspace sync`, `status` and `renovate` (below) for the repository checked out at `--root` alone, with the same options |
 | `iglootools repo adopt-common <version>` | moving every pin on iglootools/common to a release (`--latest` for the newest), through a pull request merged once green, in a temporary worktree that leaves the checkout as it is (`--in-place` to work in the checkout) |
+| `iglootools repo lint-common-pins` | failing when the pins on common disagree, or `adopt` would miss one |
 | `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
 | `iglootools common check-indexes` | failing when a shared guideline is missing from its directory's index (in common only) |
-| `iglootools repo lint-common-pins` | failing when the pins on common disagree, or `adopt` would miss one |
 | `iglootools workspace adopt-common <version>` | adopting a release of common (`--latest` for the newest) in every project of the workspace, in parallel, each in a temporary worktree, after checking all of them, and in the workspace's own `iglootools` |
 | `iglootools workspace clone` | cloning every repository of the organization the workspace lacks, and fetching the rest |
 | `iglootools workspace sync` | the workspace's own `iglootools` on common's newest release, `clone`, then each checkout on an up-to-date default branch, merged branches deleted, the Claude Code plugins its project enables installed and current; reports what is left |
 | `iglootools workspace status` | a table of every repository: its branch, uncommitted changes, standing against origin, branches, worktrees and open pull requests |
 | `iglootools workspace run <task>` | running one mise task in every project at once, each logged, with a pass/fail summary |
 | `iglootools workspace renovate` | the open Renovate pull requests across the organization, with what merge-when-green would do; `--merge` merges the ones it would not refuse |
-| `iglootools repo run [<task>]` | running one of the project's mise tasks (`preflight`, `lint-*`, `test*`, `fmt`, `ci-*`, …) through `mise run`; with no task, listing them by family; `--fix` runs `fmt` before the task (`iglootools repo run --fix preflight`) |
 | `iglootools preflight` | checking every program and credential the other commands use, with how to fix what is missing; each subsystem checks its own before its first change |
 
+- The `repo` commands work on the repository at `--root`; each `workspace`
+  command does the same on every repository of the organization at once.
 - `iglootools --help` and `iglootools <group> --help` list the options.
 - Each command works on the current directory, or on `--root <dir>`. The
   `docs` commands take `--check`, which fails instead of writing.

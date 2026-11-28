@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from iglootools.github.client import GitHub
+from iglootools.github.client import GitHub, Repository
 from iglootools.workspace import repositories
+from iglootools.workspace.repositories import OrganizationRepository
 
 NBKP = {
     "name": "nbkp",
@@ -16,6 +17,44 @@ NBKP = {
     "ssh_url": "git@github.com:iglootools/nbkp.git",
     "clone_url": "https://github.com/iglootools/nbkp.git",
 }
+
+
+def _github(path_and_reply: tuple[str, object]) -> GitHub:
+    expected, reply = path_and_reply
+
+    def transport(
+        _method: str,
+        url: str,
+        _headers: Mapping[str, str],
+        _body: bytes | None,
+    ) -> tuple[int, bytes]:
+        path = url.removeprefix("https://api.github.com")
+        assert path.startswith(expected), path
+        listed: object = [] if path.endswith("page=2") else reply
+        return 200, json.dumps(listed).encode()
+
+    return GitHub("t", transport=transport)
+
+
+def test_one_repository_reads_as_the_listing_describes_it() -> None:
+    github = _github(("/repos/iglootools/nbkp", NBKP))
+    found = repositories.get_repository(github, Repository("iglootools", "nbkp"))
+    assert found == OrganizationRepository(
+        "nbkp",
+        archived=False,
+        default_branch="trunk",
+        ssh_url="git@github.com:iglootools/nbkp.git",
+        https_url="https://github.com/iglootools/nbkp.git",
+    )
+
+
+def test_the_listing_is_sorted_by_name() -> None:
+    listed = [dict(NBKP, name="photree"), NBKP]
+    github = _github(("/orgs/iglootools/repos?type=all", listed))
+    assert [r.name for r in repositories.list_repositories(github)] == [
+        "nbkp",
+        "photree",
+    ]
 
 
 @pytest.mark.parametrize(

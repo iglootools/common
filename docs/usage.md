@@ -134,3 +134,6 @@ uv run --no-sync iglootools workspace renovate --merge
   merge-when-green would do; `--merge` merges the ones it would not refuse.
 
 `clone` alone fills a new workspace. Each command takes `--help`.
+
+`iglootools repo sync`, `status`, `renovate`, `run` and `adopt-common` do the
+same on the repository you are in alone, with the same options.
