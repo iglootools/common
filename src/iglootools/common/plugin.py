@@ -63,9 +63,20 @@ def is_enabled(root: Path) -> bool:
 
     Raises PluginError when `.claude/settings.json` exists but is not a JSON object.
     """
+    return PLUGIN in enabled_plugins(root)
+
+
+def enabled_plugins(root: Path) -> list[str]:
+    """
+    List the plugins the project at *root* enables in its committed settings, by id.
+
+    An id is `<plugin>@<marketplace>`, set to true under `enabledPlugins`; a project
+    without `.claude/settings.json` enables none. Raises PluginError when the file
+    exists but is not a JSON object.
+    """
     path = root / SETTINGS
     if not path.is_file():
-        return False
+        return []
     try:
         settings = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
@@ -79,12 +90,12 @@ def is_enabled(root: Path) -> bool:
             f"{SETTINGS}: not a JSON object",
         )
     enabled = cast("dict[str, object]", settings).get("enabledPlugins")
-    return (
-        isinstance(enabled, dict)
-        and cast("dict[str, object]", enabled).get(
-            PLUGIN,
-        )
-        is True
+    if not isinstance(enabled, dict):
+        return []
+    return sorted(
+        str(name)
+        for name, on in cast("dict[str, object]", enabled).items()
+        if on is True
     )
 
 
