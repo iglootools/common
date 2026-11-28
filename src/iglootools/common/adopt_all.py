@@ -16,7 +16,6 @@ what would change if one did.
 
 import threading
 from collections.abc import Callable, Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,6 +32,7 @@ from iglootools.github.client import (
     origin_repository,
 )
 from iglootools.github.events import Event, Report
+from iglootools.workspace import parallel
 
 ORGANIZATION = "iglootools"
 
@@ -166,10 +166,6 @@ def describe(error: BaseException, detail: str) -> str:
     return " ".join([detail, *getattr(error, "__notes__", [])])
 
 
-class CancelledError(Exception):
-    """The run was interrupted; the project stops at its next poll."""
-
-
 type Adopt = Callable[
     [Project, Report, Callable[[float], None], AbstractContextManager[object]],
     adopt.Outcome,
@@ -193,11 +189,7 @@ def run_all(
     """
     push_guard = threading.Lock()
 
-    def sleep(seconds: float) -> None:
-        if stop.wait(seconds):
-            raise CancelledError
-
-    def work(project: Project) -> adopt.Outcome:
+    def work(project: Project, sleep: parallel.Sleep) -> adopt.Outcome:
         try:
             return adopt_one(
                 project,
@@ -205,7 +197,7 @@ def run_all(
                 sleep,
                 push_guard,
             )
-        except CancelledError as error:
+        except parallel.CancelledError as error:
             return adopt.Outcome(
                 adopt.Result.REFUSED,
                 describe(error, "interrupted; run again to resume"),
@@ -216,14 +208,8 @@ def run_all(
                 describe(error, getattr(error, "detail", str(error))),
             )
 
-    outcomes: dict[str, adopt.Outcome] = {}
-    with ThreadPoolExecutor(max_workers=max(len(projects), 1)) as pool:
-        futures = {pool.submit(work, project): project for project in projects}
-        try:
-            for future in as_completed(futures):
-                outcomes[futures[future].name] = future.result()
-        except KeyboardInterrupt:
-            stop.set()
-            for future, project in futures.items():
-                outcomes[project.name] = future.result()
-    return outcomes
+    outcomes = parallel.each_interruptible(projects, work, stop=stop)
+    return {
+        project.name: outcome
+        for project, outcome in zip(projects, outcomes, strict=True)
+    }
