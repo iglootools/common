@@ -16,6 +16,7 @@ from iglootools.mise import cli as mise_cli
 from iglootools.preflight import cli as preflight_cli
 from iglootools.python import cli as python_cli
 from iglootools.shell import cli as shell_cli
+from iglootools.workspace import cli as workspace_cli
 
 app = typer.Typer(
     name="iglootools",
@@ -30,6 +31,7 @@ app.add_typer(mise_cli.app, name="mise")
 app.add_typer(shell_cli.app, name="shell")
 app.add_typer(github_cli.app, name="github")
 app.add_typer(common_cli.app, name="common")
+app.add_typer(workspace_cli.app, name="workspace")
 app.command("preflight")(preflight_cli.preflight)
 app.command(
     "build",

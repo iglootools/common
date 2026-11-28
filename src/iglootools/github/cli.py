@@ -79,10 +79,11 @@ def github_session(ctx: typer.Context, slug: str | None) -> tuple[Repository, Gi
 
     Exits 2, saying why, when either cannot be had.
     """
-    return _repository(ctx, slug), _github(ctx)
+    return _repository(ctx, slug), github_client(ctx)
 
 
-def _github(ctx: typer.Context) -> GitHub:
+def github_client(ctx: typer.Context) -> GitHub:
+    """Return a GitHub client with the user's token; exit 2 when there is none."""
     try:
         return GitHub(resolve_token(invocation(ctx).root, environ=os.environ))
     except GitHubError as error:
@@ -119,7 +120,7 @@ def merge_when_green(
     """
     ensure(ctx, requirements.GITHUB)
     repository = _repository(ctx, repo)
-    github = _github(ctx)
+    github = github_client(ctx)
     if dry_run:
         _preview_merge(github, repository, pr, delete_branch=not keep_branch)
         return
@@ -177,7 +178,7 @@ def prune_branches(
     """
     ensure(ctx, requirements.GITHUB)
     repository = _repository(ctx, repo)
-    github = _github(ctx)
+    github = github_client(ctx)
     root = invocation(ctx).root
     on_origin = _is_origin(ctx, repository)
     locals_ = local.local_branches(root) if on_origin else []
