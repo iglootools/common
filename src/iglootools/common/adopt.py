@@ -483,21 +483,4 @@ def tidy_after_merge(
         local.clean_local(root, branch, base, run=run)
     if workplace.skip_fast_forward:
         return ""
-    return _fast_forward(root, base, run=run)
-
-
-def _fast_forward(root: Path, base: str, *, run: Run) -> str:
-    """Fast-forward *base* in the checkout where safe, and say what happened."""
-    try:
-        done = worktree.fast_forward(root, base, run=run)
-    except local.GitStepError as error:
-        return f"{base} not fast-forwarded: {error}"
-    match done.action:
-        case worktree.FastForwardAction.UP_TO_DATE:
-            return f"{base} already up to date"
-        case worktree.FastForwardAction.MOVE_REF | worktree.FastForwardAction.MERGE:
-            return f"fast-forwarded {base}"
-        case worktree.FastForwardAction.DIVERGED:
-            return f"{base} left alone: it has commits GitHub lacks"
-        case worktree.FastForwardAction.HAS_CHANGES:
-            return f"{base} left alone: {done.checkout} has changes"
+    return worktree.fast_forward_where_safe(root, base, run=run)
