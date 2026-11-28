@@ -1,5 +1,6 @@
 """The `iglootools workspace` commands: work on every project of the organization."""
 
+import shutil
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -15,10 +16,11 @@ from iglootools.cliwiring import (
     say,
     warn,
 )
+from iglootools.common.plugin import PluginError
 from iglootools.github.cli import github_client
 from iglootools.github.client import GitHub, GitHubError
 from iglootools.preflight import requirements
-from iglootools.workspace import clone, parallel
+from iglootools.workspace import clone, parallel, plugins, sync
 from iglootools.workspace.repositories import (
     OrganizationRepository,
     list_repositories,
@@ -33,6 +35,17 @@ DRY_RUN_OPTION = typer.Option(
     "--dry-run",
     "-n",
     help="Say what would be done, change nothing.",
+)
+
+
+SKIP_PLUGINS_OPTION = typer.Option(
+    "--skip-plugins",
+    help="Leave the Claude Code plugins the projects enable as they are.",
+)
+FORCE_OPTION = typer.Option(
+    "--force",
+    help="Switch a clean checkout to the default branch even from a branch "
+    "that has not merged.",
 )
 
 
@@ -99,6 +112,172 @@ def clone_cmd(
     )
     if not _print_clone(results, dry_run=dry_run):
         raise typer.Exit(1)
+
+
+@app.command("sync")
+def sync_cmd(
+    ctx: typer.Context,
+    *,
+    skip_plugins: Annotated[bool, SKIP_PLUGINS_OPTION] = False,
+    force: Annotated[bool, FORCE_OPTION] = False,
+    dry_run: Annotated[bool, DRY_RUN_OPTION] = False,
+) -> None:
+    """
+    Bring every checkout in line with GitHub, and report what needs a person.
+
+    Clones and fetches as `clone` does. Then, in each checkout: switches to the default
+    branch when the branch it is on merged (with --force, from any branch), never with
+    uncommitted changes, and warns of one left on unmerged work; fast-forwards it where
+    safe and checks
+    it matches origin's, and deletes every branch whose latest pull request merged, on
+    GitHub and locally, as `github prune-branches` does; a local branch with commits
+    the default branch lacks is kept. Then installs or updates, at project scope, every
+    Claude Code plugin each project enables. Lists the branches kept, the other
+    worktrees, and every problem; fails if there was any problem.
+    """
+    session = _session(ctx)
+    cloned = clone_all(
+        session.workspace,
+        session.repositories,
+        fetch=True,
+        dry_run=dry_run,
+    )
+    present = [
+        repository
+        for repository, result in zip(session.repositories, cloned, strict=True)
+        if result.action != clone.CloneAction.FAILED
+        and clone.is_checkout(clone.checkout_path(session.workspace, repository))
+    ]
+    synced = parallel.each(
+        present,
+        lambda repository: sync.sync_one(
+            clone.checkout_path(session.workspace, repository),
+            repository,
+            session.github,
+            force=force,
+            dry_run=dry_run,
+        ),
+    )
+    plugin_sync = (
+        plugins.PluginSync([], [])
+        if skip_plugins
+        else bring_plugins_up_to_date(
+            [(r.name, clone.checkout_path(session.workspace, r)) for r in present],
+            session.workspace,
+            dry_run=dry_run,
+        )
+    )
+    ok = print_sync(cloned, synced, plugin_sync, dry_run=dry_run)
+    if not ok:
+        raise typer.Exit(1)
+
+
+def bring_plugins_up_to_date(
+    projects: Sequence[tuple[str, Path]],
+    directory: Path,
+    *,
+    dry_run: bool,
+) -> plugins.PluginSync:
+    """
+    Install or update the plugins each of *projects* enables, as sync does.
+
+    *projects* are (name, checkout) pairs; the commands that concern no single project
+    run in *directory*. Without `claude`, or when it cannot list what is installed,
+    the step is a problem rather than an error.
+    """
+    if shutil.which("claude") is None:
+        return plugins.PluginSync(
+            [],
+            [
+                (
+                    "claude not found, so no plugin was synced: install Claude Code, "
+                    "or pass --skip-plugins"
+                ),
+            ],
+        )
+    try:
+        return plugins.sync_plugins(projects, directory, dry_run=dry_run)
+    except PluginError as error:
+        return plugins.PluginSync([], [error.detail])
+
+
+def print_sync(
+    cloned: Sequence[clone.CloneResult],
+    synced: Sequence[sync.SyncResult],
+    plugin_sync: plugins.PluginSync,
+    *,
+    dry_run: bool,
+) -> bool:
+    """Print each repository's block, then a summary; tell whether nothing failed."""
+    label = "[dry-run] " if dry_run else ""
+    clone_problems = [f"{r.name}: {r.problem}" for r in cloned if r.problem]
+    for result in cloned:
+        if result.action == clone.CloneAction.CLONED:
+            say(f"{label}{'Would clone' if dry_run else 'Cloned'} {result.name}")
+    for name in plugin_sync.added:
+        say(f"{label}{'Would add' if dry_run else 'Added'} the marketplace {name}")
+    steps_by_project = {
+        name: [step for step in plugin_sync.steps if step.project == name]
+        for name in (result.name for result in synced)
+    }
+    blocks = [
+        _sync_block(result, steps_by_project[result.name], dry_run=dry_run)
+        for result in synced
+    ]
+    for (header, lines, problems), result in zip(blocks, synced, strict=True):
+        say(f"{label}{header}")
+        for line in lines:
+            say(f"  {line}")
+        for warning in result.warnings:
+            warn(f"  warning: {warning}")
+        for problem in problems:
+            warn(f"  ! {problem}")
+    everything = [
+        *clone_problems,
+        *plugin_sync.problems,
+        *(problem for _, _, problems in blocks for problem in problems),
+    ]
+    for problem in [*clone_problems, *plugin_sync.problems]:
+        warn(problem)
+    kept = sum(1 for result in synced if result.kept)
+    warnings = sum(len(result.warnings) for result in synced)
+    say(
+        f"{label}{len(synced)} synced, {kept} with branches kept, "
+        f"{warnings} warning(s), {len(everything)} problem(s).",
+    )
+    return not everything
+
+
+def _sync_block(
+    result: sync.SyncResult,
+    steps: Sequence[plugins.PluginStep],
+    *,
+    dry_run: bool,
+) -> tuple[str, list[str], list[str]]:
+    """Return a repository's header, its lines, and its problems, ready to print."""
+    would = "would " if dry_run else ""
+    plugin_lines = [
+        f"{would}{step.action} plugin {step.plugin}"
+        + (f": {step.version}" if step.version else "")
+        for step in steps
+        if not step.problem
+    ]
+    lines = [
+        *result.done,
+        *(f"kept {b.name} ({b.where}): {b.reason}" for b in result.kept),
+        *(f"worktree {w}" for w in result.worktrees),
+        *plugin_lines,
+    ]
+    problems = [
+        *result.problems,
+        *(f"{step.plugin}: {step.problem}" for step in steps if step.problem),
+    ]
+    quiet = not (result.done or problems or result.kept or result.warnings)
+    return (
+        f"{result.name}: up to date" if quiet else f"{result.name}:",
+        lines,
+        problems,
+    )
 
 
 def clone_all(

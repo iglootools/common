@@ -74,9 +74,57 @@ def enabled_plugins(root: Path) -> list[str]:
     without `.claude/settings.json` enables none. Raises PluginError when the file
     exists but is not a JSON object.
     """
+    enabled = _settings(root).get("enabledPlugins")
+    if not isinstance(enabled, dict):
+        return []
+    return sorted(
+        str(name)
+        for name, on in cast("dict[str, object]", enabled).items()
+        if on is True
+    )
+
+
+def declared_marketplaces(root: Path) -> dict[str, str]:
+    """
+    Map each marketplace the project at *root* declares to what `marketplace add` takes.
+
+    Read from `extraKnownMarketplaces`: a GitHub source becomes its `owner/repo`, a git
+    or URL source its URL, a directory its path; other kinds are left out. Raises
+    PluginError when `.claude/settings.json` exists but is not a JSON object.
+    """
+    declared = _settings(root).get("extraKnownMarketplaces")
+    if not isinstance(declared, dict):
+        return {}
+    sources = {
+        str(name): _source_argument(entry)
+        for name, entry in cast("dict[str, object]", declared).items()
+    }
+    return {name: source for name, source in sources.items() if source}
+
+
+def _source_argument(entry: object) -> str:
+    if not isinstance(entry, dict):
+        return ""
+    source = cast("dict[str, object]", entry).get("source")
+    if not isinstance(source, dict):
+        return ""
+    fields = cast("dict[str, object]", source)
+    match fields.get("source"):
+        case "github":
+            return str(fields.get("repo", ""))
+        case "git" | "url":
+            return str(fields.get("url", ""))
+        case "directory":
+            return str(fields.get("path", ""))
+        case _:
+            return ""
+
+
+def _settings(root: Path) -> dict[str, object]:
+    """Return the project's committed settings, {} without any; raise if invalid."""
     path = root / SETTINGS
     if not path.is_file():
-        return []
+        return {}
     try:
         settings = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
@@ -89,14 +137,7 @@ def enabled_plugins(root: Path) -> list[str]:
             PluginFailureKind.UNREADABLE_SETTINGS,
             f"{SETTINGS}: not a JSON object",
         )
-    enabled = cast("dict[str, object]", settings).get("enabledPlugins")
-    if not isinstance(enabled, dict):
-        return []
-    return sorted(
-        str(name)
-        for name, on in cast("dict[str, object]", enabled).items()
-        if on is True
-    )
+    return cast("dict[str, object]", settings)
 
 
 def refresh_marketplace(root: Path, *, run: Run = capture) -> None:
