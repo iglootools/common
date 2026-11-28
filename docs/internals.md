@@ -194,22 +194,24 @@ Why the check runs offline, trusting `uv.lock`'s record, is in
 
 ## Adopting a release everywhere
 
-`iglootools common adopt-all` runs from common's checkout, on the projects
-checked out in the workspace: the directory `IGLOOTOOLS_WORKSPACE` names, or
-else the nearest one, from the checkout up, holding a `.iglootools-workspace`
-directory ([setup](setup-development-environment.md#the-iglootools-workspace)).
-Nothing is guessed, not even common's parent directory: a run that picked the
-wrong directory would adopt in the wrong checkouts, or report every project
-missing. It takes every git checkout there whose `origin` is a repository of the
-iglootools organization and that pins common, narrowed by `--only` and
-`--exclude`, and passes over the rest with the reason. It then lists every
-repository of the organization and reads the `renovate.json` on the default
-branch of each one with no checkout in the workspace. One that extends a preset
-from common, as every project that adopts common does, fails the run: a project
-nobody cloned would otherwise be silently left on the old release. One that does
-not, or has no `renovate.json`, is skipped with a warning, so a project meant to
-pin common but missing the preset is seen; an archived one is skipped unread,
-since it cannot take a pull request.
+`iglootools workspace adopt-common` works on the projects checked out in the
+workspace: the directory `IGLOOTOOLS_WORKSPACE` names, or else the nearest one,
+from where it runs up, holding a `.iglootools-workspace` directory
+([setup](setup-development-environment.md#the-iglootools-workspace)). It runs
+from common's checkout or from the workspace's own `iglootools`, which sync
+keeps on the newest release, so the release it adopts needs no install in the
+projects. Nothing is guessed, not even common's parent directory: a run that
+picked the wrong directory would adopt in the wrong checkouts, or report every
+project missing. It takes every git checkout there whose `origin` is a
+repository of the iglootools organization and that pins common, narrowed by
+`--only` and `--exclude`, and passes over the rest with the reason. It then
+lists every repository of the organization and reads the `renovate.json` on the
+default branch of each one with no checkout in the workspace. One that extends a
+preset from common, as every project that adopts common does, fails the run: a
+project nobody cloned would otherwise be silently left on the old release. One
+that does not, or has no `renovate.json`, is skipped with a warning, so a
+project meant to pin common but missing the preset is seen; an archived one is
+skipped unread, since it cannot take a pull request.
 
 Before changing any project it checks that each one's `origin` is reachable
 with git and ssh unable to prompt. One problem anywhere stops the run while
@@ -225,7 +227,7 @@ an interrupt cancels, so Ctrl-C stops every project at its next poll; pushes
 take turns behind one lock, so two credential helpers never run at once; and a
 failure in one project leaves the others running. adopt is safe to run again,
 picking up from the pull request or branch an earlier run left, so rerunning
-adopt-all after an interruption or a failure resumes each project where it
+adopt-common after an interruption or a failure resumes each project where it
 stopped. Progress is a live table in a terminal and lines prefixed with the
 project's name elsewhere, from the same events.
 
@@ -246,18 +248,25 @@ first is why a missing install is installed rather than updated; the second is
 a warning.
 
 **No project depends on another**, so the projects run in any order and at once.
-If one ever did, for instance a project consuming another's package, adopt-all
-would need an order: adopt and release the dependency first, then the projects
-that depend on it, which turns the single parallel step into stages.
+If one ever did, for instance a project consuming another's package,
+adopt-common would need an order: adopt and release the dependency first, then
+the projects that depend on it, which turns the single parallel step into
+stages.
 
 ## The workspace commands
 
 `iglootools workspace` works on every repository of the organization, listed
 from GitHub with the archived ones left out, each looked for at
-`<workspace>/<name>`, as `adopt-all` does. A checkout whose origin is another
-repository, or a directory there that is not a checkout, is reported and left
-alone. Each command runs the repositories at once and reports every one's
-problems, failing if any had one.
+`<workspace>/<name>`. The listing is kept in
+`.iglootools-workspace/cache/repositories.json` and reused while younger than
+`--cache-ttl` (7 days) unless `--refresh`: repositories are rarely created or
+archived, and every command starts from the list. Only the list is cached; what
+changes by the hour, such as open pull requests and their checks, is always
+asked again. A cache file that cannot be read is an error naming `--refresh`,
+not a silent refetch. A checkout whose origin is another repository, or a
+directory there that is not a checkout, is reported and left alone. Each command
+runs the repositories at once and reports every one's problems, failing if any
+had one.
 
 ### Why sync leaves some checkouts where they are
 

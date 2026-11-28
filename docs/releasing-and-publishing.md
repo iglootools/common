@@ -97,8 +97,8 @@ cd ~/Workspace/iglootools/common
 uv run --no-sync iglootools preflight                          # git, a GitHub token, mise, claude
 uv run --no-sync iglootools common release "$VERSION" -n       # the plan, changing nothing
 uv run --no-sync iglootools common release "$VERSION"
-uv run --no-sync iglootools common adopt-all "$VERSION" -n     # every project: checks and plan
-uv run --no-sync iglootools common adopt-all "$VERSION"
+uv run --no-sync iglootools workspace adopt-common "$VERSION" -n  # every project: checks and plan
+uv run --no-sync iglootools workspace adopt-common "$VERSION"
 ```
 
 - **`common release`** opens the pull request bumping
@@ -107,8 +107,8 @@ uv run --no-sync iglootools common adopt-all "$VERSION"
   GitHub already has, so rerunning it after an interruption finishes the
   release, and rerunning it on a finished release changes nothing.
 - **`--latest`** adopts the newest release, in place of a version, with either
-  command: `iglootools common adopt-all --latest`.
-- **`common adopt-all`** takes every iglootools project checked out in the
+  command: `iglootools workspace adopt-common --latest`.
+- **`workspace adopt-common`** takes every iglootools project checked out in the
   [workspace](setup-development-environment.md#the-iglootools-workspace) that
   pins common, and fails if a repository of the organization pins common without
   a checkout there. It checks that every project's origin is reachable
@@ -131,8 +131,8 @@ uv run --no-sync iglootools common adopt-all "$VERSION"
   in the checkout itself, for a branch you mean to finish by hand.
 
 Renovate would open the adopt pull requests on its own, since the shared preset
-exempts common's releases from the release-age hold; adopt-all does it at once,
-and reports what merged.
+exempts common's releases from the release-age hold; adopt-common does it at
+once, and reports what merged.
 
 ### By hand
 

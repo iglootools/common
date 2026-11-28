@@ -21,19 +21,18 @@ test, which is what the `preflight` workflow runs on each pull request;
 
 ## The iglootools workspace
 
-`iglootools common adopt-all` and the `iglootools workspace` commands work on
-every iglootools project checked out in one directory, the workspace, such as
-`~/Workspace/iglootools`, with common's checkout among them. Mark it with a
-`.iglootools-workspace` directory:
+The `iglootools workspace` commands work on every iglootools project checked out
+in one directory, the workspace, such as `~/Workspace/iglootools`, with common's
+checkout among them. Mark it with a `.iglootools-workspace` directory:
 
 ```bash
 mkdir -p ~/Workspace/iglootools/.iglootools-workspace
 ```
 
-adopt-all finds it from common's checkout, or any directory below the workspace,
-by walking up. The directory is what to set up: it works wherever the command
-runs, including in an agent's or an editor's shell, which does not read your
-shell profile. It also holds the commands' cache, under `cache/`.
+They find it from any directory in the workspace, common's checkout included, by
+walking up. The directory is what to set up: it works wherever the command runs,
+including in an agent's or an editor's shell, which does not read your shell
+profile. It also holds the commands' cache, under `cache/`.
 
 Optionally, to point a shell at another workspace, set `IGLOOTOOLS_WORKSPACE`
 to an absolute path. It wins over the directory:
@@ -43,9 +42,8 @@ export IGLOOTOOLS_WORKSPACE=~/Workspace/iglootools
 ```
 
 A variable that names no directory is an error, not a reason to fall back on the
-marker directory. With neither, adopt-all stops and prints the commands, with
-the directory above common's checkout filled in. Every `iglootools workspace`
-command finds it the same way.
+marker directory. With neither, a workspace command stops and prints the
+commands, with the directory above where it ran filled in.
 
 Then run `iglootools workspace sync`, the first time from common's checkout:
 

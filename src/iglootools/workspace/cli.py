@@ -10,13 +10,15 @@ import threading
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from contextlib import AbstractContextManager
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.live import Live
 from rich.table import Table
 
 from iglootools.build import tasks
@@ -31,10 +33,18 @@ from iglootools.cliwiring import (
     say,
     warn,
 )
+from iglootools.common import (
+    adopt as adoption,
+    adopt_all as everywhere,
+    cli as common_cli,
+    pins,
+    plugin,
+)
 from iglootools.common.plugin import PluginError
 from iglootools.github import merge
 from iglootools.github.cli import github_client
 from iglootools.github.client import GitHub, GitHubError
+from iglootools.github.events import Event, Report
 from iglootools.preflight import requirements
 from iglootools.workspace import (
     clone,
@@ -794,3 +804,289 @@ def _print_clone(results: Sequence[clone.CloneResult], *, dry_run: bool) -> bool
         f"{counts[clone.CloneAction.FAILED]} failed.",
     )
     return not counts[clone.CloneAction.FAILED]
+
+
+@dataclass
+class _Row:
+    stage: str = "starting"
+    pull: int | None = None
+    started: float = field(default_factory=time.monotonic)
+    finished: float | None = None
+
+
+class _Board:
+    """Each project's latest event, shared by the worker threads and the renderer."""
+
+    def __init__(self, names: list[str], *, live: bool) -> None:
+        self.rows = {name: _Row() for name in names}
+        self.live = live
+        self.lock = threading.Lock()
+
+    def report(self, name: str, event: Event) -> None:
+        with self.lock:
+            row = self.rows[name]
+            row.stage = event.detail
+            row.pull = event.pull or row.pull
+        if not self.live:
+            say(f"[{name}] {event.detail}")
+
+    def finish(self, name: str, outcome: adoption.Outcome) -> None:
+        with self.lock:
+            row = self.rows[name]
+            row.stage = f"{outcome.result}: {outcome.reason}"
+            row.pull = outcome.pull_number or row.pull
+            row.finished = time.monotonic()
+
+    def table(self) -> Table:
+        table = Table(box=None, pad_edge=False)
+        for column in ("project", "stage", "PR", "elapsed"):
+            table.add_column(column, no_wrap=column != "stage")
+        with self.lock:
+            for name, row in self.rows.items():
+                seconds = int((row.finished or time.monotonic()) - row.started)
+                table.add_row(
+                    name,
+                    row.stage,
+                    f"#{row.pull}" if row.pull else "",
+                    f"{seconds // 60}:{seconds % 60:02d}",
+                )
+        return table
+
+
+@app.command("adopt-common")
+def adopt_common_cmd(
+    ctx: typer.Context,
+    version: Annotated[str | None, common_cli.ADOPTED_VERSION_ARGUMENT] = None,
+    only: Annotated[
+        list[str] | None,
+        typer.Option("--only", help="Adopt only this project; repeat."),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="Leave this project out; repeat."),
+    ] = None,
+    *,
+    cache_ttl: Annotated[str, CACHE_TTL_OPTION] = DEFAULT_MAX_AGE,
+    refresh: Annotated[bool, REFRESH_OPTION] = False,
+    no_merge: Annotated[
+        bool,
+        typer.Option("--no-merge", help="Open the pull requests, do not merge them."),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", "-n", help="Check and plan, change nothing."),
+    ] = False,
+    skip_plugin: Annotated[bool, common_cli.SKIP_PLUGIN_OPTION] = False,
+    latest: Annotated[bool, common_cli.LATEST_OPTION] = False,
+    keep_worktree: Annotated[bool, common_cli.KEEP_WORKTREE_OPTION] = False,
+    skip_fast_forward: Annotated[bool, common_cli.SKIP_FAST_FORWARD_OPTION] = False,
+) -> None:
+    """
+    Move every project of the workspace to a release of iglootools/common, at once.
+
+    Takes every checked-out project that pins common, common itself aside (narrowed by
+    --only and --exclude), fails when a repository of the organization pins common but
+    has no checkout in the workspace,
+    and checks that every project's origin is reachable without a prompt before
+    changing any. Then adopts them all at once, as `common adopt` does, each in a
+    temporary worktree, so the checkouts are left to whoever works in them; summarises
+    what merged, and updates the Claude Code plugin in each project on the release that
+    enables it. Safe to run again: each project picks up where it stopped.
+    """
+    workplace = adoption.Workplace(
+        keep_worktree=keep_worktree,
+        skip_fast_forward=skip_fast_forward,
+    )
+    ensure(ctx, requirements.COMMON)
+    session = _session(ctx, cache_ttl=cache_ttl, refresh=refresh)
+    github, workspace = session.github, session.workspace
+    version = common_cli.adopted_version_or_exit(github, version, latest=latest)
+    try:
+        sha = pins.tag_commit(github, version)
+        found = everywhere.discover(workspace, session.repositories)
+        selected, left_out = everywhere.select(
+            found.projects,
+            only or [],
+            exclude or [],
+        )
+        unchecked = everywhere.find_unchecked(
+            github,
+            [r for r in found.not_checked_out if r.name not in (exclude or [])],
+        )
+    except everywhere.SelectionError as error:
+        warn(f"{error}.")
+        raise typer.Exit(2) from None
+    except GitHubError as error:
+        warn(f"{error.detail}")
+        raise typer.Exit(1) from None
+    _report_skips([*found.skipped, *left_out], unchecked.passed_over)
+    _stop_if_blocked(_blockers(workspace, unchecked.missing, selected))
+    if not selected:
+        say("No project to adopt.")
+        return
+    if dry_run:
+        _preview_all(
+            github,
+            selected,
+            version,
+            sha,
+            merge_it=not no_merge,
+            skip_plugin=skip_plugin,
+            workplace=workplace,
+        )
+        return
+    outcomes = _run_everywhere(
+        github,
+        selected,
+        version,
+        sha,
+        merge_it=not no_merge,
+        workplace=workplace,
+    )
+    if not _report_all(selected, outcomes, version, skip_plugin=skip_plugin):
+        raise typer.Exit(1)
+
+
+def _report_skips(
+    local: Sequence[everywhere.Skipped],
+    remote: Sequence[everywhere.Skipped],
+) -> None:
+    """
+    Say which checkouts are passed over, and warn of each repository not checked out.
+
+    A repository with no checkout is warned of, so that one meant to pin common but
+    missing the preset is seen rather than silently left on its old release.
+    """
+    for item in local:
+        say(f"Skipping {item.name}: {item.reason}.")
+    for item in remote:
+        warn(f"Skipping {item.name}: {item.reason}.")
+
+
+def _stop_if_blocked(blocked: list[str]) -> None:
+    if blocked:
+        for issue in blocked:
+            warn(issue)
+        warn("Nothing was changed.")
+        raise typer.Exit(1)
+
+
+def _blockers(
+    workspace: Path,
+    missing: list[str],
+    selected: list[everywhere.Project],
+) -> list[str]:
+    """
+    List what stops adopt-common from changing anything.
+
+    That is each repository that pins common but has no checkout, and each problem in
+    a selected project.
+    """
+    return [
+        *(
+            f"{name}: pins common on GitHub, but has no checkout in {workspace}; "
+            "clone it, or pass --exclude"
+            for name in missing
+        ),
+        *(f"{p.name}: {issue}" for p in selected for issue in everywhere.problems(p)),
+    ]
+
+
+def _preview_all(
+    github: GitHub,
+    selected: list[everywhere.Project],
+    version: str,
+    sha: str,
+    *,
+    merge_it: bool,
+    skip_plugin: bool,
+    workplace: adoption.Workplace,
+) -> None:
+    for p in selected:
+        found = adoption.plan(p.root, version, sha)
+        try:
+            update_plugin = not skip_plugin and plugin.is_enabled(p.root)
+        except plugin.PluginError as error:
+            warn(f"[{p.name}] {error.detail}")
+            update_plugin = False
+        for line in adoption.preview(
+            p.root,
+            github,
+            p.repository,
+            found,
+            merge_it=merge_it,
+            update_plugin=update_plugin,
+            workplace=workplace,
+        ):
+            say(f"[dry-run] [{p.name}] {line}")
+
+
+def _summarise(
+    selected: list[everywhere.Project],
+    outcomes: dict[str, adoption.Outcome],
+) -> None:
+    say("")
+    for p in selected:
+        outcome = outcomes[p.name]
+        where = f" #{outcome.pull_number}" if outcome.pull_number else ""
+        line = f"{p.name}{where}: {outcome.result}, {outcome.reason}"
+        (say if outcome.succeeded else warn)(line)
+
+
+def _run_everywhere(
+    github: GitHub,
+    projects: list[everywhere.Project],
+    version: str,
+    sha: str,
+    *,
+    merge_it: bool,
+    workplace: adoption.Workplace,
+) -> dict[str, adoption.Outcome]:
+    console = Console(highlight=False)
+    board = _Board([p.name for p in projects], live=console.is_terminal)
+    stop = threading.Event()
+
+    def adopt_one(
+        project: everywhere.Project,
+        report: Report,
+        sleep: Callable[[float], None],
+        push_guard: AbstractContextManager[object],
+    ) -> adoption.Outcome:
+        outcome = adoption.adopt(
+            project.root,
+            github,
+            project.repository,
+            version,
+            sha,
+            merge_it=merge_it,
+            report=report,
+            sleep=sleep,
+            now=time.monotonic,
+            push_guard=push_guard,
+            workplace=workplace,
+        )
+        board.finish(project.name, outcome)
+        return outcome
+
+    if not board.live:
+        return everywhere.run_all(projects, adopt_one, report=board.report, stop=stop)
+    with Live(get_renderable=board.table, console=console, refresh_per_second=2):
+        return everywhere.run_all(projects, adopt_one, report=board.report, stop=stop)
+
+
+def _report_all(
+    selected: list[everywhere.Project],
+    outcomes: dict[str, adoption.Outcome],
+    version: str,
+    *,
+    skip_plugin: bool,
+) -> bool:
+    """
+    Summarise each outcome, then update the plugin in each project on the release.
+
+    Tell whether every project adopted and every plugin update worked.
+    """
+    _summarise(selected, outcomes)
+    on_release = [(p.name, p.root) for p in selected if outcomes[p.name].on_release]
+    plugins_ok = skip_plugin or common_cli.update_plugins(on_release, version)
+    return plugins_ok and all(outcome.succeeded for outcome in outcomes.values())
