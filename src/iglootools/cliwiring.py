@@ -2,9 +2,11 @@
 
 import os
 import shlex
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -21,6 +23,31 @@ from iglootools.workspace.location import (
 )
 
 console = Console(highlight=False)
+
+
+class OutputFormat(StrEnum):
+    """What a command that prints a result prints it as."""
+
+    HUMAN = "human"
+    JSON = "json"
+
+
+OUTPUT_OPTION = Annotated[
+    OutputFormat,
+    typer.Option("--output", "-o", help="Print the result as human text or JSON."),
+]
+FILE_OPTION = Annotated[
+    Path | None,
+    typer.Option("--file", "-f", help="Write the result to this file, not stdout."),
+]
+
+
+def emit(text: str, file: Path | None) -> None:
+    """Write *text* to *file*, as UTF-8 with a final newline, or print it as is."""
+    if file is None:
+        say(text)
+    else:
+        file.write_text(f"{text}\n", encoding="utf-8")
 
 
 err_console = Console(stderr=True, highlight=False)
@@ -133,7 +160,11 @@ def ensure(ctx: typer.Context, needed: Sequence[requirements.Requirement]) -> No
         raise typer.Exit(1)
 
 
-def resolve_workspace_or_exit(root: Path) -> Path:
+def resolve_workspace_or_exit(
+    root: Path,
+    *,
+    announce: Callable[[str], None] = say,
+) -> Path:
     """Return the workspace, saying what named it; exit 2, saying how to name one."""
     try:
         found = resolve_workspace(root, environ=os.environ)
@@ -144,7 +175,7 @@ def resolve_workspace_or_exit(root: Path) -> Path:
         WorkspaceSource.ENVIRONMENT: f"${ENVIRONMENT_VARIABLE}",
         WorkspaceSource.SENTINEL: f"its {SENTINEL} directory",
     }[found.source]
-    say(f"Workspace: {found.path} (from {named_by}).")
+    announce(f"Workspace: {found.path} (from {named_by}).")
     return found.path
 
 

@@ -1,16 +1,24 @@
 """The `iglootools workspace` commands: work on every project of the organization."""
 
+import dataclasses
+import json
 import shutil
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
 from iglootools.cliwiring import (
+    FILE_OPTION,
+    OUTPUT_OPTION,
+    OutputFormat,
+    emit,
     ensure,
     invocation,
     resolve_workspace_or_exit,
@@ -21,7 +29,7 @@ from iglootools.common.plugin import PluginError
 from iglootools.github.cli import github_client
 from iglootools.github.client import GitHub, GitHubError
 from iglootools.preflight import requirements
-from iglootools.workspace import clone, parallel, plugins, sync
+from iglootools.workspace import clone, parallel, plugins, status, sync
 from iglootools.workspace.location import cache_dir
 from iglootools.workspace.repositories import (
     DEFAULT_MAX_AGE,
@@ -52,6 +60,10 @@ FORCE_OPTION = typer.Option(
     help="Switch a clean checkout to the default branch even from a branch "
     "that has not merged.",
 )
+FETCH_OPTION = typer.Option(
+    "--fetch/--no-fetch",
+    help="Fetch each checkout first, so it is compared with origin as it is.",
+)
 
 
 CACHE_TTL_OPTION = typer.Option(
@@ -79,6 +91,7 @@ def _session(
     *,
     cache_ttl: str,
     refresh: bool,
+    announce: Callable[[str], None] = say,
 ) -> _Session:
     """
     Find the workspace and list the organization's repositories, or exit.
@@ -86,6 +99,8 @@ def _session(
     The listing comes from the workspace's cache while younger than *cache_ttl*, unless
     *refresh*, and is kept there whenever the workspace's marker directory exists.
     Archived repositories are left out, and said so: they take no change.
+    *announce* prints that, the workspace found and the listing's age; a command
+    printing JSON sends them to stderr, keeping stdout to the JSON.
     """
     ensure(ctx, requirements.GITHUB)
     try:
@@ -93,7 +108,7 @@ def _session(
     except ValueError:
         warn(f"--cache-ttl takes 7d, 12h, 30m or 0, not {cache_ttl!r}.")
         raise typer.Exit(2) from None
-    workspace = resolve_workspace_or_exit(invocation(ctx).root)
+    workspace = resolve_workspace_or_exit(invocation(ctx).root, announce=announce)
     cache = cache_dir(workspace)
     github = github_client(ctx)
     now = datetime.now(UTC)
@@ -109,14 +124,14 @@ def _session(
         )
         raise typer.Exit(1) from None
     if listed.cached:
-        say(
+        announce(
             f"Repositories as listed {_ago(now - listed.listed_at)} ago "
             "(--refresh lists them again).",
         )
     found = listed.repositories
     archived = [repository.name for repository in found if repository.archived]
     if archived:
-        say(f"Skipping archived: {', '.join(archived)}.")
+        announce(f"Skipping archived: {', '.join(archived)}.")
     return _Session(
         workspace,
         github,
@@ -341,6 +356,96 @@ def _sync_block(
         lines,
         problems,
     )
+
+
+@app.command("status")
+def status_cmd(
+    ctx: typer.Context,
+    *,
+    cache_ttl: Annotated[str, CACHE_TTL_OPTION] = DEFAULT_MAX_AGE,
+    refresh: Annotated[bool, REFRESH_OPTION] = False,
+    fetch: Annotated[bool, FETCH_OPTION] = True,
+    output: OUTPUT_OPTION = OutputFormat.HUMAN,
+    file: FILE_OPTION = None,
+) -> None:
+    """
+    Show where every repository stands, changing nothing but fetched refs.
+
+    For each: the branch its checkout is on, its uncommitted changes, its default
+    branch's commits ahead of and behind origin's, its other local branches and
+    worktrees, and its open pull requests, Renovate's among them. Clones nothing: a
+    repository the workspace lacks shows as not cloned. Fails if a status could not
+    be read.
+    """
+    session = _session(
+        ctx,
+        cache_ttl=cache_ttl,
+        refresh=refresh,
+        announce=warn if output == OutputFormat.JSON else say,
+    )
+    found = parallel.each(
+        session.repositories,
+        lambda repository: status.read_status(
+            clone.checkout_path(session.workspace, repository),
+            repository,
+            session.github,
+            fetch=fetch,
+        ),
+    )
+    match output:
+        case OutputFormat.JSON:
+            emit(json.dumps([dataclasses.asdict(row) for row in found], indent=2), file)
+        case OutputFormat.HUMAN:
+            print_status(found, file)
+    if any(row.problem for row in found):
+        raise typer.Exit(1)
+
+
+def print_status(found: Sequence[status.RepositoryStatus], file: Path | None) -> None:
+    """Print a row per repository, to *file* or the terminal; warn of each problem."""
+    table = Table()
+    for header in ("repository", "branch"):
+        table.add_column(header, no_wrap=True)
+    for header in ("changes", "vs origin", "branches", "worktrees", "PRs"):
+        table.add_column(header)
+    for row in found:
+        table.add_row(*_status_cells(row))
+    if file is None:
+        Console(highlight=False).print(table)
+    else:
+        with file.open("w", encoding="utf-8") as handle:
+            Console(file=handle, highlight=False, width=200).print(table)
+    for row in found:
+        if row.problem:
+            warn(f"{row.name}: {row.problem}")
+
+
+def _status_cells(row: status.RepositoryStatus) -> list[str]:
+    """Return a status row's cells, as plain text: names are not markup."""
+    pulls = f"{row.open_pulls}" + (
+        f" ({row.renovate_pulls} Renovate)" if row.renovate_pulls else ""
+    )
+    if not row.cloned:
+        return [row.name, "not cloned", "", "", "", "", pulls]
+    standing = (
+        "up to date"
+        if not row.ahead and not row.behind
+        else ", ".join(
+            [
+                *([f"{row.ahead} ahead"] if row.ahead else []),
+                *([f"{row.behind} behind"] if row.behind else []),
+            ],
+        )
+    )
+    return [
+        row.name,
+        row.branch or "detached",
+        str(row.changes) if row.changes else "",
+        standing,
+        str(len(row.branches)) if row.branches else "",
+        str(row.worktrees) if row.worktrees else "",
+        pulls,
+    ]
 
 
 def clone_all(
