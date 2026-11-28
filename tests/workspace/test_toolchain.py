@@ -51,6 +51,7 @@ PYPROJECT = '[project]\nname = "iglootools"\nrequires-python = ">=3.14,<3.16"\n'
 def _github(
     files: Mapping[str, str],
     tags: Sequence[str] = ("v2.4.1", "v2.5.0"),
+    read_at: str = "v2.5.0",
 ) -> GitHub:
     def transport(
         _method: str,
@@ -63,7 +64,7 @@ def _github(
             listed = [{"name": tag} for tag in tags] if path.endswith("page=1") else []
             return 200, json.dumps(listed).encode()
         name, _, ref = path.removeprefix("/contents/").partition("?ref=")
-        assert ref == "v2.5.0", "read at the newest release"
+        assert ref == read_at, f"read at {read_at}"
         if name not in files:
             return 404, b'{"message": "Not Found"}'
         content = base64.b64encode(files[name].encode()).decode()
@@ -86,6 +87,15 @@ def test_a_release_without_a_pin_names_what_it_lacks() -> None:
         ToolchainErrorKind.MISSING_PIN,
         "v2.5.0",
         ("mise.toml [settings] python.uv_venv_auto",),
+    )
+
+
+def test_a_named_release_is_read_at_its_own_tag() -> None:
+    github = _github({"mise.toml": MISE, "pyproject.toml": PYPROJECT}, read_at="v2.4.1")
+    assert toolchain.at_release(github, "2.4.1") == Toolchain(
+        "2.4.1",
+        TOOLCHAIN.requires_python,
+        TOOLCHAIN.mise,
     )
 
 

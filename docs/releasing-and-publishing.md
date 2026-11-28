@@ -119,7 +119,8 @@ uv run --no-sync iglootools workspace adopt-common "$VERSION"
   its pull request once green, deleting the branch. It then fast-forwards each
   checkout's default branch where that is safe, or says why it did not;
   `--skip-fast-forward` leaves them as they are, and `--keep-worktree` keeps the
-  worktree of a project whose steps failed, to inspect. Then it updates the
+  worktree of a project whose steps failed, to inspect. It moves the
+  workspace's own `iglootools` to the release as well. Then it updates the
   Claude Code plugin installed for each project on the release whose
   `.claude/settings.json` enables it, since the repository and the plugin a
   session loads would otherwise disagree until someone ran

@@ -244,7 +244,7 @@ def sync_cmd(
     worktrees, and every problem; fails if there was any problem.
     """
     session = _session(ctx, cache_ttl=cache_ttl, refresh=refresh)
-    setup = _set_up_workspace(session, dry_run=dry_run)
+    setup = _set_up_workspace(session, version=None, dry_run=dry_run)
     cloned = clone_all(
         session.workspace,
         session.repositories,
@@ -281,10 +281,19 @@ def sync_cmd(
         raise typer.Exit(1)
 
 
-def _set_up_workspace(session: _Session, *, dry_run: bool) -> toolchain.SetupResult:
-    """Keep the workspace's own iglootools on common's newest release."""
+def _set_up_workspace(
+    session: _Session,
+    *,
+    version: str | None,
+    dry_run: bool,
+) -> toolchain.SetupResult:
+    """Put the workspace's iglootools on release *version*; the newest if None."""
     try:
-        found = toolchain.recommended(session.github)
+        found = (
+            toolchain.recommended(session.github)
+            if version is None
+            else toolchain.at_release(session.github, version)
+        )
     except GitHubError as error:
         return toolchain.SetupResult(problems=[error.detail])
     except toolchain.ToolchainError as error:
@@ -295,6 +304,16 @@ def _set_up_workspace(session: _Session, *, dry_run: bool) -> toolchain.SetupRes
         dry_run=dry_run,
         run=run.captured(run.child_environment(os.environ)),
     )
+
+
+def _print_setup(setup: toolchain.SetupResult, label: str) -> None:
+    """Print what setting the workspace up did, under a `workspace:` header."""
+    if setup.done or setup.problems:
+        say(f"{label}workspace:")
+        for line in setup.done:
+            say(f"  {line}")
+        for problem in setup.problems:
+            warn(f"  ! {problem}")
 
 
 def _describe_toolchain_error(error: toolchain.ToolchainError) -> str:
@@ -346,12 +365,7 @@ def print_sync(
 ) -> bool:
     """Print each repository's block, then a summary; tell whether nothing failed."""
     label = "[dry-run] " if dry_run else ""
-    if setup.done or setup.problems:
-        say(f"{label}workspace:")
-        for line in setup.done:
-            say(f"  {line}")
-        for problem in setup.problems:
-            warn(f"  ! {problem}")
+    _print_setup(setup, label)
     clone_problems = [f"{r.name}: {r.problem}" for r in cloned if r.problem]
     for result in cloned:
         if result.action == clone.CloneAction.CLONED:
@@ -884,7 +898,9 @@ def adopt_common_cmd(
     """
     Move every project of the workspace to a release of iglootools/common, at once.
 
-    Takes every checked-out project that pins common, common itself aside (narrowed by
+    Also puts the workspace's own iglootools on the release, as workspace sync does
+    for the newest. Takes every checked-out project that pins common, common itself
+    aside (narrowed by
     --only and --exclude), fails when a repository of the organization pins common but
     has no checkout in the workspace,
     and checks that every project's origin is reachable without a prompt before
@@ -921,30 +937,57 @@ def adopt_common_cmd(
         raise typer.Exit(1) from None
     _report_skips([*found.skipped, *left_out], unchecked.passed_over)
     _stop_if_blocked(_blockers(workspace, unchecked.missing, selected))
+    projects_ok = _adopt_projects(
+        github,
+        selected,
+        version,
+        sha,
+        merge_it=not no_merge,
+        skip_plugin=skip_plugin,
+        workplace=workplace,
+        dry_run=dry_run,
+    )
+    setup = _set_up_workspace(session, version=version, dry_run=dry_run)
+    _print_setup(setup, "[dry-run] " if dry_run else "")
+    if not projects_ok or setup.problems:
+        raise typer.Exit(1)
+
+
+def _adopt_projects(
+    github: GitHub,
+    selected: list[everywhere.Project],
+    version: str,
+    sha: str,
+    *,
+    merge_it: bool,
+    skip_plugin: bool,
+    workplace: adoption.Workplace,
+    dry_run: bool,
+) -> bool:
+    """Adopt *version* in every selected project, or preview it; tell if all did."""
     if not selected:
         say("No project to adopt.")
-        return
+        return True
     if dry_run:
         _preview_all(
             github,
             selected,
             version,
             sha,
-            merge_it=not no_merge,
+            merge_it=merge_it,
             skip_plugin=skip_plugin,
             workplace=workplace,
         )
-        return
+        return True
     outcomes = _run_everywhere(
         github,
         selected,
         version,
         sha,
-        merge_it=not no_merge,
+        merge_it=merge_it,
         workplace=workplace,
     )
-    if not _report_all(selected, outcomes, version, skip_plugin=skip_plugin):
-        raise typer.Exit(1)
+    return _report_all(selected, outcomes, version, skip_plugin=skip_plugin)
 
 
 def _report_skips(

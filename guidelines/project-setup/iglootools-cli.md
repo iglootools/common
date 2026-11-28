@@ -44,7 +44,7 @@ script in the project.
 | `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
 | `iglootools common check-indexes` | failing when a shared guideline is missing from its directory's index (in common only) |
 | `iglootools common check-pins` | failing when the pins on common disagree, or `adopt` would miss one |
-| `iglootools workspace adopt-common <version>` | adopting a release of common (`--latest` for the newest) in every project of the workspace, in parallel, each in a temporary worktree, after checking all of them |
+| `iglootools workspace adopt-common <version>` | adopting a release of common (`--latest` for the newest) in every project of the workspace, in parallel, each in a temporary worktree, after checking all of them, and in the workspace's own `iglootools` |
 | `iglootools workspace clone` | cloning every repository of the organization the workspace lacks, and fetching the rest |
 | `iglootools workspace sync` | the workspace's own `iglootools` on common's newest release, `clone`, then each checkout on an up-to-date default branch, merged branches deleted, the Claude Code plugins its project enables installed and current; reports what is left |
 | `iglootools workspace status` | a table of every repository: its branch, uncommitted changes, standing against origin, branches, worktrees and open pull requests |

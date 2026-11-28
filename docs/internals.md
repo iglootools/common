@@ -231,7 +231,12 @@ adopt-common after an interruption or a failure resumes each project where it
 stopped. Progress is a live table in a terminal and lines prefixed with the
 project's name elsewhere, from the same events.
 
-Once every project has finished, each one on the release has its Claude Code
+Once every project has finished, the workspace's own `iglootools` moves to the
+release too, as `workspace sync` moves it to the newest: its `pyproject.toml`
+and `mise.toml` are written from common at that release, then installed. A
+release older than the newest moves it back, and the next sync forward again.
+
+Each project on the release then has its Claude Code
 plugins brought up to date, as `iglootools workspace sync` does: each
 marketplace the projects use is refreshed once, then every plugin a project's
 `.claude/settings.json` enables is updated where it is installed for that

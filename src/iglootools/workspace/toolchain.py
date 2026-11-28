@@ -126,6 +126,16 @@ def recommended(github: GitHub) -> Toolchain:
     version = pins.latest_release(github)
     if version is None:
         raise ToolchainError(ToolchainErrorKind.NO_RELEASE)
+    return at_release(github, version)
+
+
+def at_release(github: GitHub, version: str) -> Toolchain:
+    """
+    Read common's release *version*, and the entries the workspace takes from it.
+
+    Raises ToolchainError when it lacks a file or an entry; GitHubError when GitHub
+    cannot be asked, or has no such release.
+    """
     tag = f"v{version}"
     mise = _read_toml(github, tag, MISE_CONFIG)
     requires = lookup(
