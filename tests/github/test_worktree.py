@@ -161,3 +161,14 @@ class TestFastForward:
         assert (
             worktree.fast_forward(clone, "main").action == FastForwardAction.UP_TO_DATE
         )
+
+    def test_a_dry_run_says_what_it_would_do_and_moves_nothing(
+        self,
+        clone: Path,
+    ) -> None:
+        advance_origin(clone)
+        git(clone, "fetch", "-q", "origin")
+        before = git(clone, "rev-parse", "main")
+        result = worktree.fast_forward(clone, "main", dry_run=True)
+        assert result.action == FastForwardAction.MERGE
+        assert git(clone, "rev-parse", "main") == before

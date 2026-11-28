@@ -1,11 +1,13 @@
 # Usage
 
-How to run the audits and act on their reports, for two readers:
+How to run the audits and act on their reports, and how to work across every
+project at once, for two readers:
 
 - **Anyone working in an iglootools project** with the plugin installed: the
-  `/iglootools:audit-*` skills, in every section but the last.
-- **Whoever maintains common**: the last section's `/audit-consistency-*`
-  skills, which exist only in common's own checkout.
+  `/iglootools:audit-*` skills, in the first three sections.
+- **Whoever maintains common, or several projects**: the
+  `/audit-consistency-*` skills, which exist only in common's own checkout, and
+  the `iglootools workspace` commands.
 
 Installing the plugin is in [installation.md](installation.md), and how the
 skills and hooks work in [internals.md](internals.md).
@@ -20,6 +22,7 @@ load into each session and are read as a change reaches the files they govern.
 - [Audit the whole codebase](#audit-the-whole-codebase)
 - [Fix the findings of an audit](#fix-the-findings-of-an-audit)
 - [Check the projects against common](#check-the-projects-against-common)
+- [Work across every project](#work-across-every-project)
 <!-- tocstop -->
 
 ## Audit a branch before review
@@ -83,8 +86,9 @@ common. One skill per area:
 ```
 
 1. Check out each project beside common (`~/Workspace/iglootools/<project>`),
-   on its default branch and pulled. A project on another branch or with
-   uncommitted changes is still audited, and flagged in the report.
+   on its default branch and pulled: `iglootools workspace sync` does both when
+   common is in the workspace. A project on another branch or with uncommitted
+   changes is still audited, and flagged in the report.
 2. Run the skill. Name projects to narrow it; `only:` and `skip:` take
    `CONFLICT`, `STALE`, `DUP`, `PROMOTE` and `DIVERGE`, defined in the
    [`consistency-auditor` agent](../.claude/agents/consistency-auditor.md#categories).
@@ -99,3 +103,39 @@ A `PROMOTE` lands in three steps: add the rule or setting to common, release it
 and adopt the release everywhere, as
 [releasing-and-publishing.md](releasing-and-publishing.md#releasing) shows,
 and only then remove each project's copy, so no project is ever without it.
+
+## Work across every project
+
+The `iglootools workspace` commands act on every repository of the organization
+at once, in the workspace
+[setup-development-environment.md](setup-development-environment.md#the-iglootools-workspace)
+describes, from any directory inside it:
+
+```bash
+uv run --no-sync iglootools workspace status       # where every checkout stands
+uv run --no-sync iglootools workspace sync -n      # what sync would do
+uv run --no-sync iglootools workspace sync         # clone, update, prune, plugins
+uv run --no-sync iglootools workspace run preflight
+uv run --no-sync iglootools workspace renovate --merge
+```
+
+- **`status`** changes nothing but fetched refs. Start there.
+- **`sync`** also keeps the workspace's own `iglootools` on common's newest
+  release, which is what the commands above run with
+  ([setup](setup-development-environment.md#the-iglootools-workspace)).
+- **`sync`** leaves alone what holds someone's work: a checkout with
+  uncommitted changes, one on a branch that has not merged (`--force` switches
+  it), and a branch with commits its default branch lacks. It names each, with
+  why, and every branch and worktree it kept. Restart Claude Code, or run
+  `/reload-plugins`, in a project whose plugins it changed.
+- **`run`** runs the task in each project's own environment, writes each one's
+  output to a log, and shows the end of a failing one.
+- **`renovate`** lists the open Renovate pull requests with what
+  merge-when-green would do; `--merge` merges the ones it would not refuse.
+
+`init` sets up a new workspace, as
+[setup-development-environment.md](setup-development-environment.md#the-iglootools-workspace)
+shows, and `clone` alone fills it. Each command takes `--help`.
+
+`iglootools repo sync`, `status`, `renovate`, `run` and `adopt-common` do the
+same on the repository you are in alone, with the same options.

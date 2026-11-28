@@ -63,11 +63,18 @@ GITHUB_TOKEN = Requirement(
 GITHUB = (GIT, GITHUB_TOKEN)
 """What every `iglootools github` command needs."""
 COMMON = (GIT, GITHUB_TOKEN, MISE, CLAUDE)
-"""What every `iglootools common` command needs."""
+"""What adopting or releasing iglootools/common needs."""
 BUILD = (MISE,)
-"""What `iglootools build` needs."""
+"""What `iglootools repo run` needs."""
 
-SUBSYSTEMS = {"github": GITHUB, "common": COMMON, "build": BUILD}
+SUBSYSTEMS = {
+    "github": GITHUB,
+    "common": COMMON,
+    "repo adopt-common": COMMON,
+    "workspace": GITHUB,
+    "workspace adopt-common": COMMON,
+    "repo run": BUILD,
+}
 ALL = tuple(
     dict.fromkeys(
         requirement for group in SUBSYSTEMS.values() for requirement in group

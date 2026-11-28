@@ -1,3 +1,4 @@
+import base64
 import json
 import subprocess
 import threading
@@ -11,14 +12,15 @@ from iglootools.common import adopt, adopt_all
 from iglootools.common.adopt_all import Project, Skipped
 from iglootools.github.client import GitHub, GitHubError, GitHubErrorKind, Repository
 from iglootools.github.events import Event, Report, Stage
+from iglootools.workspace.repositories import OrganizationRepository
 from tests.conftest import UnexpectedCallError
 
 ORIGINS = {
     "common": "git@github.com:iglootools/common.git",
     "nbkp": "git@github.com:iglootools/nbkp.git",
-    "dotfiles": "git@github.com:someone/dotfiles.git",
-    "notes": "git@gitlab.com:someone/notes.git",
     ".github": "git@github.com:iglootools/.github.git",
+    "photree": "git@github.com:someone/photree.git",
+    "old": "git@github.com:iglootools/old.git",
 }
 PINS = {
     "nbkp": "uses: iglootools/common/.github/workflows/r.yml@"
@@ -27,12 +29,22 @@ PINS = {
 }
 
 
+def _repository(name: str, *, archived: bool = False) -> OrganizationRepository:
+    return OrganizationRepository(
+        name,
+        archived=archived,
+        default_branch="main",
+        ssh_url="",
+        https_url="",
+    )
+
+
 def _workspace(tmp_path: Path) -> Path:
     for name in ORIGINS:
         (tmp_path / name / ".git").mkdir(parents=True)
         if name in PINS:
             (tmp_path / name / "release.yml").write_text(PINS[name])
-    (tmp_path / "not-a-repo").mkdir()
+    (tmp_path / "unrelated").mkdir()
     return tmp_path
 
 
@@ -52,18 +64,27 @@ def _git(command: Sequence[str], directory: Path) -> subprocess.CompletedProcess
             raise UnexpectedCallError(command)
 
 
-def test_discovery_takes_the_organization_s_projects_that_pin_common(
+def test_discovery_sorts_the_organization_by_what_the_workspace_holds(
     tmp_path: Path,
 ) -> None:
-    projects, skipped = adopt_all.discover(_workspace(tmp_path), run=_git)
-    assert projects == [
+    repositories = [
+        _repository(".github"),
+        _repository("common"),
+        _repository("nbkp"),
+        _repository("newproject"),
+        _repository("old", archived=True),
+        _repository("photree"),
+    ]
+    found = adopt_all.discover(_workspace(tmp_path), repositories, run=_git)
+    assert found.projects == [
         Project("nbkp", tmp_path / "nbkp", Repository("iglootools", "nbkp")),
     ]
-    assert skipped == [
+    assert found.skipped == [
         Skipped(".github", "pins nothing on common"),
-        Skipped("dotfiles", "belongs to someone"),
-        Skipped("notes", "origin is not a GitHub repository"),
+        Skipped("old", "archived"),
+        Skipped("photree", "its origin is someone/photree, not iglootools/photree"),
     ]
+    assert found.not_checked_out == [_repository("newproject")]
 
 
 PROJECTS = [
@@ -91,27 +112,80 @@ def test_naming_a_project_the_workspace_lacks_is_an_error() -> None:
     assert raised.value.unknown == ("nbpk",)
 
 
-def test_a_repository_that_pins_common_without_a_checkout_is_reported() -> None:
+def _config(text: str) -> bytes:
+    content = base64.b64encode(text.encode()).decode()
+    return json.dumps({"content": content, "encoding": "base64"}).encode()
+
+
+RENOVATE_CONFIGS = {
+    "newproject": _config('{"extends": ["github>iglootools/common//renovate/base"]}'),
+    "docs-site": _config('{"extends": ["config:recommended"]}'),
+}
+
+
+def _organization(
+    contents_status: int = 404,
+) -> Callable[[str, str, Mapping[str, str], bytes | None], tuple[int, bytes]]:
     def transport(
         _method: str,
         url: str,
         _headers: Mapping[str, str],
         _body: bytes | None,
     ) -> tuple[int, bytes]:
-        assert "/search/code?q=" in url
-        assert "filename%3Arenovate.json" in url
-        items = [
-            {"repository": {"name": name}}
-            for name in ("common", "nbkp", "photree", "newproject", "old")
-        ]
-        return 200, json.dumps({"items": items}).encode()
+        path = url.removeprefix("https://api.github.com")
+        name = path.removeprefix("/repos/iglootools/").removesuffix(
+            "/contents/renovate.json",
+        )
+        if name in RENOVATE_CONFIGS:
+            return 200, RENOVATE_CONFIGS[name]
+        return contents_status, b'{"message": "Not Found"}'
 
-    missing = adopt_all.missing_checkouts(
-        GitHub("t", transport=transport),
-        {"nbkp", "photree"},
-        {"old"},
+    return transport
+
+
+def test_every_repository_without_a_checkout_is_sorted_by_whether_it_pins_common() -> (
+    None
+):
+    unchecked = adopt_all.find_unchecked(
+        GitHub("t", transport=_organization()),
+        [_repository("docs-site"), _repository("empty"), _repository("newproject")],
     )
-    assert missing == ["newproject"]
+    assert unchecked.missing == ["newproject"]
+    assert unchecked.passed_over == [
+        Skipped(
+            "docs-site",
+            "not checked out, and its renovate.json does not extend iglootools/common",
+        ),
+        Skipped(
+            "empty",
+            "not checked out, and its renovate.json does not extend iglootools/common",
+        ),
+    ]
+
+
+def test_a_renovate_config_github_will_not_serve_stops_the_run() -> None:
+    with pytest.raises(GitHubError) as raised:
+        adopt_all.find_unchecked(
+            GitHub("t", transport=_organization(contents_status=500)),
+            [_repository("newproject"), _repository("empty")],
+        )
+    assert raised.value.status == 500
+
+
+@pytest.mark.parametrize(
+    ("config", "extends"),
+    [
+        ('{"extends": ["github>iglootools/common//renovate/base#v2.5.0"]}', True),
+        ('{"extends": ["config:recommended"]}', False),
+        (None, False),
+    ],
+)
+def test_extends_common_reads_the_renovate_config(
+    config: str | None,
+    *,
+    extends: bool,
+) -> None:
+    assert adopt_all.extends_common(config) is extends
 
 
 def _reach(status: int) -> Callable[..., subprocess.CompletedProcess[str]]:

@@ -43,10 +43,24 @@ type Run = Callable[[Sequence[str], Path], subprocess.CompletedProcess[str]]
 
 @dataclass(frozen=True)
 class Rewrite:
-    """A file's text with its pins moved, and how many pins moved."""
+    """
+    A file's text as adopting leaves it: its pins moved, and its renamed commands.
+
+    *changed* counts the pins moved, *renamed* the renamed commands rewritten.
+    """
 
     text: str
     changed: int
+    renamed: int = 0
+
+    def describe(self) -> str:
+        """Say what changed in the file: "1 pin(s)", "2 renamed command(s)", or both."""
+        return " and ".join(
+            [
+                *([f"{self.changed} pin(s)"] if self.changed else []),
+                *([f"{self.renamed} renamed command(s)"] if self.renamed else []),
+            ],
+        )
 
 
 def rewrite(text: str, version: str, sha: str) -> Rewrite:
@@ -189,6 +203,26 @@ def scan(root: Path, *, run: Run = capture) -> tuple[list[Reference], Locked | N
     return found, locked(
         uv_lock.read_text(encoding="utf-8"),
     ) if uv_lock.is_file() else None
+
+
+def latest_release(github: GitHub) -> str | None:
+    """
+    Return the newest release of common, as X.Y.Z, None when it has none.
+
+    A release is a `vX.Y.Z` tag, the one projects pin; the newest is the highest
+    version, not the latest tagged. Raises GitHubError when the tags cannot be listed.
+    """
+    names = [str(tag["name"]) for tag in github.get_all(f"/repos/{COMMON.slug}/tags")]
+    versions = [
+        name.removeprefix("v")
+        for name in names
+        if name.startswith("v") and VERSION.match(name.removeprefix("v"))
+    ]
+    return max(versions, key=_version_key, default=None)
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
 
 
 def tag_commit(github: GitHub, version: str) -> str:

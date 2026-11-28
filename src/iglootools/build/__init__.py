@@ -1,1 +1,1 @@
-"""List and run the project's mise tasks by family: `iglootools build`."""
+"""List and run the project's mise tasks by family: `iglootools repo run`."""

@@ -175,3 +175,26 @@ def test_consistent_pins_have_no_problems() -> None:
         '"iglootools @ git+https://github.com/iglootools/common@v1.33.0",\n',
     )
     assert pins.problems(found, pins.Locked("1.33.0", NEW), ROOT) == []
+
+
+def _tags(names: list[str]) -> GitHub:
+    def transport(
+        _method: str,
+        url: str,
+        _headers: Mapping[str, str],
+        _body: bytes | None,
+    ) -> tuple[int, bytes]:
+        assert "/repos/iglootools/common/tags?" in url
+        listed = [{"name": name} for name in names] if url.endswith("page=1") else []
+        return 200, json.dumps(listed).encode()
+
+    return GitHub("t", transport=transport)
+
+
+def test_the_latest_release_is_the_highest_plain_version_tag() -> None:
+    github = _tags(["v2.10.0", "iglootools--v3.0.0", "v2.9.1", "v3.0.0-rc1", "next"])
+    assert pins.latest_release(github) == "2.10.0"
+
+
+def test_a_common_without_releases_has_no_latest() -> None:
+    assert pins.latest_release(_tags(["iglootools--v1.0.0"])) is None

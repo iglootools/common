@@ -114,14 +114,22 @@ class FastForward:
     checkout: Path | None = None
 
 
-def fast_forward(root: Path, base: str, *, run: Run = capture) -> FastForward:
+def fast_forward(
+    root: Path,
+    base: str,
+    *,
+    dry_run: bool = False,
+    run: Run = capture,
+) -> FastForward:
     """
     Fast-forward the local *base* to origin's, wherever it is checked out, if safe.
 
-    Fetches *base* first. Leaves it alone, saying why, as plan_fast_forward decides.
-    Raises GitStepError when a git step fails.
+    Fetches *base* first. Leaves it alone, saying why, as plan_fast_forward decides. A
+    dry run neither fetches nor moves anything, and returns what it would do against
+    the remote-tracking branch as it stands. Raises GitStepError when a git step fails.
     """
-    local.git(root, "fetch", "-q", "origin", base, run=run)
+    if not dry_run:
+        local.git(root, "fetch", "-q", "origin", base, run=run)
     ours = local.git(root, "rev-parse", f"refs/heads/{base}", run=run).strip()
     theirs = local.git(
         root,
@@ -146,6 +154,8 @@ def fast_forward(root: Path, base: str, *, run: Run = capture) -> FastForward:
         clean=clean,
     )
     match action:
+        case _ if dry_run:
+            pass  # only planning
         case FastForwardAction.MOVE_REF:
             local.git(root, "update-ref", f"refs/heads/{base}", theirs, ours, run=run)
         case FastForwardAction.MERGE if checkout is not None:

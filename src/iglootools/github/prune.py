@@ -1,8 +1,10 @@
 """
 Delete the branches whose pull request has merged, on GitHub and locally.
 
-A branch is deleted only when its latest pull request is merged. Everything else is
-kept, each for a reason the plan states: the default branch, a protected branch, a
+A branch is deleted only when its latest pull request is merged and the default branch
+holds every commit it has: one pushed to again after the merge, as Renovate does when it
+reuses a branch name, carries work nobody merged. Everything else is kept, each for a
+reason the plan states: the default branch, a protected branch, a
 branch with an open pull request, one whose latest pull request was closed without
 merging (it may hold work nobody merged), and one with no pull request at all, such as
 `gh-pages`.
@@ -11,8 +13,10 @@ merging (it may hold work nobody merged), and one with no pull request at all, s
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
+from urllib.parse import quote
 
-from iglootools.github.client import GitHub, GitHubError, Repository
+from iglootools.github.client import GitHub, GitHubError, Repository, Run, capture
 
 
 class PullState(StrEnum):
@@ -34,6 +38,18 @@ class Branch:
     protected: bool
     pull: PullState
     pull_number: int | None = None
+    ahead: int = 0
+    """Commits the branch on GitHub has that the default branch lacks; 0 if unknown."""
+
+    @property
+    def where(self) -> str:
+        """Say where the branch is: locally, on GitHub, or both."""
+        return " and ".join(
+            [
+                *(["local"] if self.local else []),
+                *(["GitHub"] if self.on_remote else []),
+            ],
+        )
 
 
 @dataclass(frozen=True)
@@ -52,6 +68,12 @@ def decide(branch: Branch, default_branch: str) -> Decision:
             return Decision(branch, delete=False, reason="default branch")
         case Branch(protected=True):
             return Decision(branch, delete=False, reason="protected")
+        case Branch(pull=PullState.MERGED, pull_number=number, ahead=ahead) if ahead:
+            return Decision(
+                branch,
+                delete=False,
+                reason=f"{ahead} commit(s) pushed after #{number} merged",
+            )
         case Branch(pull=PullState.MERGED, pull_number=number):
             return Decision(branch, delete=True, reason=f"#{number} merged")
         case Branch(pull=PullState.OPEN, pull_number=number):
@@ -118,11 +140,28 @@ def gather(
             protected=remote.get(name, False),
             pull=state,
             pull_number=number,
+            ahead=ahead_of(github, repository, default_branch, name)
+            if state == PullState.MERGED and name in remote
+            else 0,
         )
         for name in names
         if name != default_branch
         for state, number in [latest_pull(github, repository, name)]
     ]
+
+
+def ahead_of(
+    github: GitHub,
+    repository: Repository,
+    default_branch: str,
+    branch: str,
+) -> int:
+    """Return how many commits *branch* on GitHub has that *default_branch* lacks."""
+    compared = github.get(
+        f"/repos/{repository.slug}/compare/"
+        f"{quote(default_branch, safe='/')}...{quote(branch, safe='/')}",
+    )
+    return int(compared["ahead_by"])
 
 
 def delete_remote(github: GitHub, repository: Repository, branch: str) -> None:
@@ -132,3 +171,54 @@ def delete_remote(github: GitHub, repository: Repository, branch: str) -> None:
     except GitHubError as error:
         if error.status not in (404, 422):
             raise
+
+
+@dataclass(frozen=True)
+class Pruned:
+    """What deleting one merged branch did, or would do, and what kept part of it."""
+
+    done: list[str]
+    problems: list[str]
+
+
+def delete_merged(
+    github: GitHub,
+    repository: Repository,
+    decision: Decision,
+    root: Path | None,
+    *,
+    current: str,
+    dry_run: bool,
+    run: Run = capture,
+) -> Pruned:
+    """
+    Delete the branch *decision* chose, on GitHub and in the checkout at *root*.
+
+    *root* is None when there is no checkout of *repository* to clean. The branch the
+    checkout is on (*current*) is kept, and so is a local one `git branch -d` refuses,
+    holding commits the default branch lacks: each is a problem of the result. A dry run
+    changes nothing and says what it would do. Raises GitHubError when GitHub refuses.
+    """
+    branch = decision.branch
+    verb = "would delete" if dry_run else "deleted"
+    if branch.on_remote and not dry_run:
+        delete_remote(github, repository, branch.name)
+    remote = (
+        [f"{verb} {branch.name} on GitHub ({decision.reason})"]
+        if branch.on_remote
+        else []
+    )
+    locally = f"{verb} the local {branch.name} ({decision.reason})"
+    if root is None or not branch.local:
+        return Pruned(remote, [])
+    if branch.name == current:
+        return Pruned(remote, [f"kept the local {branch.name}: it is checked out"])
+    if dry_run:
+        return Pruned([*remote, locally], [])
+    result = run(["git", "branch", "-q", "-d", branch.name], root)
+    if result.returncode != 0:
+        return Pruned(
+            remote,
+            [f"kept the local {branch.name}: {result.stderr.strip()}"],
+        )
+    return Pruned([*remote, locally], [])

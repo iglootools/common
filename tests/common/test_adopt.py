@@ -486,3 +486,28 @@ class TestTidyAfterMerge:
         assert said == ""
         assert git(clone, "rev-parse", "main") == before
         assert BRANCH not in git(clone, "branch")
+
+
+def test_adopting_renames_the_commands_the_release_renamed(tmp_path: Path) -> None:
+    root = _project(tmp_path)
+    task = 'run = "uv run --no-sync iglootools common check-pins"'
+    (root / "mise.toml").write_text(f"[tasks.lint-common-pins]\n{task}\n")
+    tools = FakeTools()
+    found = adopt.plan(root, "1.33.1", SHA, run=tools)
+    assert {
+        path.name: rewritten.describe() for path, rewritten in found.files.items()
+    } == {
+        "mise.toml": "1 renamed command(s)",
+        "renovate.json": "1 pin(s)",
+    }
+    assert "iglootools repo lint-common-pins" in found.files[root / "mise.toml"].text
+    lines = adopt.preview(
+        root,
+        GitHub("t", transport=FakeGitHub()),
+        REPO,
+        found,
+        merge_it=False,
+        update_plugin=False,
+        run=tools,
+    )
+    assert "Would change 1 renamed command(s) in mise.toml" in lines

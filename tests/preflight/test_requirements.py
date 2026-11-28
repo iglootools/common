@@ -92,9 +92,24 @@ def test_the_github_token_comes_from_the_environment_or_gh(
 
 
 def test_each_requirement_names_the_subsystems_that_need_it() -> None:
-    assert requirements.needed_by(GIT) == ["github", "common"]
-    assert requirements.needed_by(MISE) == ["common", "build"]
-    assert requirements.needed_by(CLAUDE) == ["common"]
+    assert requirements.needed_by(GIT) == [
+        "github",
+        "common",
+        "repo adopt-common",
+        "workspace",
+        "workspace adopt-common",
+    ]
+    assert requirements.needed_by(MISE) == [
+        "common",
+        "repo adopt-common",
+        "workspace adopt-common",
+        "repo run",
+    ]
+    assert requirements.needed_by(CLAUDE) == [
+        "common",
+        "repo adopt-common",
+        "workspace adopt-common",
+    ]
 
 
 def test_preflight_checks_every_requirement_once() -> None:

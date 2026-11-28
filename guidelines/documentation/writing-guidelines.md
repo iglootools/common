@@ -126,7 +126,7 @@ configuration is the specification. When nothing enforces it yet, look for a way
 to add a check before settling for prose: one of the tools
 [general.md › Enforce with a tool what a tool can check](../coding/general.md#enforce-with-a-tool-what-a-tool-can-check)
 names, a `lint-*` task, or a small `iglootools` command such as
-`common check-pins`.
+`repo lint-common-pins`.
 
 **Why:** prose that spells out what a check enforces is a second copy of the
 check. When the check changes, the prose quietly goes wrong. A rule held only in
