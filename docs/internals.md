@@ -57,7 +57,7 @@ that tries to disprove them, and write a Markdown report to
 `.iglootools/audits/`. All three set `disable-model-invocation`, so they run
 only when typed, because an audit starts several agents and costs accordingly.
 The report-writing steps they share are in
-[skills/audit-pr/assemble-report.md](../skills/audit-pr/assemble-report.md).
+[audit/assemble-report.md](../audit/assemble-report.md).
 
 The skills run in the main conversation rather than in a subagent of their own,
 for two reasons. The findings have to be in the conversation that will fix them.

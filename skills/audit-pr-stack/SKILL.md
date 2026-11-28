@@ -99,7 +99,7 @@ commit list and changed files, and its worktree as the repository root.
 
 ## 6. Run the auditors and write the reports
 
-Follow `${CLAUDE_PLUGIN_ROOT}/skills/audit-pr/assemble-report.md` for every pull
+Follow `${CLAUDE_PLUGIN_ROOT}/audit/assemble-report.md` for every pull
 request at once, with these changes:
 
 - **Steps 1 and 4.** Start the auditors of every pull request in one message,

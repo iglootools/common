@@ -43,7 +43,6 @@ own over every path.
 
 ## 4. Run the auditors and write the report
 
-Follow `${CLAUDE_PLUGIN_ROOT}/skills/audit-pr/assemble-report.md`. The procedure
-is shared with `audit-pr` and lives in that skill's directory. The report's
-scope name is `full`, or `full-<path>` when the arguments named a single path,
+Follow `${CLAUDE_PLUGIN_ROOT}/audit/assemble-report.md`. The report's scope
+name is `full`, or `full-<path>` when the arguments named a single path,
 with `/` replaced by `-`.

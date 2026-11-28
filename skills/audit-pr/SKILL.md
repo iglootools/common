@@ -51,7 +51,7 @@ commit list and the changed files.
 
 ## 5. Run the auditors and write the report
 
-Follow `${CLAUDE_PLUGIN_ROOT}/skills/audit-pr/assemble-report.md`, adding your
+Follow `${CLAUDE_PLUGIN_ROOT}/audit/assemble-report.md`, adding your
 `HIST` findings to the auditors' before its "Merge duplicates" step. The
 report's scope name is `pr-<branch>`, with `/` in the branch name replaced by
 `-`.
