@@ -151,6 +151,14 @@ run after an automated release, and nothing would report it.
 - `workflows:` matches the release workflow's `name:`, not its filename, which
   is one more reason to
   [name every workflow after its file](workflows.md#name-every-workflow-after-its-own-file).
+- jactionlint's `dangerous-triggers` rule fails on `workflow_run`, which runs
+  with the default branch's privileges after a run a fork may have started.
+  Silence it for `publish.yml` in `.github/jactionlint.yaml`, as
+  [workflows.md › Lint every workflow with jactionlint](workflows.md#lint-every-workflow-with-jactionlint)
+  shows: the only workflow it names is the project's own `release`, which only
+  someone with write access can start, by dispatch, and the job reads nothing
+  from that run but its `head_sha`, which it builds only once a release tag is
+  confirmed there.
 - `workflow_dispatch` re-runs a publish that never happened. Pass the tag, as
   `-f tag=v1.4.0` or `--ref v1.4.0`: the run then builds that tag whatever the
   branch head has become, and refuses to start without one, as

@@ -457,10 +457,10 @@ def _act_on_report(
 @app.command("lint")
 def lint_cmd(ctx: typer.Context) -> None:
     """
-    Run actionlint on every tracked workflow, with shellcheck on each run: script.
+    Run jactionlint on every tracked workflow, with shellcheck on each run: script.
 
     Lints the .yml and .yaml files under .github/workflows/. Fails when shellcheck is
-    missing rather than skipping it, as actionlint alone would.
+    missing rather than skipping it, as jactionlint alone would.
     """
     root = invocation(ctx).root
     workflows = lint.workflow_files(root)
@@ -471,11 +471,11 @@ def lint_cmd(ctx: typer.Context) -> None:
     if shellcheck is None:
         warn('shellcheck not found. Pin it in mise.toml: shellcheck = "0.11.0".')
         raise typer.Exit(1)
-    say(f"Linting {len(workflows)} workflow(s) with actionlint")
+    say(f"Linting {len(workflows)} workflow(s) with jactionlint")
     try:
-        status = lint.run_in(lint.actionlint_command(workflows, shellcheck), root)
+        status = lint.run_in(lint.jactionlint_command(workflows, shellcheck), root)
     except FileNotFoundError:
-        warn('actionlint not found. Pin it in mise.toml: actionlint = "1.7.12".')
+        warn('jactionlint not found. Pin it in mise.toml: jactionlint = "2.6.0".')
         raise typer.Exit(1) from None
     if status != 0:
         raise typer.Exit(status)

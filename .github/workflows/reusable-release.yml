@@ -29,8 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      # Write: github-tag-action pushes the release tag through the API, and release-action
-      # creates the GitHub release. A ceiling on what the caller grants, not a grant.
+      # Write: github-tag-action pushes the release tag through the API, and gh creates the
+      # GitHub release. A ceiling on what the caller grants, not a grant.
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -51,10 +51,13 @@ jobs:
           NEW_TAG: ${{ steps.tag-version.outputs.new_tag }}
           CHANGELOG: ${{ steps.tag-version.outputs.changelog }}
         run: printf 'Release %s\n\n%s\n' "$NEW_TAG" "$CHANGELOG" >> "$GITHUB_STEP_SUMMARY"
+      # gh, which the runner image ships, rather than a release action: one fewer third-party
+      # action holding a write token. --verify-tag fails if the tag above was not pushed,
+      # rather than creating one at the branch head.
       - name: Create a GitHub release
         if: ${{ !inputs.dry-run }}
-        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
-        with:
-          tag: ${{ steps.tag-version.outputs.new_tag }}
-          name: ${{ steps.tag-version.outputs.new_tag }}
-          body: ${{ steps.tag-version.outputs.changelog }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_TAG: ${{ steps.tag-version.outputs.new_tag }}
+          CHANGELOG: ${{ steps.tag-version.outputs.changelog }}
+        run: gh release create "$NEW_TAG" --verify-tag --title "$NEW_TAG" --notes "$CHANGELOG"

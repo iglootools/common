@@ -21,13 +21,13 @@ def test_workflow_files_is_empty_without_workflows(git_repo: Path) -> None:
     assert lint.workflow_files(git_repo) == []
 
 
-def test_actionlint_runs_the_given_shellcheck_and_no_pyflakes() -> None:
-    assert lint.actionlint_command(
+def test_jactionlint_runs_the_given_shellcheck_and_no_pyflakes() -> None:
+    assert lint.jactionlint_command(
         [Path(".github/workflows/preflight.yml")],
         "/bin/shellcheck",
     ) == [
-        "actionlint",
-        "-shellcheck=/bin/shellcheck",
-        "-pyflakes=",
+        "jactionlint",
+        "--shellcheck=/bin/shellcheck",
+        "--pyflakes=",
         ".github/workflows/preflight.yml",
     ]
