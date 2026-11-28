@@ -189,14 +189,18 @@ Why the check runs offline, trusting `uv.lock`'s record, is in
 
 ## Adopting a release everywhere
 
-`iglootools common adopt-all` runs from common's checkout and treats the
-directory it sits in as the workspace. It takes every git checkout there whose
-`origin` is a repository of the iglootools organization and that pins common,
-narrowed by `--only` and `--exclude`, and passes over the rest with the reason.
-A repository of the organization whose `renovate.json` mentions common, found
-through GitHub's code search, but which has no checkout in the workspace, fails
-the run: a project nobody cloned would otherwise be silently left on the old
-release.
+`iglootools common adopt-all` runs from common's checkout, on the projects
+checked out in the workspace: the directory `IGLOOTOOLS_WORKSPACE` names, or
+else the nearest one, from the checkout up, holding a `.iglootools-workspace`
+directory ([setup](setup-development-environment.md#the-iglootools-workspace)).
+Nothing is guessed, not even common's parent directory: a run that picked the
+wrong directory would adopt in the wrong checkouts, or report every project
+missing. It takes every git checkout there whose `origin` is a repository of the
+iglootools organization and that pins common, narrowed by `--only` and
+`--exclude`, and passes over the rest with the reason. A repository of the
+organization whose `renovate.json` mentions common, found through GitHub's code
+search, but which has no checkout in the workspace, fails the run: a project
+nobody cloned would otherwise be silently left on the old release.
 
 Before changing any project it checks that each one's `origin` is reachable
 with git and ssh unable to prompt. One problem anywhere stops the run while

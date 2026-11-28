@@ -1,8 +1,9 @@
 """
 Move every iglootools project in the workspace to a release of common, in parallel.
 
-The workspace is the directory common's checkout sits in. Every project is checked
-before any is changed, so a problem in one stops the run while nothing has happened yet.
+The workspace is the directory the projects are checked out in, as
+iglootools.workspace.location resolves it. Every project is checked before any is
+changed, so a problem in one stops the run while nothing has happened yet.
 Then each project runs `adopt`, which is safe to run again, in a thread of its own and a
 temporary worktree, so the project's checkout is left to whoever works there: the work
 is almost all waiting on CI and GitHub, so threads cost nothing. Pushes take turns,

@@ -106,9 +106,10 @@ uv run --no-sync iglootools common adopt-all "$VERSION"
   the merge commit both ways and checks the two tags name it. It plans from what
   GitHub already has, so rerunning it after an interruption finishes the
   release, and rerunning it on a finished release changes nothing.
-- **`common adopt-all`** takes every iglootools project checked out beside
-  common that pins it, and fails if a repository of the organization pins common
-  without a checkout there. It checks that every project's origin is reachable
+- **`common adopt-all`** takes every iglootools project checked out in the
+  [workspace](setup-development-environment.md#the-iglootools-workspace) that
+  pins common, and fails if a repository of the organization pins common without
+  a checkout there. It checks that every project's origin is reachable
   before changing any, then adopts them in parallel, each in a temporary
   worktree, so the checkouts are left to whoever works in them: each moves every
   pin on common (the reusable workflows to the release's commit, the

@@ -4,6 +4,7 @@
 **On this page**
 
 - [Toolchain](#toolchain)
+- [The iglootools workspace](#the-iglootools-workspace)
 - [Loading the plugin from the working tree](#loading-the-plugin-from-the-working-tree)
 <!-- tocstop -->
 
@@ -17,6 +18,32 @@ on opening the repository; `.vscode/settings.json` formats each file on save
 with the tool `mise run fmt` uses. `mise run preflight` runs every lint and
 test, which is what the `preflight` workflow runs on each pull request;
 `mise tasks` lists the rest.
+
+## The iglootools workspace
+
+`iglootools common adopt-all` works on every iglootools project checked out in
+one directory, the workspace, such as `~/Workspace/iglootools`, with common's
+checkout among them. Mark it with a `.iglootools-workspace` directory:
+
+```bash
+mkdir -p ~/Workspace/iglootools/.iglootools-workspace
+```
+
+adopt-all finds it from common's checkout, or any directory below the workspace,
+by walking up. The directory is what to set up: it works wherever the command
+runs, including in an agent's or an editor's shell, which does not read your
+shell profile.
+
+Optionally, to point a shell at another workspace, set `IGLOOTOOLS_WORKSPACE`
+to an absolute path. It wins over the directory:
+
+```bash
+export IGLOOTOOLS_WORKSPACE=~/Workspace/iglootools
+```
+
+A variable that names no directory is an error, not a reason to fall back on the
+marker directory. With neither, adopt-all stops and prints the commands, with
+the directory above common's checkout filled in.
 
 ## Loading the plugin from the working tree
 

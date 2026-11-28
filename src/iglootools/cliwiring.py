@@ -1,6 +1,7 @@
 """What every sub-command shares: the invocation, output, the project and preflight."""
 
 import os
+import shlex
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,8 +11,18 @@ from rich.console import Console
 
 from iglootools.preflight import requirements
 from iglootools.project import Project, ProjectError, ProjectErrorKind, load_project
+from iglootools.workspace.location import (
+    ENVIRONMENT_VARIABLE,
+    SENTINEL,
+    WorkspaceError,
+    WorkspaceErrorKind,
+    WorkspaceSource,
+    resolve_workspace,
+)
 
 console = Console(highlight=False)
+
+
 err_console = Console(stderr=True, highlight=False)
 
 
@@ -120,3 +131,55 @@ def ensure(ctx: typer.Context, needed: Sequence[requirements.Requirement]) -> No
     if missing:
         warn("Run `iglootools preflight` to check everything.")
         raise typer.Exit(1)
+
+
+def resolve_workspace_or_exit(root: Path) -> Path:
+    """Return the workspace, saying what named it; exit 2, saying how to name one."""
+    try:
+        found = resolve_workspace(root, environ=os.environ)
+    except WorkspaceError as error:
+        warn(_describe_workspace_error(error))
+        raise typer.Exit(2) from None
+    named_by = {
+        WorkspaceSource.ENVIRONMENT: f"${ENVIRONMENT_VARIABLE}",
+        WorkspaceSource.SENTINEL: f"its {SENTINEL} directory",
+    }[found.source]
+    say(f"Workspace: {found.path} (from {named_by}).")
+    return found.path
+
+
+def _describe_workspace_error(error: WorkspaceError) -> str:
+    """Say why there is no workspace, and how to name one, with a path to copy."""
+    # The projects most likely sit beside common, so its parent is the suggestion.
+    suggested = shlex.quote(str(error.start.parent))
+    # The directory first and always: an agent's shell, or an editor's task runner,
+    # does not read the shell profile the variable lives in, so it sees only the
+    # directory.
+    mark = (
+        "Mark the directory your iglootools projects are checked out in:\n"
+        f"  mkdir -p {suggested}/{SENTINEL}"
+    )
+    override = (
+        f"Optionally, to point a shell at another workspace, set "
+        f"{ENVIRONMENT_VARIABLE}, which wins over the directory:\n"
+        f"  export {ENVIRONMENT_VARIABLE}={suggested}"
+    )
+    match error.kind:
+        case WorkspaceErrorKind.NOT_FOUND:
+            return (
+                f"No iglootools workspace: neither {error.start} nor any directory "
+                f"above it holds a {SENTINEL} directory, and "
+                f"${ENVIRONMENT_VARIABLE} is not set.\n{mark}\n{override}"
+            )
+        case WorkspaceErrorKind.RELATIVE:
+            return (
+                f"${ENVIRONMENT_VARIABLE} is {error.configured!r}, a relative path. "
+                f"Set it to an absolute one, or unset it to use the {SENTINEL} "
+                f"directory:\n  export {ENVIRONMENT_VARIABLE}={suggested}\n{mark}"
+            )
+        case WorkspaceErrorKind.NOT_A_DIRECTORY:
+            return (
+                f"${ENVIRONMENT_VARIABLE} is {error.configured!r}, which is not a "
+                f"directory. Point it at the workspace, or unset it to use the "
+                f"{SENTINEL} directory.\n{mark}"
+            )

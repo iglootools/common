@@ -13,7 +13,13 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-from iglootools.cliwiring import ensure, invocation, say, warn
+from iglootools.cliwiring import (
+    ensure,
+    invocation,
+    resolve_workspace_or_exit,
+    say,
+    warn,
+)
 from iglootools.common import (
     adopt as adoption,
     adopt_all as everywhere,
@@ -371,9 +377,11 @@ def adopt_all(
     """
     Move every iglootools project in the workspace to a release of common, in parallel.
 
-    Run from common's checkout: the workspace is the directory it sits in. Takes every
-    checked-out iglootools project that pins common (narrowed by --only and --exclude),
-    fails when a repository of the organization pins common but has no checkout here,
+    Run from common's checkout. The workspace, where the projects are checked out, is
+    the directory $IGLOOTOOLS_WORKSPACE names, or else the nearest one, from the
+    checkout up, holding a .iglootools-workspace file. Takes every checked-out
+    iglootools project that pins common (narrowed by --only and --exclude), fails when
+    a repository of the organization pins common but has no checkout there,
     and checks that every project's origin is reachable without a prompt before
     changing any. Then adopts them all at once, as `common adopt` does, each in a
     temporary worktree, so the checkouts are left to whoever works in them; summarises
@@ -387,16 +395,11 @@ def adopt_all(
     ensure(ctx, requirements.COMMON)
     version = _version(version)
     root = invocation(ctx).root
-    repository, github = github_session(ctx, None)
-    if repository != pins.COMMON:
-        warn(
-            f"Run adopt-all from {pins.COMMON.slug}'s checkout, "
-            f"not {repository.slug}'s.",
-        )
-        raise typer.Exit(2)
+    github = _require_common_checkout_or_exit(ctx)
+    workspace = resolve_workspace_or_exit(root)
     try:
         sha = pins.tag_commit(github, version)
-        projects, skipped = everywhere.discover(root.parent)
+        projects, skipped = everywhere.discover(workspace)
         selected, left_out = everywhere.select(projects, only or [], exclude or [])
         missing = everywhere.missing_checkouts(
             github,
@@ -411,7 +414,7 @@ def adopt_all(
         raise typer.Exit(1) from None
     for item in [*skipped, *left_out]:
         say(f"Skipping {item.name}: {item.reason}.")
-    _stop_if_blocked(_blockers(root.parent, missing, selected))
+    _stop_if_blocked(_blockers(workspace, missing, selected))
     if not selected:
         say("No project to adopt.")
         return
@@ -436,6 +439,18 @@ def adopt_all(
     )
     if not _report_all(selected, outcomes, version, skip_plugin=skip_plugin):
         raise typer.Exit(1)
+
+
+def _require_common_checkout_or_exit(ctx: typer.Context) -> GitHub:
+    """Return a GitHub session, exiting 2 unless --root is common's checkout."""
+    repository, github = github_session(ctx, None)
+    if repository != pins.COMMON:
+        warn(
+            f"Run adopt-all from {pins.COMMON.slug}'s checkout, "
+            f"not {repository.slug}'s.",
+        )
+        raise typer.Exit(2)
+    return github
 
 
 def _stop_if_blocked(blocked: list[str]) -> None:
