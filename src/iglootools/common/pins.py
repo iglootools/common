@@ -191,6 +191,26 @@ def scan(root: Path, *, run: Run = capture) -> tuple[list[Reference], Locked | N
     ) if uv_lock.is_file() else None
 
 
+def latest_release(github: GitHub) -> str | None:
+    """
+    Return the newest release of common, as X.Y.Z, None when it has none.
+
+    A release is a `vX.Y.Z` tag, the one projects pin; the newest is the highest
+    version, not the latest tagged. Raises GitHubError when the tags cannot be listed.
+    """
+    names = [str(tag["name"]) for tag in github.get_all(f"/repos/{COMMON.slug}/tags")]
+    versions = [
+        name.removeprefix("v")
+        for name in names
+        if name.startswith("v") and VERSION.match(name.removeprefix("v"))
+    ]
+    return max(versions, key=_version_key, default=None)
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
 def tag_commit(github: GitHub, version: str) -> str:
     """
     Return the commit common's `v<version>` tag points at, through an annotated tag.

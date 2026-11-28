@@ -42,6 +42,13 @@ app = typer.Typer(
 )
 
 VERSION_ARGUMENT = typer.Argument(help="The release, as X.Y.Z.")
+ADOPTED_VERSION_ARGUMENT = typer.Argument(
+    help="The release to adopt, as X.Y.Z; or pass --latest.",
+)
+LATEST_OPTION = typer.Option(
+    "--latest",
+    help="Adopt the newest release of common, rather than one named.",
+)
 SKIP_PLUGIN_OPTION = typer.Option(
     "--skip-plugin",
     help="Leave the Claude Code plugin installed for the project as it is.",
@@ -56,6 +63,36 @@ SKIP_FAST_FORWARD_OPTION = typer.Option(
 )
 
 
+def _adopted_version_or_exit(
+    github: GitHub,
+    version: str | None,
+    *,
+    latest: bool,
+) -> str:
+    """
+    Return the release to adopt: *version*, or common's newest with --latest.
+
+    Exits 2 unless exactly one of them is given, and 1 when common has no release.
+    """
+    match version, latest:
+        case None, True:
+            try:
+                newest = pins.latest_release(github)
+            except GitHubError as error:
+                warn(error.detail)
+                raise typer.Exit(1) from None
+            if newest is None:
+                warn(f"{pins.COMMON.slug} has no release to adopt.")
+                raise typer.Exit(1)
+            say(f"Adopting the newest release of {pins.COMMON.slug}: {newest}.")
+            return newest
+        case str() as named, False:
+            return _version(named)
+        case _:
+            warn("Give the release to adopt as X.Y.Z, or pass --latest; not both.")
+            raise typer.Exit(2)
+
+
 def _version(version: str) -> str:
     if not pins.VERSION.match(version):
         warn(f"Give the version as X.Y.Z, not {version!r}.")
@@ -66,7 +103,7 @@ def _version(version: str) -> str:
 @app.command("adopt")
 def adopt(
     ctx: typer.Context,
-    version: Annotated[str, VERSION_ARGUMENT],
+    version: Annotated[str | None, ADOPTED_VERSION_ARGUMENT] = None,
     repo: Annotated[str | None, REPO_OPTION] = None,
     *,
     no_merge: Annotated[
@@ -78,6 +115,7 @@ def adopt(
         typer.Option("--dry-run", "-n", help="Show the pins that would move."),
     ] = False,
     skip_plugin: Annotated[bool, SKIP_PLUGIN_OPTION] = False,
+    latest: Annotated[bool, LATEST_OPTION] = False,
     in_place: Annotated[
         bool,
         typer.Option(
@@ -103,7 +141,6 @@ def adopt(
     and does nothing once the release is in place.
     """
     ensure(ctx, requirements.COMMON)
-    version = _version(version)
     workplace = _workplace(
         in_place=in_place,
         keep_worktree=keep_worktree,
@@ -111,6 +148,7 @@ def adopt(
     )
     root = invocation(ctx).root
     repository, github = github_session(ctx, repo)
+    version = _adopted_version_or_exit(github, version, latest=latest)
     try:
         sha = pins.tag_commit(github, version)
         if dry_run:
@@ -354,7 +392,7 @@ class _Board:
 @app.command("adopt-all")
 def adopt_all(
     ctx: typer.Context,
-    version: Annotated[str, VERSION_ARGUMENT],
+    version: Annotated[str | None, ADOPTED_VERSION_ARGUMENT] = None,
     only: Annotated[
         list[str] | None,
         typer.Option("--only", help="Adopt only this project; repeat."),
@@ -373,6 +411,7 @@ def adopt_all(
         typer.Option("--dry-run", "-n", help="Check and plan, change nothing."),
     ] = False,
     skip_plugin: Annotated[bool, SKIP_PLUGIN_OPTION] = False,
+    latest: Annotated[bool, LATEST_OPTION] = False,
     keep_worktree: Annotated[bool, KEEP_WORKTREE_OPTION] = False,
     skip_fast_forward: Annotated[bool, SKIP_FAST_FORWARD_OPTION] = False,
 ) -> None:
@@ -395,9 +434,9 @@ def adopt_all(
         skip_fast_forward=skip_fast_forward,
     )
     ensure(ctx, requirements.COMMON)
-    version = _version(version)
     root = invocation(ctx).root
     github = _require_common_checkout_or_exit(ctx)
+    version = _adopted_version_or_exit(github, version, latest=latest)
     workspace = resolve_workspace_or_exit(root)
     try:
         sha = pins.tag_commit(github, version)
