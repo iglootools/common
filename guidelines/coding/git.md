@@ -168,6 +168,9 @@ reaches `main`.
   commit undoing part of an earlier one.
 - `git log --format=%s <base>.. | grep -E '^(fixup|squash|amend)! '` must print
   nothing: an unfolded fixup looks finished until someone reads its subject.
+- Commits added to a pull request already open go through the same pass before
+  they are pushed: fold the ones that rework an earlier commit into it, and read
+  the branch again. A branch under review is still a draft.
 
 ## Work in the mode the person names
 
