@@ -174,11 +174,11 @@ and pin it, and how to try a change against one of them before releasing, is in
 
 ## Checking the pins on common
 
-A project pins a release of common in several files. `iglootools common adopt`
-moves every pin to a release, looking in every tracked file that mentions common
-rather than in a list of files, and `iglootools common check-pins`, run offline
-as each project's `lint-common-pins` task, keeps them in agreement between
-adopts.
+A project pins a release of common in several files.
+`iglootools repo adopt-common` moves every pin to a release, looking in every
+tracked file that mentions common rather than in a list of files, and
+`iglootools repo lint-common-pins`, run offline as each project's
+`lint-common-pins` task, keeps them in agreement between adopts.
 
 | | Every project |
 |---|---|
@@ -187,7 +187,7 @@ adopts.
 | Other pins | the reusable workflows (by SHA, with `# v<version>`), the `base` Renovate preset, and the `python` one in a Python project |
 | What keeps the release current | Renovate, through the `base` preset's manager for the dependency, and its own for the workflows and presets; adopt |
 | What `adopt` does | moves the pins, then regenerates `uv.lock`, which records the new commit; once merged, updates the Claude Code plugin installed for the project |
-| What `check-pins` verifies | every pin names one release, adopt would move each, every SHA pin has its tag comment, and the release and every workflow SHA match `uv.lock`'s record |
+| What `lint-common-pins` verifies | every pin names one release, adopt would move each, every SHA pin has its tag comment, and the release and every workflow SHA match `uv.lock`'s record |
 
 Why the check runs offline, trusting `uv.lock`'s record, is in
 [ADR-001](architecture-decision-record.md#adr-001--check-the-pins-on-common-offline-trusting-uvlock-and-iglootools_versions-name).
@@ -220,16 +220,16 @@ works in a temporary worktree started from GitHub's default branch, so a session
 working in the checkout is never switched or blocked
 ([ADR-006](architecture-decision-record.md#adr-006--adopt-a-release-in-a-temporary-worktree-not-in-the-projects-checkout)).
 
-Then each project runs `common adopt` in a thread of its own. The work is almost
-all waiting, on CI and on GitHub's API, so threads cost nothing and keep the
-tested, synchronous adopt as it is. Each project's waits go through a sleep that
-an interrupt cancels, so Ctrl-C stops every project at its next poll; pushes
-take turns behind one lock, so two credential helpers never run at once; and a
-failure in one project leaves the others running. adopt is safe to run again,
-picking up from the pull request or branch an earlier run left, so rerunning
-adopt-common after an interruption or a failure resumes each project where it
-stopped. Progress is a live table in a terminal and lines prefixed with the
-project's name elsewhere, from the same events.
+Then each project runs `repo adopt-common` in a thread of its own. The work is
+almost all waiting, on CI and on GitHub's API, so threads cost nothing and keep
+the tested, synchronous adopt as it is. Each project's waits go through a sleep
+that an interrupt cancels, so Ctrl-C stops every project at its next poll;
+pushes take turns behind one lock, so two credential helpers never run at once;
+and a failure in one project leaves the others running. adopt is safe to run
+again, picking up from the pull request or branch an earlier run left, so
+rerunning adopt-common after an interruption or a failure resumes each project
+where it stopped. Progress is a live table in a terminal and lines prefixed with
+the project's name elsewhere, from the same events.
 
 Once every project has finished, the workspace's own `iglootools` moves to the
 release too, as `workspace sync` moves it to the newest: its `pyproject.toml`

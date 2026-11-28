@@ -43,10 +43,24 @@ type Run = Callable[[Sequence[str], Path], subprocess.CompletedProcess[str]]
 
 @dataclass(frozen=True)
 class Rewrite:
-    """A file's text with its pins moved, and how many pins moved."""
+    """
+    A file's text as adopting leaves it: its pins moved, and its renamed commands.
+
+    *changed* counts the pins moved, *renamed* the renamed commands rewritten.
+    """
 
     text: str
     changed: int
+    renamed: int = 0
+
+    def describe(self) -> str:
+        """Say what changed in the file: "1 pin(s)", "2 renamed command(s)", or both."""
+        return " and ".join(
+            [
+                *([f"{self.changed} pin(s)"] if self.changed else []),
+                *([f"{self.renamed} renamed command(s)"] if self.renamed else []),
+            ],
+        )
 
 
 def rewrite(text: str, version: str, sha: str) -> Rewrite:

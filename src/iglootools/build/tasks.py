@@ -1,9 +1,9 @@
 """
 The project's mise tasks, by family, and running one.
 
-The tasks are the project's own: `iglootools build` only names them uniformly and runs
-them through mise, so a contributor or an agent reaches `preflight`, `lint-types` or
-`test` the same way in every project. Their families follow
+The tasks are the project's own: `iglootools repo run` only names them uniformly and
+runs them through mise, so a contributor or an agent reaches `preflight`, `lint-types`
+or `test` the same way in every project. Their families follow
 guidelines/project-setup/mise.md › Name tasks by family.
 """
 
@@ -125,7 +125,7 @@ type Snapshot = dict[Path, str]
 @dataclass(frozen=True)
 class Fixed:
     """
-    What `iglootools build --fix` did: the last status, and the files `fmt` rewrote.
+    What `iglootools repo run --fix` did: the last status, and the files `fmt` rewrote.
 
     *reformatted* is None when the project is not in a git working tree, so the files
     `fmt` rewrote could not be told apart from the ones already changed.

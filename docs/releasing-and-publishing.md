@@ -111,25 +111,26 @@ uv run --no-sync iglootools workspace adopt-common "$VERSION"
 - **`workspace adopt-common`** takes every iglootools project checked out in the
   [workspace](setup-development-environment.md#the-iglootools-workspace) that
   pins common, and fails if a repository of the organization pins common without
-  a checkout there. It checks that every project's origin is reachable
-  before changing any, then adopts them in parallel, each in a temporary
-  worktree, so the checkouts are left to whoever works in them: each moves every
-  pin on common (the reusable workflows to the release's commit, the
-  `iglootools` command, the Renovate presets), regenerates `uv.lock`, and merges
-  its pull request once green, deleting the branch. It then fast-forwards each
-  checkout's default branch where that is safe, or says why it did not;
+  a checkout there. It checks that every project's origin is reachable before
+  changing any, then adopts them in parallel, each in a temporary worktree, so
+  the checkouts are left to whoever works in them: each moves every pin on
+  common (the reusable workflows to the release's commit, the `iglootools`
+  command, the Renovate presets), regenerates `uv.lock`, and merges its pull
+  request once green, deleting the branch. It then fast-forwards each checkout's
+  default branch where that is safe, or says why it did not;
   `--skip-fast-forward` leaves them as they are, and `--keep-worktree` keeps the
-  worktree of a project whose steps failed, to inspect. It moves the
-  workspace's own `iglootools` to the release as well. Then it updates the
-  Claude Code plugin installed for each project on the release whose
-  `.claude/settings.json` enables it, since the repository and the plugin a
-  session loads would otherwise disagree until someone ran
+  worktree of a project whose steps failed, to inspect. It moves the workspace's
+  own `iglootools` to the release as well. Then it updates the Claude Code
+  plugin installed for each project on the release whose `.claude/settings.json`
+  enables it, since the repository and the plugin a session loads would
+  otherwise disagree until someone ran
   [the update](installation.md#updating-every-project); `--skip-plugin` leaves
   the plugin as it is. It runs from common's own environment, so the release
   being adopted needs no install in the projects. Rerunning it picks up each
-  project where it stopped; `--only` and `--exclude` narrow it. `common adopt`
-  does the same for one project, from its checkout; `--in-place` makes it work
-  in the checkout itself, for a branch you mean to finish by hand.
+  project where it stopped; `--only` and `--exclude` narrow it.
+  `repo adopt-common` does the same for one project, from its checkout;
+  `--in-place` makes it work in the checkout itself, for a branch you mean to
+  finish by hand.
 
 Renovate would open the adopt pull requests on its own, since the shared preset
 exempts common's releases from the release-age hold; adopt-common does it at

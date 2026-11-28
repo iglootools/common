@@ -551,7 +551,7 @@ def run_cmd(
     """
     Run one mise task in every project of the workspace, and say where it passed.
 
-    Arguments after the task go to it, as `iglootools build` passes them. Each
+    Arguments after the task go to it, as `iglootools repo run` passes them. Each
     project's output goes to a log file, named at the end; a failure shows the end of
     its log. A repository that is not cloned, or has no such task, is skipped. The task
     runs in the project's own environment, not common's. Fails if it failed anywhere.
@@ -904,7 +904,7 @@ def adopt_common_cmd(
     --only and --exclude), fails when a repository of the organization pins common but
     has no checkout in the workspace,
     and checks that every project's origin is reachable without a prompt before
-    changing any. Then adopts them all at once, as `common adopt` does, each in a
+    changing any. Then adopts them all at once, as `repo adopt-common` does, each in a
     temporary worktree, so the checkouts are left to whoever works in them; summarises
     what merged, and updates the Claude Code plugin in each project on the release that
     enables it. Safe to run again: each project picks up where it stopped.

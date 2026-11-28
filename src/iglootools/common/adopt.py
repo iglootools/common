@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-from iglootools.common import pins
+from iglootools.common import pins, renames
 from iglootools.github import local, merge, prune, pulls, worktree
 from iglootools.github.client import GitHub, Repository, Run, capture
 from iglootools.github.events import Event, Report, Stage
@@ -27,14 +27,28 @@ class Plan:
 
 
 def plan(root: Path, version: str, sha: str, *, run: Run = capture) -> Plan:
-    """Plan the files under *root*, as they stand, whose pins move to *version*."""
+    """
+    Plan the files under *root*, as they stand, that change to adopt *version*.
+
+    Each pin on common moves to the release, and each command a release renamed is
+    renamed with it, so the project's own tasks call what the release provides.
+    """
+    paths = sorted(
+        {*pins.candidate_files(root, run=run), *renames.candidate_files(root, run=run)},
+    )
     files = {
         path: rewritten
-        for path in pins.candidate_files(root, run=run)
-        for rewritten in [pins.rewrite(path.read_text(encoding="utf-8"), version, sha)]
+        for path in paths
+        for rewritten in [_rewrite(path.read_text(encoding="utf-8"), version, sha)]
         if rewritten.text != path.read_text(encoding="utf-8")
     }
     return Plan(version, sha, files)
+
+
+def _rewrite(text: str, version: str, sha: str) -> pins.Rewrite:
+    moved = pins.rewrite(text, version, sha)
+    renamed, count = renames.rename(moved.text)
+    return pins.Rewrite(renamed, moved.changed, count)
 
 
 def newer_pin(root: Path, version: str, *, run: Run = capture) -> str | None:
@@ -186,7 +200,7 @@ def preview(
     if start == Start.NEW and not found.changed:
         return [f"Already on iglootools {found.version}: nothing to do.", *plugin]
     moves = [
-        f"Would move {rewritten.changed} pin(s) in {path.relative_to(root)}"
+        f"Would change {rewritten.describe()} in {path.relative_to(root)}"
         for path, rewritten in found.files.items()
     ]
     opening = {
@@ -388,7 +402,7 @@ def _move_pins(root: Path, found: Plan, report: Report, *, run: Run) -> list[str
         report(
             Event(
                 Stage.MOVING,
-                f"Moved {rewritten.changed} pin(s) in {path.relative_to(root)}",
+                f"Changed {rewritten.describe()} in {path.relative_to(root)}",
             ),
         )
     moved = [str(path.relative_to(root)) for path in found.files]

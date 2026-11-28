@@ -1,4 +1,4 @@
-"""The `iglootools build` command, which runs a project's mise task by name."""
+"""The `iglootools repo run` command, which runs a project's mise task by name."""
 
 import os
 import shlex
@@ -41,9 +41,9 @@ def build(
 
     Delegates to `mise run <task>`, passing any further arguments on, and exits with the
     task's status. With no task, lists the project's tasks by family. Options for
-    iglootools build itself, such as -n and --fix, go before the task; everything after
-    it goes to the task. `iglootools build --fix preflight` formats the files first, so
-    formatting alone never fails preflight.
+    iglootools repo run itself, such as -n and --fix, go before the task; everything
+    after it goes to the task. `iglootools repo run --fix preflight` formats the files
+    first, so formatting alone never fails preflight.
     """
     ensure(ctx, requirements.BUILD)
     root = invocation(ctx).root
@@ -60,7 +60,7 @@ def build(
         return
     names = {member.name for member in available}
     if task not in names:
-        warn(f"No mise task named {task!r}. Run `iglootools build` to list them.")
+        warn(f"No mise task named {task!r}. Run `iglootools repo run` to list them.")
         raise typer.Exit(2)
     if fix and tasks.FIX_TASK not in names:
         warn(f"--fix runs the mise task {tasks.FIX_TASK!r}, which this project lacks.")
