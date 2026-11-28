@@ -133,9 +133,10 @@ uv run --no-sync iglootools workspace adopt-common "$VERSION"
   `--in-place` makes it work in the checkout itself, for a branch you mean to
   finish by hand.
 
-Renovate would open the adopt pull requests on its own, since the shared preset
-exempts common's releases from the release-age hold; adopt-common does it at
-once, and reports what merged.
+Renovate opens a bump to the release only after the 14-day hold, as the
+fallback for a project adopt-common missed: without the hold it opens the same
+bump in the same minute, from a base without the adoption's other changes, and
+that pull request fails.
 
 ### By hand
 

@@ -33,8 +33,10 @@ managers.
 - [renovate/python.json](../../renovate/python.json): extend it as well in a
   Python project, as [python-tooling.md](python-tooling.md)'s opening defines
   it. Any other project needs only `base`.
-- iglootools' own releases skip the 14-day hold: the `base` preset exempts them,
-  since the people who release them also review the update.
+- iglootools' own releases get the 14-day hold too: `iglootools workspace
+  adopt-common` moves every project to a release as it lands, with the other
+  changes the release asks for, and a Renovate bump opened at the same moment
+  only races it. Renovate is the fallback for a project adopt-common missed.
 
 nbkp's
 [renovate.json](https://github.com/iglootools/nbkp/blob/main/renovate.json) is a
