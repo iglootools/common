@@ -16,6 +16,7 @@ def _branch(
     pull: PullState = PullState.NONE,
     *,
     protected: bool = False,
+    ahead: int = 0,
 ) -> Branch:
     return Branch(
         name,
@@ -24,6 +25,7 @@ def _branch(
         protected=protected,
         pull=pull,
         pull_number=3,
+        ahead=ahead,
     )
 
 
@@ -31,6 +33,11 @@ def _branch(
     ("branch", "delete", "reason"),
     [
         (_branch("feat/x", PullState.MERGED), True, "#3 merged"),
+        (
+            _branch("renovate/all", PullState.MERGED, ahead=2),
+            False,
+            "2 commit(s) pushed after #3 merged",
+        ),
         (_branch("renovate/all", PullState.OPEN), False, "#3 open"),
         (_branch("fix/y", PullState.CLOSED), False, "#3 closed without merging"),
         (_branch("gh-pages"), False, "no pull request"),
@@ -56,9 +63,12 @@ class FakeGitHub:
         self,
         branch_pages: list[list[dict[str, object]]],
         pulls: Mapping[str, list[dict[str, object]]],
+        ahead: Mapping[str, int] | None = None,
     ) -> None:
         self.branch_pages = branch_pages
         self.pulls = pulls
+        self.ahead = ahead or {}
+        self.compared: list[str] = []
 
     def __call__(
         self,
@@ -76,6 +86,10 @@ class FakeGitHub:
         if path.startswith("/repos/iglootools/nbkp/pulls?"):
             head = path.split("head=iglootools:", 1)[1].split("&", 1)[0]
             return 200, json.dumps(self.pulls.get(head, [])).encode()
+        if path.startswith("/repos/iglootools/nbkp/compare/main..."):
+            branch = path.removeprefix("/repos/iglootools/nbkp/compare/main...")
+            self.compared.append(branch)
+            return 200, json.dumps({"ahead_by": self.ahead.get(branch, 0)}).encode()
         raise UnexpectedCallError((method, path))
 
 
@@ -104,3 +118,22 @@ def test_gather_reads_every_page_and_each_branch_s_latest_pull_request() -> None
     assert by_name["gh-pages"].pull == PullState.NONE
     assert by_name["local-only"].local
     assert not by_name["local-only"].on_remote
+
+
+def test_gather_counts_the_commits_a_merged_branch_gained_after_its_merge() -> None:
+    merged: list[dict[str, object]] = [
+        {"number": 9, "state": "closed", "merged_at": "2026-11-21T00:00:00Z"},
+    ]
+    fake = FakeGitHub(
+        [[{"name": "renovate/all"}, {"name": "feat/x"}, {"name": "fix/open"}]],
+        {
+            "renovate/all": merged,
+            "feat/x": merged,
+            "fix/open": [{"number": 8, "state": "open", "merged_at": None}],
+        },
+        ahead={"renovate/all": 2},
+    )
+    _, branches = prune.gather(GitHub("t", transport=fake), REPO, ["local/merged"])
+    by_name = {branch.name: branch.ahead for branch in branches}
+    assert by_name == {"feat/x": 0, "fix/open": 0, "local/merged": 0, "renovate/all": 2}
+    assert sorted(fake.compared) == ["feat/x", "renovate/all"]
