@@ -129,9 +129,9 @@ uv run --no-sync iglootools workspace adopt-common "$VERSION"
   the plugin as it is. It runs from common's own environment, so the release
   being adopted needs no install in the projects. Rerunning it picks up each
   project where it stopped; `--only` and `--exclude` narrow it.
-  `repo adopt-common` does the same for one project, from its checkout;
-  `--in-place` makes it work in the checkout itself, for a branch you mean to
-  finish by hand.
+  `repo adopt-common` does the same for one project, from its checkout. To
+  finish the branch by hand, pass `--no-merge --skip-fast-forward`, then check
+  the pushed branch out in any worktree.
 
 Renovate opens a bump to the release only after the 14-day hold, as the
 fallback for a project adopt-common missed: without the hold it opens the same

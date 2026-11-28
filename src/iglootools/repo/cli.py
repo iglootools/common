@@ -73,14 +73,6 @@ def adopt_common_cmd(
     ] = False,
     skip_plugin: Annotated[bool, common_cli.SKIP_PLUGIN_OPTION] = False,
     latest: Annotated[bool, common_cli.LATEST_OPTION] = False,
-    in_place: Annotated[
-        bool,
-        typer.Option(
-            "--in-place",
-            help="Work in this checkout instead of a temporary worktree, to finish the "
-            "branch by hand. Needs no changes and no untracked files.",
-        ),
-    ] = False,
     keep_worktree: Annotated[bool, common_cli.KEEP_WORKTREE_OPTION] = False,
     skip_fast_forward: Annotated[bool, common_cli.SKIP_FAST_FORWARD_OPTION] = False,
 ) -> None:
@@ -95,11 +87,11 @@ def adopt_common_cmd(
     branch where that is safe. Once the project is on the release, updates the Claude
     Code plugin installed for it, when its .claude/settings.json enables the plugin.
     Safe to run again: it picks up from the pull request or branch an earlier run left,
-    and does nothing once the release is in place.
+    and does nothing once the release is in place. To finish the branch by hand, pass
+    --no-merge and check the branch out in any worktree.
     """
     ensure(ctx, requirements.COMMON)
-    workplace = _workplace(
-        in_place=in_place,
+    workplace = adoption.Workplace(
         keep_worktree=keep_worktree,
         skip_fast_forward=skip_fast_forward,
     )
@@ -145,36 +137,6 @@ def adopt_common_cmd(
     on_release = [(repository.name, root)] if outcome.on_release else []
     if not skip_plugin and not common_cli.update_plugins(on_release, version):
         raise typer.Exit(1)
-
-
-def _workplace(
-    *,
-    in_place: bool,
-    keep_worktree: bool,
-    skip_fast_forward: bool,
-) -> adoption.Workplace:
-    """Exit 2 when --in-place comes with an option only a worktree has."""
-    clashing = [
-        flag
-        for flag, given in (
-            ("--keep-worktree", keep_worktree),
-            ("--skip-fast-forward", skip_fast_forward),
-        )
-        if given
-    ]
-    if in_place and clashing:
-        one = len(clashing) == 1
-        warn(
-            f"{' and '.join(clashing)} {'acts' if one else 'act'} on the temporary "
-            "worktree, which --in-place does not make: drop "
-            f"{'it' if one else 'them'}, or --in-place.",
-        )
-        raise typer.Exit(2)
-    return adoption.Workplace(
-        in_place=in_place,
-        keep_worktree=keep_worktree,
-        skip_fast_forward=skip_fast_forward,
-    )
 
 
 @app.command("lint-common-pins")

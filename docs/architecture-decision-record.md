@@ -39,6 +39,11 @@ format is in
   - [Decision](#decision-5)
   - [Rationale](#rationale-5)
   - [Consequences](#consequences-5)
+- [ADR-007 — Remove `--in-place` from adopt: the worktree is the only way to adopt](#adr-007--remove---in-place-from-adopt-the-worktree-is-the-only-way-to-adopt)
+  - [Context](#context-6)
+  - [Decision](#decision-6)
+  - [Rationale](#rationale-6)
+  - [Consequences](#consequences-6)
 <!-- tocstop -->
 
 ## ADR-001 — Check the pins on common offline, trusting uv.lock and IGLOOTOOLS_VERSION's name
@@ -428,7 +433,8 @@ guidelines in full again.
 
 ## ADR-006 — Adopt a release in a temporary worktree, not in the project's checkout
 
-**Date:** 2026-11-28 **Status:** Accepted
+**Date:** 2026-11-28 **Status:** Accepted — superseded in part by ADR-007, which
+removes `--in-place`
 
 ### Context
 
@@ -490,3 +496,45 @@ Alternatives not pursued:
 - `--keep-worktree` keeps only a worktree whose own steps failed: a pull request
   that fails its checks does so after the worktree is gone, with everything it
   held already pushed.
+
+## ADR-007 — Remove `--in-place` from adopt: the worktree is the only way to adopt
+
+**Date:** 2026-11-28 **Status:** Accepted — supersedes ADR-006's `--in-place`
+
+### Context
+
+ADR-006 kept `--in-place` on `repo adopt-common`, to work in the checkout
+itself for someone who means to finish the branch by hand. The flag switches
+the checkout to the default branch and branches from there, so it fails
+whenever another worktree holds the default branch, and it switches the
+branch under any session working in that checkout. Its name hides both: an
+agent asked to keep the main checkout untouched read "in place" as "in the
+worktree I am in", ran it there, and it failed on `git switch main`.
+
+### Decision
+
+- **`--in-place` is removed.** adopt always works in a temporary worktree.
+- To finish the branch by hand, run adopt with `--no-merge` (and
+  `--skip-fast-forward`), then check the pushed branch out in any worktree,
+  add commits, push, and merge it once green. Every project's adoption of
+  4.0.0 was done this way.
+
+### Rationale
+
+- The default mode already covers the flag's purpose: the branch it pushes is
+  in the repository's refs, a `git switch` away from any worktree, as ADR-006's
+  rationale says.
+- One mode is one code path: the clash check between `--in-place` and the
+  worktree options, and the in-place branches of the plan, the run and the
+  tidy-up, go with it.
+- Renaming it, to `--switch-checkout` or `--main-checkout`, was considered. The
+  first still offers a mode nobody needs; the second is wrong, since the flag
+  works in whichever checkout runs it, not the main one.
+
+### Consequences
+
+- Removing an option is an interface change, but nothing scripts the flag (no
+  skill, task or workflow passes it) and people typed it by hand, so it ships
+  without a major release.
+- adopt no longer refuses a checkout with changes or untracked files: it never
+  works there.
