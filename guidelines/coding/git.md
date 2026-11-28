@@ -75,7 +75,11 @@ it hides among a hundred renamed lines.
   ([mise.md](../project-setup/mise.md#name-tasks-by-family) says what each
   runs). Fold what the full run catches into the commits that caused it, then
   confirm every commit still passes with
-  `git rebase --exec 'mise run preflight-quick' <base>`.
+  `git rebase --exec 'mise run preflight-quick' <base>`. In a linked worktree
+  the command runs with `GIT_DIR` set, so a suite that runs git must clear it
+  first
+  ([general.md](general.md#patch-only-in-the-three-documented-cases-and-list-each-one)),
+  or its fixtures write into the repository being rebased.
 
 ## Fold rework into the commit it corrects
 

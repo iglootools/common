@@ -182,4 +182,5 @@ ignore-names-if-decorated-with = [
 ]
 ignore-names = [
   "main", # the [project.scripts] entry point
+  "pytest_*", # hooks pytest calls by name, from a conftest.py
 ]
