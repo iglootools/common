@@ -6,6 +6,16 @@ The categories, severities, report layout and fixing rules are in
 `${CLAUDE_PLUGIN_ROOT}/guidelines/review/audit.md` — read it in full before step
 1 if it is not already in context.
 
+## Before the auditors start
+
+- **Categories.** Audit every category in `audit.md` that the skill runs,
+  unless the arguments narrow them with `only:` or `skip:`, the same for every
+  report the skill writes. A category left out on request goes under "Not
+  audited" as "not requested".
+- **Uncommitted changes** are not audited: when `git status --porcelain` shows
+  any, record them under "Not audited", in the report that covers the commit
+  checked out.
+
 ## 1. Start the auditors
 
 Start every auditor in one message, so they run in parallel, with the Agent tool
@@ -126,14 +136,15 @@ when asked says.
 
 ## 8. Reply
 
-Do not paste the report. Reply with:
+Do not paste the report. Reply with the report's summary:
 
 - the report's path, as a link;
 - the summary table;
 - one line per `critical` and `high` finding: ID, title, location;
-- anything under "Not audited";
-- how to continue: ask for findings by ID, category or severity ("fix SEC-1
-  ERR-2", "fix all high"), and they will be fixed following the report's "Fixing
-  findings" section.
+- anything under "Not audited".
+
+Then say how to continue: ask for findings by ID, category or severity ("fix
+SEC-1 ERR-2", "fix all high"), and they will be fixed following the report's
+"Fixing findings" section.
 
 Do not start fixing anything until asked.

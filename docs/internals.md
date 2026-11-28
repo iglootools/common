@@ -56,8 +56,13 @@ shows, each split the categories in
 that tries to disprove them, and write a Markdown report to
 `.iglootools/audits/`. All three set `disable-model-invocation`, so they run
 only when typed, because an audit starts several agents and costs accordingly.
-The report-writing steps they share are in
-[skills/audit-pr/assemble-report.md](../skills/audit-pr/assemble-report.md).
+Each skill holds only how it finds its scope and splits its work; the steps
+they share are runbooks under [audit/](../audit/), which a skill follows and
+amends: [assemble-report.md](../audit/assemble-report.md), for running the
+auditors and writing the report, followed by all three, and
+[branch-range.md](../audit/branch-range.md), for auditing one branch's range
+with its commit history, followed by `audit-pr` and `audit-pr-stack`. A step
+two skills need goes there, never into both.
 
 The skills run in the main conversation rather than in a subagent of their own,
 for two reasons. The findings have to be in the conversation that will fix them.
