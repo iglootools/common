@@ -19,6 +19,7 @@ class Stage(StrEnum):
     PUSHED = "pushed"
     OPENED = "opened"
     WAITING = "waiting"
+    FAST_FORWARD = "fast-forward"
     TAGGED = "tagged"
 
 

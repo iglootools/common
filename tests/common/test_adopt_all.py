@@ -114,54 +114,43 @@ def test_a_repository_that_pins_common_without_a_checkout_is_reported() -> None:
     assert missing == ["newproject"]
 
 
-def _checks(
-    status: str = "",
-    reach: int = 0,
-    ahead: str = "0",
-) -> Callable[..., subprocess.CompletedProcess[str]]:
+def _reach(status: int) -> Callable[..., subprocess.CompletedProcess[str]]:
     def run(
         command: Sequence[str],
         _directory: Path,
     ) -> subprocess.CompletedProcess[str]:
-        match list(command):
-            case ["git", "status", "--porcelain"]:
-                return subprocess.CompletedProcess(command, 0, status, "")
-            case ["git", "ls-remote", *_]:
-                return subprocess.CompletedProcess(
-                    command,
-                    reach,
-                    "",
-                    "Permission denied (publickey).\n",
-                )
-            case ["git", "rev-list", *_]:
-                return subprocess.CompletedProcess(command, 0, f"{ahead}\n", "")
-            case _:
-                return subprocess.CompletedProcess(command, 0, "", "")
+        assert list(command[:2]) == ["git", "ls-remote"], command
+        return subprocess.CompletedProcess(
+            command,
+            status,
+            "",
+            "Permission denied (publickey).\n",
+        )
 
     return run
 
 
-@pytest.mark.parametrize(
-    ("run", "issue"),
-    [
-        (_checks(status="?? notes.txt\n"), "has changes or untracked files"),
+def test_an_unreachable_origin_is_found_before_anything_changes() -> None:
+    assert adopt_all.problems(PROJECTS[1], run=_reach(128)) == [
         (
-            _checks(reach=128),
-            "cannot reach origin without a prompt (Permission denied (publickey).)",
+            "cannot reach origin without a prompt (Permission denied (publickey).); "
+            "load your key with `ssh-add`, or log in to git over HTTPS"
         ),
-        (_checks(ahead="2"), "its local main has 2 commit(s) GitHub lacks"),
-    ],
-)
-def test_each_problem_is_found_before_anything_changes(
-    run: Callable[..., subprocess.CompletedProcess[str]],
-    issue: str,
-) -> None:
-    issues = adopt_all.problems(PROJECTS[1], "main", run=run)
-    assert any(found.startswith(issue) for found in issues), issues
+    ]
 
 
-def test_a_ready_project_has_no_problems() -> None:
-    assert adopt_all.problems(PROJECTS[1], "main", run=_checks()) == []
+def test_a_reachable_project_is_ready_whatever_its_checkout_holds() -> None:
+    # Only ls-remote runs: the checkout's branch and changes are never looked at,
+    # since adopt works in a worktree started from GitHub's default branch.
+    assert adopt_all.problems(PROJECTS[1], run=_reach(0)) == []
+
+
+def test_describe_appends_the_notes_an_error_carries() -> None:
+    error = RuntimeError("boom")
+    error.add_note("The worktree is kept at /tmp/w.")
+    assert adopt_all.describe(error, "push failed") == (
+        "push failed The worktree is kept at /tmp/w."
+    )
 
 
 def test_every_project_runs_and_one_failure_does_not_stop_the_others() -> None:
