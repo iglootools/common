@@ -175,9 +175,9 @@ reaches `main`.
 ## Work in the mode the person names
 
 Agree on one of three modes before starting, and say which one is in use. Each
-sets when work is committed, when a pull request opens, and who merges it. The
-person can switch modes at any point. When none is named, propose one and wait
-for agreement.
+sets where the work happens, when it is committed, when a pull request opens,
+and who merges it. The person can switch modes at any point. When none is named,
+propose one and wait for agreement.
 
 **Why:** how much review a change needs varies more than the change's size
 suggests. Naming the mode up front settles what may be published without asking,
@@ -186,36 +186,47 @@ instead of leaving it to be guessed change by change.
 - In every mode, the rest of this file still applies: the history reaching
   review is clean, and nothing bypasses a check, a ruleset or a permission
   prompt.
-- Once a pull request is merged, delete its branch, locally and on the remote.
-  A merged branch left behind looks like work in progress.
-  `iglootools github prune-branches` deletes every one left over.
+- Once a pull request is merged, delete its branch, locally and on the remote,
+  and remove its worktree (`git worktree remove <path>`). A merged branch left
+  behind looks like work in progress. `iglootools github prune-branches`
+  deletes every one left over.
 - When the modes apply is refined as they are used.
 
 ### Exploratory: iterate in small steps, and publish only when asked
 
 For discovery, design and anything with many judgment calls: small steps, lots
-of feedback, lots of rework. Leave a change uncommitted, or make one or several
-commits, depending on how settled it is. Rework stays uncommitted until the
-person has reviewed it, then folds into the commit it belongs in. Open the pull
-request at the end, once the person explicitly approves.
+of feedback, lots of rework. Work in the main checkout of each repository
+involved. Leave a change uncommitted, or make one or several commits, depending
+on how settled it is. Rework stays uncommitted until the person has reviewed it,
+then folds into the commit it belongs in. Open the pull request at the end, once
+the person explicitly approves.
 
 **Why:** most of the work is reworked before it is right, and every commit or
-pull request made too early is one more thing to rewrite.
+pull request made too early is one more thing to rewrite. In the main checkout,
+the person reads, runs and edits each change as it is made, in the editor and
+terminal they already have open.
 
 ### PR-driven: one reviewed pull request at a time
 
 For lower-risk changes with few judgment calls, such as fixing audit findings:
 shape the commits, open one pull request, and wait. The person reviews it and
-merges it, or approves the merge.
+merges it, or approves the merge. Work in a separate worktree of each repository
+involved, started from `origin/main`, or from the branch a stacked pull request
+builds on (`git worktree add -b <branch> <path> origin/main`), never in the main
+checkout.
 
 **Why:** the change is clear enough to finish without discussion, but still
-deserves a human reading it before it lands.
+deserves a human reading it before it lands. The main checkout is where
+exploratory work happens, and a branch switched or a file changed under it
+disrupts that work.
 
 ### Autonomous: merge when green, and report afterwards
 
 For mechanical changes, such as carrying a change across the iglootools
 projects, realigning a project with the guidelines, or bumping dependencies:
-open each pull request, merge it once its checks pass with
+work in a separate worktree of each repository, as
+[PR-driven](#pr-driven-one-reviewed-pull-request-at-a-time) work does, open each
+pull request, merge it once its checks pass with
 `iglootools github merge-when-green <pr>`, and carry on. Stop and
 ask when a check fails for a reason that is not mechanical, or when a judgment
 call appears. At the end, list what was merged in each project, with links, so
