@@ -44,7 +44,7 @@ script in the project.
 | `iglootools repo sync` / `status` / `renovate` | `workspace sync`, `status` and `renovate` (below) for the repository checked out at `--root` alone, with the same options |
 | `iglootools repo adopt-common <version>` | moving every pin on iglootools/common to a release (`--latest` for the newest), through a pull request merged once green, in a temporary worktree that leaves the checkout as it is (`--no-merge` to finish the branch by hand) |
 | `iglootools repo lint-common-pins` | failing when the pins on common disagree, or `adopt` would miss one |
-| `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags (in common only) |
+| `iglootools common release <version>` | cutting a release of common: the version bump merged once green, then both tags, in temporary worktrees that leave the checkout as it is (in common only) |
 | `iglootools common check-indexes` | failing when a shared guideline is missing from its directory's index (in common only) |
 | `iglootools workspace adopt-common <version>` | adopting a release of common (`--latest` for the newest) in every project of the workspace, in parallel, each in a temporary worktree, after checking all of them, and in the workspace's own `iglootools` |
 | `iglootools workspace init` | setting the current directory up as the workspace: its `.iglootools-workspace/` marker and cache, and its own `iglootools` on common's newest release |

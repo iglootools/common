@@ -6,8 +6,10 @@ import pytest
 
 from iglootools.common import release
 from iglootools.common.release import FULL, Plan, Stage as ReleaseStage
+from iglootools.github import worktree
 from iglootools.github.client import GitHub, Repository
 from iglootools.github.events import Event, Stage
+from tests.conftest import git
 
 
 @pytest.mark.parametrize(
@@ -113,6 +115,7 @@ def test_the_dry_run_of_a_resumed_release_lists_only_what_is_left() -> None:
             "Would tag iglootools--v1.33.0's commit v1.33.0, push it, "
             "and check both tags name it."
         ),
+        "Would fast-forward the checkout's default branch, where that is safe.",
     ]
 
 
@@ -120,13 +123,23 @@ class FakeTagging:
     def __init__(self, plain_commit: str = "c1") -> None:
         self.plain_commit = plain_commit
         self.commands: list[list[str]] = []
+        self.directories: list[Path] = []
+
+    def ran_in(self, directory: Path) -> list[list[str]]:
+        """Return the commands run in *directory*."""
+        return [
+            command
+            for command, where in zip(self.commands, self.directories, strict=True)
+            if where == directory
+        ]
 
     def __call__(
         self,
         command: Sequence[str],
-        _directory: Path,
+        directory: Path,
     ) -> subprocess.CompletedProcess[str]:
         self.commands.append(list(command))
+        self.directories.append(directory)
         if list(command[:2]) == ["git", "rev-parse"]:
             commit = self.plain_commit if command[2].startswith("v") else "c1"
             return subprocess.CompletedProcess(command, 0, f"{commit}\n", "")
@@ -174,3 +187,108 @@ def test_tags_naming_different_commits_are_an_error(tmp_path: Path) -> None:
         "v1.33.0",
         "iglootools--v1.33.0",
     )
+
+
+def _dirs(tmp_path: Path) -> worktree.MakeDirFn:
+    def make(prefix: str) -> Path:
+        path = tmp_path / f"{prefix}x"
+        path.mkdir()
+        return path
+
+    return make
+
+
+def _plugin_json(version: str) -> str:
+    return f'{{\n  "name": "iglootools",\n  "version": "{version}"\n}}\n'
+
+
+class TestPushBump:
+    def _with_plugin_json(self, clone: Path) -> None:
+        # push_bump commits itself; the clone's own identity, which its worktrees
+        # share, keeps it from depending on the developer's or the runner's.
+        git(clone, "config", "user.name", "t")
+        git(clone, "config", "user.email", "t@t")
+        (clone / ".claude-plugin").mkdir()
+        (clone / release.PLUGIN_JSON).write_text(_plugin_json("1.32.2"))
+        git(clone, "add", str(release.PLUGIN_JSON))
+        git(clone, "commit", "-qm", "v")
+        git(clone, "push", "-q", "origin", "main")
+
+    def test_the_bump_is_pushed_and_the_checkout_left_as_it_is(
+        self,
+        clone: Path,
+        tmp_path: Path,
+    ) -> None:
+        self._with_plugin_json(clone)
+        git(clone, "switch", "-q", "-c", "feat/elsewhere")
+        (clone / "notes.txt").write_text("work in progress")
+        branch = release.push_bump(
+            clone,
+            "main",
+            "1.33.0",
+            make_dir_fn=_dirs(tmp_path),
+        )
+        assert branch == "chore/release-1.33.0"
+        pushed = git(clone, "show", f"origin/{branch}:{release.PLUGIN_JSON}")
+        assert pushed == _plugin_json("1.33.0")
+        assert git(clone, "branch", "--show-current").strip() == "feat/elsewhere"
+        assert (clone / "notes.txt").read_text() == "work in progress"
+        assert len(git(clone, "worktree", "list").splitlines()) == 1
+
+    def test_it_runs_from_a_worktree_while_another_checkout_holds_main(
+        self,
+        clone: Path,
+        tmp_path: Path,
+    ) -> None:
+        self._with_plugin_json(clone)
+        linked = tmp_path / "linked"
+        git(clone, "worktree", "add", "-q", "--detach", str(linked))
+        branch = release.push_bump(
+            linked,
+            "main",
+            "1.33.0",
+            make_dir_fn=_dirs(tmp_path),
+        )
+        assert git(clone, "ls-remote", "--heads", "origin", branch) != ""
+        assert git(clone, "branch", "--show-current").strip() == "main"
+
+
+class TestTagRelease:
+    def test_the_tags_are_made_in_a_worktree_at_the_default_branch(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        tools = FakeTagging()
+        root, work = tmp_path / "checkout", tmp_path / "iglootools-release-tags-x"
+        root.mkdir()
+        release.tag_release(
+            root,
+            "main",
+            "1.33.0",
+            (ReleaseStage.PLUGIN_TAG, ReleaseStage.PLAIN_TAG),
+            report=lambda _event: None,
+            run=tools,
+            make_dir_fn=_dirs(tmp_path),
+        )
+        assert tools.ran_in(root) == [
+            ["git", "fetch", "-q", "origin", "main"],
+            ["git", "worktree", "add", "-q", "--detach", str(work), "origin/main"],
+            ["git", "worktree", "remove", "--force", str(work)],
+        ]
+        assert ["claude", "plugin", "tag", "--push", "-m", "Release %s"] in (
+            tools.ran_in(work)
+        )
+        assert ["git", "push", "-q", "origin", "v1.33.0"] in tools.ran_in(work)
+
+    def test_a_release_with_no_tag_left_makes_no_worktree(self, tmp_path: Path) -> None:
+        tools = FakeTagging()
+        release.tag_release(
+            tmp_path,
+            "main",
+            "1.33.0",
+            (ReleaseStage.BUMP,),
+            report=lambda _event: None,
+            run=tools,
+            make_dir_fn=_dirs(tmp_path),
+        )
+        assert tools.commands == []

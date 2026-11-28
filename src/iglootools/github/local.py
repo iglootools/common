@@ -83,18 +83,17 @@ class GitStepFailureKind(StrEnum):
     """
     How a git step failed.
 
-    A command exited non-zero, the checkout was unclean, or something else switched
-    the checkout to another branch while the step was working on its own.
+    A command exited non-zero, or something else switched the checkout to another
+    branch while the step was working on its own.
     """
 
     COMMAND_FAILED = "command-failed"
-    UNCLEAN_CHECKOUT = "unclean-checkout"
     SWITCHED_BRANCH = "switched-branch"
 
 
 class GitStepError(RuntimeError):
     """
-    A failed command with its own message as *output*, an unclean checkout, or a switch.
+    A failed command with its own message as *output*, or a switch.
 
     For a switch, *branch* is the branch the step works on and *current* the one the
     checkout is on instead, empty for a detached HEAD.
@@ -113,11 +112,6 @@ class GitStepError(RuntimeError):
         match kind:
             case GitStepFailureKind.COMMAND_FAILED:
                 message = f"{' '.join(command)}: {output}"
-            case GitStepFailureKind.UNCLEAN_CHECKOUT:
-                message = (
-                    "the checkout has changes or untracked files; "
-                    "commit, stash or remove them"
-                )
             case GitStepFailureKind.SWITCHED_BRANCH:
                 message = (
                     f"the checkout left {branch} for {current or 'a detached HEAD'}"
@@ -142,19 +136,6 @@ def git(root: Path, *args: str, run: Run = capture) -> str:
             result.stderr.strip(),
         )
     return result.stdout
-
-
-def require_clean(root: Path, *, run: Run = capture) -> None:
-    """Raise unless the checkout has no changes and no untracked files."""
-    if git(root, "status", "--porcelain", run=run).strip():
-        raise GitStepError(GitStepFailureKind.UNCLEAN_CHECKOUT)
-
-
-def start_branch(root: Path, base: str, branch: str, *, run: Run = capture) -> None:
-    """Create *branch* from an up-to-date *base*, in a clean checkout."""
-    require_clean(root, run=run)
-    sync(root, base, run=run)
-    git(root, "switch", "-q", "-c", branch, run=run)
 
 
 def sync(root: Path, base: str, *, run: Run = capture) -> None:

@@ -102,10 +102,14 @@ def release(
     """
     Cut a release of iglootools/common: bump, merge once green, tag both ways.
 
-    Run from common's checkout. Opens a pull request bumping .claude-plugin/plugin.json,
-    merges it once every check has passed, then tags the merge commit with
-    `claude plugin tag` (iglootools--vX.Y.Z) and the plain vX.Y.Z projects pin by, and
-    checks both name the same commit.
+    Opens a pull request bumping .claude-plugin/plugin.json, merges it once every check
+    has passed, then tags the merge commit with `claude plugin tag` (iglootools--vX.Y.Z)
+    and the plain vX.Y.Z projects pin by, and checks both name the same commit.
+
+    Runs from any checkout of common, which it never switches: the bump and the tags are
+    made in temporary worktrees started from GitHub's default branch, so it works while
+    another worktree holds that branch. Afterwards, the checkout's default branch is
+    fast-forwarded where that is safe.
 
     Plans from what GitHub already has: a release that stopped half way is resumed
     (tags only), one that is complete changes nothing, and tags that disagree with

@@ -165,6 +165,28 @@ def fast_forward(
     return FastForward(action, checkout)
 
 
+def fast_forward_where_safe(root: Path, base: str, *, run: Run = capture) -> str:
+    """
+    Fast-forward *base* where safe, as fast_forward does; say what happened.
+
+    Returns the sentence a command that just merged into *base* reports, and never
+    raises: a failed git step is said too, since the merge it follows already landed.
+    """
+    try:
+        done = fast_forward(root, base, run=run)
+    except local.GitStepError as error:
+        return f"{base} not fast-forwarded: {error}"
+    match done.action:
+        case FastForwardAction.UP_TO_DATE:
+            return f"{base} already up to date"
+        case FastForwardAction.MOVE_REF | FastForwardAction.MERGE:
+            return f"fast-forwarded {base}"
+        case FastForwardAction.DIVERGED:
+            return f"{base} left alone: it has commits GitHub lacks"
+        case FastForwardAction.HAS_CHANGES:
+            return f"{base} left alone: {done.checkout} has changes"
+
+
 def checkout_of(root: Path, branch: str, *, run: Run = capture) -> Path | None:
     """Return the worktree of *root*'s repository that has *branch* checked out."""
     entries = local.git(root, "worktree", "list", "--porcelain", run=run).split("\n\n")
