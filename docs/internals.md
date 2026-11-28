@@ -202,7 +202,7 @@ tracked file that mentions common rather than in a list of files, and
 | The `iglootools` command | a dev dependency in `pyproject.toml`, `iglootools @ git+https://github.com/iglootools/common@v<version>`, run as `uv run --no-sync iglootools …`; a project without Python has a `pyproject.toml` for this alone ([ADR-004](architecture-decision-record.md#adr-004--install-the-iglootools-command-through-uv-in-every-project-python-or-not)) |
 | Where the tag's commit is recorded | `uv.lock`: `common?rev=v<version>#<commit>`, written when `uv lock` resolved the tag |
 | Other pins | the reusable workflows (by SHA, with `# v<version>`), the `base` Renovate preset, and the `python` one in a Python project |
-| What keeps the release current | Renovate, through the `base` preset's manager for the dependency, and its own for the workflows and presets; adopt |
+| What keeps the release current | adopt, as each release lands; Renovate after the 14-day hold, as the fallback, through the `base` preset's manager for the dependency and its own for the workflows and presets |
 | What `adopt` does | moves the pins, then regenerates `uv.lock`, which records the new commit; once merged, updates the Claude Code plugin installed for the project |
 | What `lint-common-pins` verifies | every pin names one release, adopt would move each, every SHA pin has its tag comment, and the release and every workflow SHA match `uv.lock`'s record |
 
